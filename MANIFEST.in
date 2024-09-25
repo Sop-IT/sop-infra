@@ -1,0 +1,5 @@
+recursive-include sop_infra/templates/ *
+recursive-include sop_infra/api/ *
+recursive-include sop_infra/migrations/ *
+recursive-include sop_infra/views/ *
+recursive-include sop_infra/forms/ *

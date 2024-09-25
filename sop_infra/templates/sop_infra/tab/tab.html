@@ -1,0 +1,33 @@
+{% extends "dcim/site.html" %}
+{% load static %}
+{% load render_table from django_tables2 %}
+{% load helpers %}
+{% load i18n %}
+
+
+<!-- body of the tab -->
+{% block content %}
+
+<div class="row">
+
+  <div class="col col-md-6">
+    {% include 'sop_infra/tab/classification.html' with object=context.classification %}
+  </div>
+  <div class="col col-md-6">
+    {% include 'sop_infra/tab/sizing.html' with object=context.sizing %}
+  </div>
+  <div class="col col-md-6">
+    {% include 'sop_infra/tab/meraki_sdwan.html' with object=context.meraki_sdwan %}
+  </div>
+
+</div>
+
+<script src="{% static 'my_tab.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function ()
+{
+    const all_tabs = document.querySelectorAll('ul.nav.nav-tabs li.nav-item a');
+    update_current_tab_color(all_tabs, "Infrastructure");
+});
+</script>
+{% endblock content %}

@@ -1,0 +1,61 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+{% load i18n %}
+{% load buttons %}
+
+
+{% block breadcrumbs %}
+  {% include 'sop_utils/tools/breadcrumbs.html' with object=object name=object|meta:"verbose_name"|bettertitle %}
+{% endblock %}
+
+
+{% block title %}{{object|meta:"verbose_name"|bettertitle}}{% endblock %}
+
+
+{% block control-buttons %}
+{% bookmark_button object %}
+{% edit_button object %}
+{% endblock %}
+
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+
+      <h5 class="card-header">{{object|meta:"verbose_name"|bettertitle}}</h5>
+      <table class="table table-hover attr-table">
+
+        <tr>
+          <th scope="row">{% trans "AD cumul users" %}</th>
+          <td>
+            {% include 'sop_utils/tools/display.html' with object=object.ad_cumul_user %}
+          </td>
+        </tr>
+
+
+        <tr>
+          <th scope="row">{% trans "EST cumul users" %}</th>
+          <td>
+            {% include 'sop_utils/tools/display.html' with object=object.est_cumul_user %}
+          </td>
+        </tr>
+
+        <tr>
+          <th scope="row">{% trans "Reco. BW (Mbps)" %} </th>
+          <td>
+            {% include 'sop_utils/tools/display.html' with object=object.reco_bw %}
+          </td>
+        </tr>
+
+      </table>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    {% include 'sop_utils/tools/site.html' with object=object %}
+  </div>
+</div>
+{% endblock %}
+
+x
