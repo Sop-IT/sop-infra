@@ -1,0 +1,17 @@
+{% load helpers %}
+{% load mptt %}
+
+
+<!--
+      true: display a green V
+      false: display a red X
+      else: display a yellow ?
+-->
+
+{% if object == "false" %}
+    <i class="mdi mdi-close-thick text-danger" title="False"></i>
+{% elif object == "true" %}
+    <i class="mdi mdi-check-bold text-success" title="True"></i>
+{% else %}
+    <i class="mdi mdi-help text-warning" title="No informations"></i>
+{% endif %}

@@ -1,0 +1,7 @@
+{% load helpers %}
+
+{% if object and object != "none" %}
+    <span>{{object|linkify}}</span>
+{% else %}
+    {% include 'sop_infra/tools/badge.html' %}
+{% endif %}

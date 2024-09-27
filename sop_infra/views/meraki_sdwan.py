@@ -2,8 +2,6 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.views import generic
 
-from sop_utils.utils import *
-
 from ..forms.meraki_sdwan import *
 from ..models import *
 

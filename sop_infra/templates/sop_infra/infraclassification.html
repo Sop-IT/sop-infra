@@ -5,7 +5,7 @@
 
 
 {% block breadcrumbs %}
-  {% include 'sop_utils/tools/breadcrumbs.html' with object=object name=object|meta:"verbose_name"|bettertitle %}
+  {% include 'sop_infra/tools/breadcrumbs.html' with object=object name=object|meta:"verbose_name"|bettertitle %}
 {% endblock %}
 
 
@@ -29,42 +29,42 @@
         <tr>
           <th scope="row">{% trans "System infrastructure" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.get_infrastructure_display %}
+            {% include 'sop_infra/tools/display.html' with object=object.get_infrastructure_display %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "Industrial" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.get_industrial_display %}
+            {% include 'sop_infra/tools/display.html' with object=object.get_industrial_display %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "Phone critical" %}</th>
           <td>
-            {% include 'sop_utils/tools/badge.html' with object=object.phone_critical %}
+            {% include 'sop_infra/tools/badge.html' with object=object.phone_critical %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "R&D ?" %}</th>
           <td>
-            {% include 'sop_utils/tools/badge.html' with object=object.r_and_d %}
+            {% include 'sop_infra/tools/badge.html' with object=object.r_and_d %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "VIP ?" %}</th>
           <td>
-            {% include 'sop_utils/tools/badge.html' with object=object.vip %}
+            {% include 'sop_infra/tools/badge.html' with object=object.vip %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "WMS ?" %}</th>
           <td>
-            {% include 'sop_utils/tools/badge.html' with object=object.wms %}
+            {% include 'sop_infra/tools/badge.html' with object=object.wms %}
           </td>
         </tr>
 
@@ -73,7 +73,7 @@
   </div>
 
   <div class="col-md-6">
-    {% include 'sop_utils/tools/site.html' with object=object %}
+    {% include 'sop_infra/tools/site.html' with object=object %}
   </div>
 </div>
 {% endblock %}

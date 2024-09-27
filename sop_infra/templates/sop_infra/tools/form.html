@@ -1,0 +1,42 @@
+{% extends 'generic/object_edit.html' %}
+{% load i18n %}
+{% load helpers %}
+
+
+{% block title %}
+  {% if title %}{{title}}{% else %}Add a new {{object|meta:"verbose_name"}}{% endif %}
+{% endblock title %}
+
+<!-- add extra controls & buttons -->
+
+{% block controls %}
+    {% if form|meta:"model"|meta:"verbose_name" == "Voice Delivery" %}
+        <a href="{% url 'circuits:provider_add' %}" class="btn btn-primary">
+        <i class="mdi mdi-plus-thick"></i>{% trans "Add a provider" %}</a>
+    {% elif form|meta:"model"|meta:"verbose_name" == "Site Maintainer" %}
+        <a href="{% url 'plugins:sop_voice:voicemaintainer_add' %}" class="btn btn-primary">
+        <i class="mdi mdi-plus-thick"></i>{% trans "Add a maintainer" %}</a>
+    {% endif %}
+{% endblock controls %}
+
+
+{% block buttons %}
+    <a href="{{ return_url }}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
+    {% if object.pk %}
+        <button type="submit" name="_update" class="btn btn-primary">
+        {% trans "Save" %}
+        </button>
+    {% else %}
+        <div class="btn-group" role="group" aria-label="{% trans "Actions" %}">
+            <button type="submit" name="_create" class="btn btn-primary">
+                {% trans "Create" %}
+            </button>
+            {% if form|meta:"model"|meta:"verbose_name" == "Information" %}
+            {% else %}
+            <button type="submit" name="_addanother" class="btn btn-outline-primary">
+                {% trans "Create & Add Another" %}
+            </button>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock buttons %}

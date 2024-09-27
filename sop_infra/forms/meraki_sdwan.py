@@ -1,8 +1,6 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from sop_utils.models import *
-
 from ..models import *
 
 
@@ -28,7 +26,7 @@ class MerakiSDWANForm(forms.ModelForm):
         choices=InfraMerakiHubOrderChoices
     )
     hub_default_route_setting = forms.ChoiceField(
-        choices=SopBoolChoices,
+        choices=InfraBoolChoices,
         label=_('HUB default route setting'),
         required=False,
         help_text=_('Set to true if the default route should be sent through the AutoVPN.')
@@ -62,7 +60,7 @@ class MerakiSDWANForm(forms.ModelForm):
         label=_('Monitor in starting'),
         required=False,
         help_text=_('Centreon > Start monitoring when starting the site.'),
-        choices=SopBoolChoices
+        choices=InfraBoolChoices
     )
 
     class Meta:

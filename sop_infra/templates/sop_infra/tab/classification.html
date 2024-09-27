@@ -16,37 +16,37 @@
       <a href="{% url object|viewname:"detail" pk=object.id %}"
          class="list-group-item list-group-item-action d-flex justify-content-between">
         {% trans "System infrastructure" %}
-        {% include 'sop_utils/tools/display.html' with object=object.get_infrastructure_display %}
+        {% include 'sop_infra/tools/display.html' with object=object.get_infrastructure_display %}
       </a>
 
       <a href="{% url object|viewname:"detail" pk=object.id %}"
          class="list-group-item list-group-item-action d-flex justify-content-between">
         {% trans "Industrial" %}
-        {% include 'sop_utils/tools/display.html' with object=object.get_industrial_display %}
+        {% include 'sop_infra/tools/display.html' with object=object.get_industrial_display %}
       </a>
 
       <a href="{% url object|viewname:"detail" pk=object.id %}"
          class="list-group-item list-group-item-action d-flex justify-content-between">
         {% trans "Phone critical ?" %}
-        {% include 'sop_utils/tools/badge.html' with object=object.phone_critical %}
+        {% include 'sop_infra/tools/badge.html' with object=object.phone_critical %}
       </a>
 
       <a href="{% url object|viewname:"detail" pk=object.id %}"
          class="list-group-item list-group-item-action d-flex justify-content-between">
         {% trans "R&D ?" %}
-        {% include 'sop_utils/tools/badge.html' with object=object.r_and_d %}
+        {% include 'sop_infra/tools/badge.html' with object=object.r_and_d %}
       </a>
 
       <a href="{% url object|viewname:"detail" pk=object.id %}"
          class="list-group-item list-group-item-action d-flex justify-content-between">
         {% trans "VIP ?" %}
-        {% include 'sop_utils/tools/badge.html' with object=object.vip %}
+        {% include 'sop_infra/tools/badge.html' with object=object.vip %}
       </a>
 
       <a href="{% url object|viewname:"detail" pk=object.id %}"
          class="list-group-item list-group-item-action d-flex justify-content-between">
         {% trans "WMS ?" %}
-        {% include 'sop_utils/tools/badge.html' with object=object.wms %}
+        {% include 'sop_infra/tools/badge.html' with object=object.wms %}
       </a>
 
     </ul>

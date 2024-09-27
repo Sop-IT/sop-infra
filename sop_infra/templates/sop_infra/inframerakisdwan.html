@@ -5,7 +5,7 @@
 
 
 {% block breadcrumbs %}
-  {% include 'sop_utils/tools/breadcrumbs.html' with object=object name=object|meta:"verbose_name"|bettertitle %}
+  {% include 'sop_infra/tools/breadcrumbs.html' with object=object name=object|meta:"verbose_name"|bettertitle %}
 {% endblock %}
 
 
@@ -29,28 +29,28 @@
         <tr>
           <th scope="row">{% trans "HA(S) / NHA target" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.get_nha_target_display %}
+            {% include 'sop_infra/tools/display.html' with object=object.get_nha_target_display %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "HUB order setting" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.get_hub_order_setting_display %}
+            {% include 'sop_infra/tools/display.html' with object=object.get_hub_order_setting_display %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "HUB default route setting" %}</th>
           <td>
-            {% include 'sop_utils/tools/badge.html' with object=object.hub_default_route_setting %}
+            {% include 'sop_infra/tools/badge.html' with object=object.hub_default_route_setting %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "WAN1 BW" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.wan1_bw %}
+            {% include 'sop_infra/tools/display.html' with object=object.wan1_bw %}
           </td>
         </tr>
 
@@ -58,35 +58,35 @@
         <tr>
           <th scope="row">{% trans "WAN2 BW" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.wan2_bw %}
+            {% include 'sop_infra/tools/display.html' with object=object.wan2_bw %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "MASTER Location" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.master_location %}
+            {% include 'sop_infra/tools/display.html' with object=object.master_location %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "MASTER Site" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.master_site %}
+            {% include 'sop_infra/tools/display.html' with object=object.master_site %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "Migration date" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.migration_date %}
+            {% include 'sop_infra/tools/display.html' with object=object.migration_date %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "Monitor in starting" %}</th>
           <td>
-            {% include 'sop_utils/tools/badge.html' with object=object.monitor_in_starting %}
+            {% include 'sop_infra/tools/badge.html' with object=object.monitor_in_starting %}
           </td>
         </tr>
 
@@ -95,7 +95,7 @@
   </div>
 
   <div class="col-md-6">
-    {% include 'sop_utils/tools/site.html' with object=object %}
+    {% include 'sop_infra/tools/site.html' with object=object %}
   </div>
 </div>
 {% endblock %}

@@ -16,19 +16,19 @@
       <a href="{% url object|viewname:"detail" pk=object.id %}"
          class="list-group-item list-group-item-action d-flex justify-content-between">
         {% trans "AD cumul. user" %}
-        {% include 'sop_utils/tools/display.html' with object=object.ad_cumul_user %}
+        {% include 'sop_infra/tools/display.html' with object=object.ad_cumul_user %}
       </a>
 
       <a href="{% url object|viewname:"detail" pk=object.id %}"
          class="list-group-item list-group-item-action d-flex justify-content-between">
         {% trans "EST cumul. user" %}
-        {% include 'sop_utils/tools/display.html' with object=object.est_cumul_user %}
+        {% include 'sop_infra/tools/display.html' with object=object.est_cumul_user %}
       </a>
 
       <a href="{% url object|viewname:"detail" pk=object.id %}"
          class="list-group-item list-group-item-action d-flex justify-content-between">
         {% trans "Reco. BW (Mbps)" %}
-        {% include 'sop_utils/tools/display.html' with object=object.reco_bw %}
+        {% include 'sop_infra/tools/display.html' with object=object.reco_bw %}
       </a>
 
     </ul>

@@ -1,0 +1,50 @@
+{% load helpers %}
+{% load i18n %}
+
+<!-- display informations related to the site of the object -->
+
+<div class="card">
+
+  <h5 class="card-header">{{object.site|meta:"verbose_name"|bettertitle}}</h5>
+  <table class="table table-hover attr-table">
+
+    <tr>
+      <th scope="row">{% trans "Site" %}</th>
+      <td>
+        {% if object.site %} {{object.site|linkify}} {% else %} {% include "sop_infra/tools/badge.html" %} {% endif %}
+      </td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "Region" %}</th>
+      <td>
+        {% if object.site.region %} {{object.site.region|linkify}} {% else %} {% include "sop_infra/tools/badge.html" %} {% endif %}
+      </td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "Group" %}</th>
+      <td>
+        {% if object.site.group %} {{object.site.group|linkify}} {% else %} {% include "sop_infra/tools/badge.html" %} {% endif %}
+      </td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "Status" %}</th>
+      <td>
+        {% badge object.site.get_status_display bg_color=object.site.get_status_color %}
+      </td>
+    </tr>
+
+    {% if maintainer %}
+    <tr>
+      <th scope="row">{% trans "Maintainer" %}</th>
+      <td>
+        {{maintainer|linkify}}
+      </td>
+    </tr>
+    {% endif %}
+
+  </table>
+</div>
+

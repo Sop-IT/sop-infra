@@ -5,9 +5,8 @@ from django.views import View
 from utilities.views import register_model_view, ViewTab
 from dcim.models import Site
 
-from sop_utils.utils import *
-
 from ..models import *
+from ..utils import get_object_or_create
 
 
 __all__ = (

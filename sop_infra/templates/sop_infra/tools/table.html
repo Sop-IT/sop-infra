@@ -1,0 +1,36 @@
+{% load buttons %}
+{% load helpers %}
+{% load i18n %}
+{% load plugins %}
+
+
+{% if search %}
+  <div class="row">
+    <div class="col-auto d-print-none">
+      <div class="input-group input-group-flat me-2 quicksearch" hx-disinherit="hx-select hx-sw">
+        <input type="search" name="q" class="form-control" id="quick-search" placeholder="Quick search numbers" />
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-3">
+  </div>
+
+{% endif %}
+
+<div class="card">
+
+  <h2 class="card-header">
+    <a href="{% url object|viewname:"list" %}">{{object|meta:"verbose_name"}}</a>
+    <div class="card-actions">
+        <a href="{% url reversed_url pk=pk %}" class="btn btn-ghost-primary btn-sm">
+            <i class="mdi mdi-plust-thick" aria-hidden="true"></i>Add a {{object|meta:"verbose_name"}}
+        </a>
+    </div>
+  </h2>
+
+  <div class="custom-table" id="{{ object|meta:"verbose_name_plural" }}">
+    {% htmx_table object|viewname:"list" site_id=pk %}
+  </div>
+
+</div>

@@ -5,7 +5,7 @@
 
 
 {% block breadcrumbs %}
-  {% include 'sop_utils/tools/breadcrumbs.html' with object=object name=object|meta:"verbose_name"|bettertitle %}
+  {% include 'sop_infra/tools/breadcrumbs.html' with object=object name=object|meta:"verbose_name"|bettertitle %}
 {% endblock %}
 
 
@@ -29,7 +29,7 @@
         <tr>
           <th scope="row">{% trans "AD cumul users" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.ad_cumul_user %}
+            {% include 'sop_infra/tools/display.html' with object=object.ad_cumul_user %}
           </td>
         </tr>
 
@@ -37,14 +37,14 @@
         <tr>
           <th scope="row">{% trans "EST cumul users" %}</th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.est_cumul_user %}
+            {% include 'sop_infra/tools/display.html' with object=object.est_cumul_user %}
           </td>
         </tr>
 
         <tr>
           <th scope="row">{% trans "Reco. BW (Mbps)" %} </th>
           <td>
-            {% include 'sop_utils/tools/display.html' with object=object.reco_bw %}
+            {% include 'sop_infra/tools/display.html' with object=object.reco_bw %}
           </td>
         </tr>
 
@@ -53,7 +53,7 @@
   </div>
 
   <div class="col-md-6">
-    {% include 'sop_utils/tools/site.html' with object=object %}
+    {% include 'sop_infra/tools/site.html' with object=object %}
   </div>
 </div>
 {% endblock %}

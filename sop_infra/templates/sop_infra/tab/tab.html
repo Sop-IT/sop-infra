@@ -22,12 +22,25 @@
 
 </div>
 
-<script src="{% static 'my_tab.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function ()
 {
     const all_tabs = document.querySelectorAll('ul.nav.nav-tabs li.nav-item a');
     update_current_tab_color(all_tabs, "Infrastructure");
+
+    /*
+    * update tab front background color
+    */
+    function update_current_tab_color(all_tabs, name)
+    {
+        all_tabs.forEach(tab => {
+            if (tab.innerText == "Site") {
+                tab.classList.remove('active');
+            } else if (tab.innerText.split(' ')[0] == name) {
+                tab.classList.add('active');
+            }
+        });
+    }
 });
 </script>
 {% endblock content %}

@@ -6,8 +6,6 @@ from utilities.choices import ChoiceSet
 from netbox.models import NetBoxModel
 from dcim.models import Site
 
-from sop_utils.models import *
-
 
 __all__ = (
     'InfraClassification',
@@ -16,8 +14,18 @@ __all__ = (
     'InfraTypeChoices',
     'InfraTypeIndusChoices',
     'InfraMerakiHubOrderChoices',
-    'InfraSdwanhaChoices'
+    'InfraSdwanhaChoices',
+    'InfraBoolChoices'
 )
+
+
+class InfraBoolChoices(ChoiceSet):
+
+    CHOICES = (
+        ('unknown', _('Unknown'), 'gray'),
+        ('true', _('True'), 'green'),
+        ('false', _('False'), 'red'),
+    )
 
 
 class InfraTypeChoices(ChoiceSet):
@@ -70,7 +78,7 @@ class InfraMerakiSDWAN(NetBoxModel):
         choices=InfraMerakiHubOrderChoices
     )
     hub_default_route_setting = models.CharField(
-        choices=SopBoolChoices
+        choices=InfraBoolChoices
     )
     wan1_bw = models.CharField()
     wan2_bw = models.CharField()
@@ -78,7 +86,7 @@ class InfraMerakiSDWAN(NetBoxModel):
     master_site = models.CharField()
     migration_date = models.CharField()
     monitor_in_starting = models.CharField(
-        choices=SopBoolChoices
+        choices=InfraBoolChoices
     )
 
     def __str__(self)->str:
@@ -125,19 +133,19 @@ class InfraClassification(NetBoxModel):
     )
     phone_critical = models.CharField(
         max_length=30,
-        choices=SopBoolChoices,
+        choices=InfraBoolChoices,
     )
     r_and_d = models.CharField(
         max_length=30,
-        choices=SopBoolChoices,
+        choices=InfraBoolChoices,
     )
     vip = models.CharField(
         max_length=30,
-        choices=SopBoolChoices,
+        choices=InfraBoolChoices,
     )
     wms = models.CharField(
         max_length=30,
-        choices=SopBoolChoices,
+        choices=InfraBoolChoices,
     )
 
     def __str__(self):
