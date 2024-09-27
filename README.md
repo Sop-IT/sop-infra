@@ -4,17 +4,6 @@
 
 ## Installation
 
-### Prerequisites
-
-This plugin requires Sop-utils to work. It will be automatically installed but you need to manually add it to netbox/configuration.py.
-
-```python
-PLUGINS = [
-    ...
-    'sop_utils',
-]
-```
-
 ### Auto-upgrade installation
 
 Add the plugin to NetBox local_requirements
