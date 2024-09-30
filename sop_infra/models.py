@@ -105,9 +105,18 @@ class InfraSizing(NetBoxModel):
         to=Site,
         on_delete=models.CASCADE,
     )
-    ad_cumul_user = models.CharField()
-    est_cumul_user = models.CharField()
-    reco_bw = models.CharField()
+    ad_cumul_user = models.CharField(
+        blank=True,
+        null=True
+    )
+    est_cumul_user = models.CharField(
+        blank=True,
+        null=True
+    )
+    reco_bw = models.CharField(
+        blank=True,
+        null=True,
+    )
 
     def __str__(self) -> str:
         return f'{self.site}'

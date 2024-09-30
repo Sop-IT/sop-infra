@@ -13,11 +13,11 @@ class InfraSizingForm(forms.ModelForm):
     '''
     creates a form for a sizing instance
     '''
-    ad_cumul_user = forms.CharField(label=_('AD cumul. users'), required=False)
-    est_cumul_user = forms.CharField(label=_('EST cumul. users'), required=False)
-    reco_bw = forms.CharField(label=_('Reco. BW (Mbps)'), required=False,
-        help_text=_('Recommended bandwidth (Mbps)'))
+    est_cumul_user = forms.IntegerField(
+        label=_('EST cumul. users'),
+        required=False
+    )
 
     class Meta:
         model = InfraSizing
-        fields = ('ad_cumul_user', 'est_cumul_user', 'reco_bw')
+        fields = ('est_cumul_user',)

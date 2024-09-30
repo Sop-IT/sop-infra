@@ -17,7 +17,12 @@ class MerakiSDWANForm(forms.ModelForm):
         label=_('HA(S) / NHA target'),
         required=False,
         help_text=_('Calculated target for this site.'),
-        choices=InfraSdwanhaChoices
+        choices=InfraSdwanhaChoices,
+        widget=forms.Select(
+            attrs={
+                'disabled':'disabled'
+            }
+        )
     )
     hub_order_setting = forms.ChoiceField(
         label=_('HUB order setting'),
@@ -49,7 +54,13 @@ class MerakiSDWANForm(forms.ModelForm):
     master_site = forms.CharField(
         label=_('MASTER Site'),
         required=False,
-        help_text=_('Automatically derived from the SDWAN master location.')
+        help_text=_('Automatically derived from the SDWAN master location.'),
+        widget=forms.Select(
+            attrs={
+                'disabled':'disabled'
+            }
+        )
+        
     )
     migration_date = forms.CharField(
         label=_('Migration date'),
