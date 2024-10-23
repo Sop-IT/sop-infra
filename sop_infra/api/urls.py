@@ -5,8 +5,6 @@ from .views import *
 
 router = NetBoxRouter()
 
-router.register('classifications', InfraClassificationViewSet)
-router.register('sizing', InfraSizingViewSet)
-router.register('meraki_sdwan', InfraMerakiSDWANViewSet)
+router.register('sop-infras', SopInfraViewSet)
 
 urlpatterns = router.urls

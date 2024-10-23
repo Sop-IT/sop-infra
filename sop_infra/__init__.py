@@ -4,10 +4,13 @@ from netbox.plugins import PluginConfig
 class SopInfraConfig(PluginConfig):
     name = "sop_infra"
     verbose_name = "SOP Infra"
-    description = "Manage infrastructure informations of each site."
-    version = "1.0.5"
+    description = "Manage infrastructure informations of each site"
+    version = "0.0.1"
     author = "Leorevoir"
-    author_email = "leoquinzler@epitech.eu"
-    base_url = "sop-infra"
+    author_email = "leo.quinzler@epitech.eu"
+    base_rul = "sop-infra"
+    min_version = '4.1.0'
+
 
 config = SopInfraConfig
+

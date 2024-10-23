@@ -1,21 +1,20 @@
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
-from utilities.choices import ChoiceSet
 from netbox.models import NetBoxModel
-from dcim.models import Site
+from utilities.choices import ChoiceSet
+from dcim.models import Site, Location
 
 
 __all__ = (
-    'InfraClassification',
-    'InfraSizing',
-    'InfraMerakiSDWAN',
+    'SopInfra',
+    'InfraBoolChoices',
     'InfraTypeChoices',
     'InfraTypeIndusChoices',
-    'InfraMerakiHubOrderChoices',
-    'InfraSdwanhaChoices',
-    'InfraBoolChoices'
+    'InfraHubOrderChoices',
+    'InfraSdwanhaChoices'
 )
 
 
@@ -45,7 +44,7 @@ class InfraTypeIndusChoices(ChoiceSet):
     )
 
 
-class InfraMerakiHubOrderChoices(ChoiceSet):
+class InfraHubOrderChoices(ChoiceSet):
 
     CHOICES = (
         ('N_731271989494311779,L_3689011044769857831,N_731271989494316918,N_731271989494316919', 'EQX-NET-COX-DDC'),
@@ -66,103 +65,117 @@ class InfraSdwanhaChoices(ChoiceSet):
     )
 
 
-class InfraMerakiSDWAN(NetBoxModel):
-    site = models.ForeignKey(
+class SopInfra(NetBoxModel):
+    site = models.OneToOneField(
         to=Site,
         on_delete=models.CASCADE,
+        unique=True
     )
-    nha_target = models.CharField(
-        choices=InfraSdwanhaChoices
+    # ______________
+    # Classification
+    site_infra_sysinfra = models.CharField(
+        choices=InfraTypeChoices,
+        null=True,
+        blank=True
+    )
+    site_type_indus = models.CharField(
+        choices=InfraTypeIndusChoices(),
+        null=True,
+        blank=True
+    )
+    site_phone_critical = models.CharField(
+        choices=InfraBoolChoices,
+        null=True,
+        blank=True
+    )
+    site_type_red = models.CharField(
+        choices=InfraBoolChoices,
+        null=True,
+        blank=True
+    )
+    site_type_vip = models.CharField(
+        choices=InfraBoolChoices,
+        null=True,
+        blank=True
+    )
+    site_type_wms = models.CharField(
+        choices=InfraBoolChoices,
+        null=True,
+        blank=True
+    )
+    #_______
+    # Sizing
+    ad_cumul_user = models.PositiveBigIntegerField(
+        null=True,
+        blank=True
+    )
+    est_cumulative_users = models.PositiveBigIntegerField(
+        null=True,
+        blank=True
+    )
+    wan_reco_bw = models.PositiveBigIntegerField(
+        null=True,
+        blank=True
+    )
+    wan_computed_users = models.PositiveBigIntegerField(
+        null=True,
+        blank=True
+    )
+    #_______
+    # Meraki
+    swanha = models.CharField(
+        choices=InfraSdwanhaChoices,
+        null=True,
+        blank=True,
     )
     hub_order_setting = models.CharField(
-        choices=InfraMerakiHubOrderChoices
+        choices=InfraHubOrderChoices,
+        null=True,
+        blank=True
     )
     hub_default_route_setting = models.CharField(
-        choices=InfraBoolChoices
-    )
-    wan1_bw = models.CharField()
-    wan2_bw = models.CharField()
-    master_location = models.CharField()
-    master_site = models.CharField()
-    migration_date = models.CharField()
-    monitor_in_starting = models.CharField(
-        choices=InfraBoolChoices
-    )
-
-    def __str__(self)->str:
-        return f'{self.site}'
-
-    def get_absolute_url(self)->str:
-        return reverse('plugins:sop_infra:inframerakisdwan_detail', args=[self.pk])
-
-    class Meta(NetBoxModel.Meta):
-        verbose_name = _('Meraki SDWAN')
-        verbose_name_plural = _('Meraki SDWANs')
-
-
-class InfraSizing(NetBoxModel):
-    site = models.ForeignKey(
-        to=Site,
-        on_delete=models.CASCADE,
-    )
-    ad_cumul_user = models.CharField(
-        blank=True,
-        null=True
-    )
-    est_cumul_user = models.CharField(
-        blank=True,
-        null=True
-    )
-    reco_bw = models.CharField(
-        blank=True,
+        choices=InfraBoolChoices,
         null=True,
+        blank=True
     )
-
-    def __str__(self) -> str:
-        return f'{self.site}'
-
-    def get_absolute_url(self) -> str:
-        return reverse('plugins:sop_infra:infrasizing_detail', args=[self.pk])
-
-    class Meta(NetBoxModel.Meta):
-        verbose_name = _('Sizing')
-        verbose_name_plural = _('Sizings')
-
-
-class InfraClassification(NetBoxModel):
-    site = models.ForeignKey(
-        to=Site,
-        on_delete=models.CASCADE,
+    sdwan1_bw = models.CharField(
+        null=True,
+        blank=True
     )
-    infrastructure = models.CharField(
-        choices=InfraTypeChoices,
+    sdwan2_bw = models.CharField(
+        null=True,
+        blank=True
     )
-    industrial = models.CharField(
-        choices=InfraTypeIndusChoices,
+    site_sdwan_master_location = models.ForeignKey(
+        to=Location,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
     )
-    phone_critical = models.CharField(
-        max_length=30,
+    migration_sdwan = models.CharField(
+        null=True,
+        blank=True
+    )
+    monitor_in_starting = models.CharField(
         choices=InfraBoolChoices,
-    )
-    r_and_d = models.CharField(
-        max_length=30,
-        choices=InfraBoolChoices,
-    )
-    vip = models.CharField(
-        max_length=30,
-        choices=InfraBoolChoices,
-    )
-    wms = models.CharField(
-        max_length=30,
-        choices=InfraBoolChoices,
+        null=True,
+        blank=True
     )
 
     def __str__(self):
         return f'{self.site}'
 
     def get_absolute_url(self) -> str:
-        return reverse('plugins:sop_infra:infraclassification_detail', args=[self.pk])
+        return reverse('plugins:sop_infra:sopinfra', args=[self.pk])
 
     class Meta(NetBoxModel.Meta):
-        verbose_name =_('Classification')
-        verbose_name_plural=_('Classifications')
+        verbose_name = _('Infrastructure')
+        verbose_name_plural = _('Infrastructures')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['site'],
+                name='%(app_label)s_%(class)s_unique_site',
+                violation_error_message=_('This site has already an Infrastrcture.')
+            )
+        ]
+

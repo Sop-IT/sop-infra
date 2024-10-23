@@ -1,6 +1,6 @@
 {% load helpers %}
 
-<!-- insired by netbox breadcrumbs block -->
+<!-- inspired by netbox breadcrumbs block -->
 <!-- link the breadcrumb to site model -->
 
 {% if object.site %}
@@ -20,6 +20,6 @@
 {% endif %}
 {% if object.site.id %}
 <li class="breadcrumb-item active">
-  <a href="{% url 'dcim:site' pk=object.site.id %}voice">{{ name }}</a>
+  <a href="{% url 'dcim:site' pk=object.site.id %}phone">{{ name }}</a>
 </li>
 {% endif %}

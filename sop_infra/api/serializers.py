@@ -1,84 +1,37 @@
+from django.db.models import Prefetch
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from netbox.api.serializers import NetBoxModelSerializer, WritableNestedSerializer
+from netbox.api.fields import ChoiceField
+from netbox.api.serializers import NetBoxModelSerializer
+from dcim.api.serializers import SiteSerializer, LocationSerializer
+from dcim.models import Site, Location
 
 from ..models import *
 
 
 __all__ = (
-    'InfraClassificationSerializer',
-    'NestedInfraClassificationserializer',
-    'InfraSizingSerializer',
-    'NestedSizingSerializer',
-    'InfraMerakiSDWANSerializer',
-    'NestedMerakiSDWANSerializer',
+    'SopInfraSerializer',
 )
 
 
-class InfraMerakiSDWANSerializer(NetBoxModelSerializer):
+class SopInfraSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:sop_infra-api:inframerakisdwan-detail'
+        view_name='plugins-api:sop_infra-api:sopinfra-detail'
     )
+    site = serializers.SerializerMethodField()
 
     class Meta:
-        model = InfraMerakiSDWAN
-        fields = ('url', 'id', 'site', 'master_location',
-            'master_site', 'migration_date', 'monitor_in_starting')
+        model = SopInfra
+        fields = (
+            'id', 'url', 'display', 'site', 'created',' last_updated'
+        )
 
+    def get_site(self, obj):
+        if not obj.site:
+            return None
+        Site.objects.get(site=obj.site)
+        return SiteSerializer(site, nested=True, many=False, context=self.context).data
 
-class NestedMerakiSDWANSerializer(WritableNestedSerializer):
-    url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:sop_infra-api:inframerakisdwan-detail'
-    )
-
-    class Meta:
-        model = InfraMerakiSDWAN
-        fields = ('url', 'id', 'site', 'master_location',
-            'master_site', 'migration_date', 'monitor_in_starting')
-
-
-class InfraSizingSerializer(NetBoxModelSerializer):
-    url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:sop_infra-api:infrasizing-detail'
-    )
-
-    class Meta:
-        model = InfraSizing
-        fields = ('url', 'id', 'site', 'ad_cumul_user',
-            'est_cumul_user', 'reco_bw')
-
-
-class NestedSizingSerializer(WritableNestedSerializer):
-    url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:sop_infra-api:infrasizing-detail'
-    )
-
-    class Meta:
-        model = InfraSizing
-        fields = ('url', 'id', 'site', 'ad_cumul_user',
-            'est_cumul_user', 'reco_bw')
-
-
-class InfraClassificationSerializer(NetBoxModelSerializer):
-    url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:sop_infra-api:infraclassification-detail'
-    )
-
-    class Meta:
-        model = InfraClassification
-        fields = ('url', 'id', 'site', 'infrastructure', 'industrial',
-            'phone_critical', 'r_and_d', 'vip', 'wms')
-
-
-class NestedInfraClassificationserializer(WritableNestedSerializer):
-    url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:sop_infra-api:infraclassification-detail'
-    )
-
-    class Meta:
-        model = InfraClassification
-        fields = ('url', 'id', 'site', 'infrastructure', 'industrial',
-            'phone_critical', 'r_and_d', 'vip', 'wms')
 
 

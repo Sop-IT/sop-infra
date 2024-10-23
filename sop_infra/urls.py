@@ -2,10 +2,7 @@ from django.urls import path
 
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
 
-from .views import classification as cl
-from .views import sizing as sz
-from .views import meraki_sdwan as ms
-from .views import tab_view
+from .views import *
 from .models import *
 
 
@@ -13,23 +10,33 @@ app_name = 'sop_infra'
 
 
 urlpatterns = [
-    
-    # classification
-    path('classification/<int:pk>', cl.ClassificationDetailView.as_view(), name='infraclassification_detail'),
-    path('classification/edit/<int:pk>', cl.ClassificationEditView.as_view(), name='infraclassification_edit'),
-    path('classification/changelog/<int:pk>', ObjectChangeLogView.as_view(), name='infraclassification_changelog', kwargs={'model': InfraClassification}),
-    path('classification/journal/<int:pk>', ObjectJournalView.as_view(), name='infraclassification_journal', kwargs={'model': InfraClassification}),
 
-    # sizing
-    path('sizing/<int:pk>', sz.SizingDetailView.as_view(), name='infrasizing_detail'),
-    path('sizing/edit/<int:pk>', sz.SizingEditView.as_view(), name='infrasizing_edit'),
-    path('sizing/changelog/<int:pk>', ObjectChangeLogView.as_view(), name='infrasizing_changelog', kwargs={'model': InfraSizing}),
-    path('sizing/journal/<int:pk>', ObjectJournalView.as_view(), name='infrasizing_journal', kwargs={'model': InfraSizing}),
+    path('list', SopInfraListView.as_view(), name='sopinfra_list'),
+    path('<int:pk>/', SopInfraDetailView.as_view(), name='sopinfra_detail'),
+    path('add/', SopInfraAddView.as_view(), name='sopinfra_add'),
+    path('add/<int:pk>/', SopInfraAddView.as_view(), name='sopinfra_add'),
+    path('edit/<int:pk>/', SopInfraEditView.as_view(), name='sopinfra_edit'),
+    path('delete/<int:pk>/', SopInfraDeleteView.as_view(), name='sopinfra_delete'),
+    path('journal/<int:pk>', ObjectJournalView.as_view(), name='sopinfra_journal', kwargs={'model': SopInfra}),
+    path('changelog/<int:pk>', ObjectChangeLogView.as_view(), name='sopinfra_changelog', kwargs={'model': SopInfra}),
 
-    # meraki sdwan
-    path('meraki_sdwan/<int:pk>', ms.MerakiSDWANDetailView.as_view(), name='inframerakisdwan_detail'),
-    path('meraki_sdwan/edit/<int:pk>', ms.MerakiSDWANEditView.as_view(), name='inframerakisdwan_edit'),
-    path('meraki_sdwan/changelog/<int:pk>', ObjectChangeLogView.as_view(), name='inframerakisdwan_changelog', kwargs={'model': InfraMerakiSDWAN}),
-    path('meraki_sdwan/journal/<int:pk>', ObjectJournalView.as_view(), name='inframerakisdwan_journal', kwargs={'model': InfraMerakiSDWAN}),
-    
+    #____________________
+    # classification edit
+    path('class/add/', SopInfraClassificationAddView.as_view(), name='class_add'),
+    path('class/add/<int:pk>', SopInfraClassificationAddView.as_view(), name='class_add'),
+    path('class/edit/<int:pk>', SopInfraClassificationEditView.as_view(), name='class_edit'),
+
+    #____________________
+    # sizing edit
+    path('sizing/add/', SopInfraSizingAddView.as_view(), name='sizing_add'),
+    path('sizing/add/<int:pk>', SopInfraSizingAddView.as_view(), name='sizing_add'),
+    path('sizing/edit/<int:pk>', SopInfraSizingEditView.as_view(), name='sizing_edit'),
+
+    #____________________
+    # meraki sdwan edit
+    path('meraki/add/', SopInfraMerakiAddView.as_view(), name='meraki_add'),
+    path('meraki/add/<int:pk>', SopInfraMerakiAddView.as_view(), name='meraki_add'),
+    path('meraki/edit/<int:pk>', SopInfraMerakiEditView.as_view(), name='meraki_edit')
+
 ]
+

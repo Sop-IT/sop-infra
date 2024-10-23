@@ -1,0 +1,12 @@
+{% extends 'generic/object_edit.html' %}
+{% load helpers %}
+{% load i18n %}
+
+{% block title %}
+  {% if object.pk %}
+    {% trans "Editing" %} {{object_type}} {{site}}
+  {% else %}
+    {% trans "Add a new" %} {{object_type}}
+  {% endif %}
+{% endblock %}
+

@@ -6,25 +6,13 @@ from .serializers import *
 
 
 __all__ = (
-    'InfraClassificationViewSet',
-    'InfraSizingViewSet',
-    'InfraMerakiSDWANViewSet',
+    'SopInfraViewSet',
 )
 
 
-class InfraMerakiSDWANViewSet(NetBoxModelViewSet):
+class SopInfraViewSet(NetBoxModelViewSet):
     metadata_class = ContentTypeMetadata
-    queryset = InfraMerakiSDWAN.objects.all()
-    serializer_class = InfraMerakiSDWANSerializer
+    queryset = SopInfra.objects.all()
+    serializer_class = SopInfraSerializer
 
 
-class InfraSizingViewSet(NetBoxModelViewSet):
-    metadata_class = ContentTypeMetadata
-    queryset = InfraSizing.objects.all()
-    serializer_class = InfraSizingSerializer
-
-
-class InfraClassificationViewSet(NetBoxModelViewSet):
-    metadata_class = ContentTypeMetadata
-    queryset = InfraClassification.objects.all()
-    serializer_class = InfraClassificationSerializer
