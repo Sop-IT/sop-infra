@@ -10,12 +10,11 @@ from dcim.models import Site
 
 from .models import *
 from .forms import *
-from .table import *
+from .tables import SopInfraClassificationTable
 
 
 __all__ = (
     'SopInfraTabView',
-    'SopInfraListView',
     'SopInfraDeleteView',
     'SopInfraEditView',
     'SopInfraAddView',
@@ -26,6 +25,7 @@ __all__ = (
     'SopInfraSizingEditView',
     'SopInfraClassificationAddView',
     'SopInfraClassificationEditView',
+    'SopInfraClassificationListView',
 )
 
 
@@ -278,10 +278,10 @@ class SopInfraDetailView(generic.ObjectView):
     queryset = SopInfra.objects.all()
 
 
-class SopInfraListView(generic.ObjectListView):
+class SopInfraClassificationListView(generic.ObjectListView):
     '''
-    list view of all sopinfra instances
+    list view of all sopinfra - classification related instances
     '''
     queryset = SopInfra.objects.all()
-    table = SopInfraTable
+    table = SopInfraClassificationTable
 

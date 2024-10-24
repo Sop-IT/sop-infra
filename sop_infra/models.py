@@ -168,6 +168,26 @@ class SopInfra(NetBoxModel):
     def get_absolute_url(self) -> str:
         return f'dcim/sites/{self.site.pk}/infra'
 
+    # get_object_color methods are used by NetBoxTable
+    # to display choices colors
+    def get_site_type_red_color(self) -> str:
+        return InfraBoolChoices.colors.get(self.site_type_red)
+
+    def get_site_type_vip_color(self) -> str:
+        return InfraBoolChoices.colors.get(self.site_type_vip)
+
+    def get_site_type_wms_color(self) -> str:
+        return InfraBoolChoices.colors.get(self.site_type_wms)
+
+    def get_site_phone_critical_color(self) -> str:
+        return InfraBoolChoices.colors.get(self.site_phone_critical)
+
+    def get_hub_default_route_setting_color(self) -> str:
+        return InfraBoolChoices.colors.get(self.hub_default_route_setting)
+
+    def get_monitor_in_starting_color(self) -> str:
+        return InfraBoolChoices.colors.get(self.hub_default_route_setting)
+
     class Meta(NetBoxModel.Meta):
         verbose_name = _('Infrastructure')
         verbose_name_plural = _('Infrastructures')

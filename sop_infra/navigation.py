@@ -13,12 +13,12 @@ INFRA = Menu(
             label=_('Infrastructure'),
             items=(
                 MenuItem(
-                    link=f'plugins:sop_infra:sopinfra_list',
-                    link_text=_('Infra-List'),
+                    link=f'plugins:sop_infra:class_list',
+                    link_text=_('Classifications'),
                     permissions=[f'sop_infra.view_sopinfra'],
                     buttons=(
                         MenuItemButton(
-                            link=f'plugins:sop_infra:sopinfra_add',
+                            link=f'plugins:sop_infra:class_add',
                             title='Add',
                             icon_class='mdi mdi-plus-thick',
                             permissions=[f'sop_infra.add_sopinfra'],
@@ -31,3 +31,4 @@ INFRA = Menu(
 )
 
 MENUS.append(INFRA)
+

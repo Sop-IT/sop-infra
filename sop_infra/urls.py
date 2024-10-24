@@ -11,7 +11,6 @@ app_name = 'sop_infra'
 
 urlpatterns = [
 
-    path('list', SopInfraListView.as_view(), name='sopinfra_list'),
     path('<int:pk>/', SopInfraDetailView.as_view(), name='sopinfra_detail'),
     path('add/', SopInfraAddView.as_view(), name='sopinfra_add'),
     path('add/<int:pk>/', SopInfraAddView.as_view(), name='sopinfra_add'),
@@ -36,7 +35,11 @@ urlpatterns = [
     # meraki sdwan edit
     path('meraki/add/', SopInfraMerakiAddView.as_view(), name='meraki_add'),
     path('meraki/add/<int:pk>', SopInfraMerakiAddView.as_view(), name='meraki_add'),
-    path('meraki/edit/<int:pk>', SopInfraMerakiEditView.as_view(), name='meraki_edit')
+    path('meraki/edit/<int:pk>', SopInfraMerakiEditView.as_view(), name='meraki_edit'),
+
+    #____________________
+    # list views
+    path('class/list', SopInfraClassificationListView.as_view(), name='class_list')
 
 ]
 
