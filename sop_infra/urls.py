@@ -41,6 +41,7 @@ urlpatterns = [
     # list views
     path('class/list', SopInfraClassificationListView.as_view(), name='class_list'),
     path('sizing/list', SopInfraSizingListView.as_view(), name='sizing_list'),
+    path('meraki/list', SopInfraMerakiListView.as_view(), name='meraki_list'),
 
 ]
 

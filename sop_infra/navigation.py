@@ -38,10 +38,24 @@ INFRA = Menu(
                         ),
                     ),
                 ),
+                MenuItem(
+                    link=f'plugins:sop_infra:meraki_list',
+                    link_text=_('Meraki SDWAN'),
+                    permissions=[f'sop_infra.view_sopinfra'],
+                    buttons=(
+                        MenuItemButton(
+                            link=f'plugins:sop_infra:meraki_add',
+                            title='Add',
+                            icon_class='mdi mdi-plus-thick',
+                            permissions=[f'sop_infra.add_sopinfra']
+                        ),
+                    ),
+                ),
             ),
         ),
     ),
 )
+
 
 MENUS.append(INFRA)
 

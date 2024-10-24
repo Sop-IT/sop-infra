@@ -152,6 +152,13 @@ class SopInfra(NetBoxModel):
         null=True,
         blank=True
     )
+    master_site = models.ForeignKey(
+        to=Site,
+        related_name="master_site",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
     migration_sdwan = models.CharField(
         null=True,
         blank=True

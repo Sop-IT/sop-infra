@@ -8,8 +8,68 @@ from .models import SopInfra
 
 __all__ = (
     'SopInfraSizingTable',
+    'SopInfraMerakiTable',
     'SopInfraClassificationTable'
 )
+
+
+class SopInfraMerakiTable(NetBoxTable):
+    '''
+    table for all SopInfra - meraki sdwan related instances
+    '''
+    site = tables.Column(
+        verbose_name=_('Site'),
+        linkify=True
+    )
+    sdwanha = tables.Column(
+        verbose_name=_('HA(S) / NHA Target'),
+        linkify=True
+    )
+    hub_order_setting = tables.Column(
+        verbose_name=_('HUB Order Settings'),
+        linkify=True
+    )
+    hub_default_route_setting = ChoiceFieldColumn(
+        verbose_name=_('HUB Default Route Settings'),
+        linkify=True
+    )
+    sdwan1_bw = tables.Column(
+        verbose_name=_('WAN1 BW'),
+        linkify=True
+    )
+    sdwan2_bw = tables.Column(
+        verbose_name=_('WAN2 BW'),
+        linkify=True
+    )
+    site_sdwan_master_location = tables.Column(
+        verbose_name=_('MASTER Location'),
+        linkify=True
+    )
+    master_site = tables.Column(
+        verbose_name=_('MASTER Site'),
+        linkify=True
+    )
+    migration_sdwan = tables.Column(
+        verbose_name=_('Migration Date'),
+        linkify=True
+    )
+    monitor_in_starting = tables.Column(
+        verbose_name=_('Monitor in Starting'),
+        linkify=True
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = SopInfra
+        fields = (
+            'actions', 'pk', 'id', 'created', 'last_updated', 'site',
+            'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
+            'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
+            'master_site', 'migration_sdwan', 'monitor_in_starting'
+        )
+        default_columns = (
+            'actions', 'site', 'sdwanha', 'hub_order_setting',
+            'hub_default_route_setting', 'sdwan1_bw', 'sdwan2_bw'
+        )
 
 
 class SopInfraSizingTable(NetBoxTable):

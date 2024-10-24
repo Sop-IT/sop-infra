@@ -17,6 +17,41 @@
       <td>{{object.get_hub_order_setting_display|placeholder}}</td>
     </tr>
 
+    <tr>
+      <th scope="row">{% trans "HUB Default Route Setting" %}</th>
+      <td>{% include 'sop_infra/tools/badge.html' with object=object.hub_default_route_setting %}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "WAN1 BW" %}</th>
+      <td>{{object.sdwan1_bw|placeholder}}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "WAN2 BW" %}</th>
+      <td>{{object.sdwan2_bw|placeholder}}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "MASTER Location" %}</th>
+      <td>{{object.site_sdwan_master_location|placeholder}}</td>
+    </tr>
+    <!-- object ? or no object and only related script that grep Location site idk -->
+    <tr>
+      <th scope="row">{% trans "MASTER Site" %}</th>
+      <td>{{object.master_site|placeholder}}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "Migration date" %}</th>
+      <td>{{object.migration_sdwan|placeholder}}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "Monitor in starting" %}</th>
+      <td>{{object.monitor_in_starting|placeholder}}</td>
+    </tr>
+
   </table>
 
 </div>

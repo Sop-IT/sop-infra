@@ -21,6 +21,7 @@ __all__ = (
     'SopInfraDetailView',
     'SopInfraMerakiAddView',
     'SopInfraMerakiEditView',
+    'SopInfraMerakiListView',
     'SopInfraSizingAddView',
     'SopInfraSizingEditView',
     'SopInfraSizingListView',
@@ -208,16 +209,30 @@ class SopInfraMerakiAddView(generic.ObjectEditView):
             return obj(site=site)
         return super().get_object(**kwargs)
 
+    def alter_object(self, obj, request, args, kwargs):
+        '''
+        '''
+        if 'pk' in kwargs:
+            site = get_object_or_404(Site, pk=kwargs['pk'])
+            obj = self.queryset.model
+            return obj(site=site)
+        return super().alter_object(obj, request, args, kwargs)
+
     def get_return_url(self, request, obj):
-        if obj.site:
-            return f'/dcim/sites/{obj.site.id}/infra'
+        try:
+            if obj.site:
+                return f'/dcim/sites/{obj.site.id}/infra'
+        except:
+            return f'/plugins/sop_infra/meraki/list'
 
     def get_extra_context(self, request, obj) -> dict:
         context = super().get_extra_context(request, obj)
         context['object_type'] = 'Meraki SDWAN'
-        if obj and obj.site:
-            context['site'] = obj.site
-        return context
+        try:
+            if obj.site:
+                context['site'] = obj.site
+        except:
+            return context
 
 
 class SopInfraMerakiEditView(generic.ObjectEditView):
@@ -330,7 +345,7 @@ class SopInfraClassificationListView(generic.ObjectListView):
     queryset = SopInfra.objects.all()
     table = SopInfraClassificationTable
 
-    def get_extra_context(self, request):
+    def get_extra_context(self, request) -> dict:
         '''add context for title'''
         context = super().get_extra_context(request)
         context['title'] = "Classification"
@@ -345,9 +360,24 @@ class SopInfraSizingListView(generic.ObjectListView):
     queryset = SopInfra.objects.all()
     table = SopInfraSizingTable
 
-    def get_extra_context(self, request):
+    def get_extra_context(self, request) -> dict:
         '''add context for title'''
         context = super().get_extra_context(request)
         context['title'] = "Sizing"
+        return context
+
+
+class SopInfraMerakiListView(generic.ObjectListView):
+    '''
+    list view of all sopinfra - meraki sdwan related instances
+    '''
+    template_name:str = "sop_infra/tools/tables.html"
+    queryset = SopInfra.objects.all()
+    table = SopInfraMerakiTable
+
+    def get_extra_context(self, request) -> dict:
+        '''add context for title'''
+        context = super().get_extra_context(request)
+        context['title'] = "Meraki SDWAN"
         return context
 
