@@ -7,8 +7,47 @@ from .models import SopInfra
 
 
 __all__ = (
+    'SopInfraSizingTable',
     'SopInfraClassificationTable'
 )
+
+
+class SopInfraSizingTable(NetBoxTable):
+    '''
+    table for all SopInfra - sizing related instances
+    '''
+    site = tables.Column(
+        verbose_name=_('Site'),
+        linkify=True
+    )
+    ad_cumul_user = tables.Column(
+        verbose_name=_('AD cumul. users'),
+        linkify=True
+    )
+    est_cumulative_users = tables.Column(
+        verbose_name=_('EST cumul. users'),
+        linkify=True
+    )
+    wan_reco_bw = tables.Column(
+        verbose_name=_('Reco. BW (Mbps)'),
+        linkify=True
+    )
+    wan_computed_users = tables.Column(
+        verbose_name=_('Wan users'),
+        linkify=True
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = SopInfra
+        fields = (
+            'actions', 'pk', 'id', 'created', 'last_updated', 'site',
+            'ad_cumul_user', 'est_cumulative_users',
+            'wan_reco_bw', 'wan_computed_users'
+        )
+        default_columns = (
+            'site', 'ad_cumul_user', 'est_cumulative_users',
+            'wan_reco_bw', 'wan_computed_users'
+        )
 
 
 class SopInfraClassificationTable(NetBoxTable):
@@ -27,7 +66,7 @@ class SopInfraClassificationTable(NetBoxTable):
         verbose_name=_('Industrial'),
         linkify=True
     )
-    site_phone_critical = tables.Column(
+    site_phone_critical = ChoiceFieldColumn(
         verbose_name=_('PHONE Critical ?'),
         linkify=True
     )

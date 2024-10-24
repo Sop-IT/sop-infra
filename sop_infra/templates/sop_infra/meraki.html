@@ -9,12 +9,12 @@
 
     <tr>
       <th scope="row">{% trans "HA(S) / NHA Target" %}</th>
-      <td>{{object.get_sdwanha_display}}</td>
+      <td>{{object.get_sdwanha_display|placeholder}}</td>
     </tr>
 
     <tr>
       <th scope="row">{% trans "HUB Order Setting" %}</th>
-      <td>{{object.get_hub_order_setting_display}}</td>
+      <td>{{object.get_hub_order_setting_display|placeholder}}</td>
     </tr>
 
   </table>

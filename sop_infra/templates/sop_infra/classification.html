@@ -9,12 +9,12 @@
 
     <tr>
       <th scope="row">{% trans "System Infrastructure" %}</th>
-      <td>{{object.get_site_infra_sysinfra_display}}</td>
+      <td>{{object.get_site_infra_sysinfra_display|placeholder}}</td>
     </tr>
 
     <tr>
       <th scope="row">{% trans "Industrial" %}</th>
-      <td>{{object.get_site_type_indus_display}}</td>
+      <td>{{object.get_site_type_indus_display|placeholder}}</td>
     </tr>
 
     <tr>

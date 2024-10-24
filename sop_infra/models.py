@@ -166,7 +166,7 @@ class SopInfra(NetBoxModel):
         return f'{self.site} Infrastructure'
 
     def get_absolute_url(self) -> str:
-        return f'dcim/sites/{self.site.pk}/infra'
+        return reverse('plugins:sop_infra:sopinfra_detail', args=[self.pk])
 
     # get_object_color methods are used by NetBoxTable
     # to display choices colors

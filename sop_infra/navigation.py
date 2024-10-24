@@ -25,6 +25,19 @@ INFRA = Menu(
                         ),
                     ),
                 ),
+                MenuItem(
+                    link=f'plugins:sop_infra:sizing_list',
+                    link_text=_('Sizings'),
+                    permissions=[f'sop_infra.view_sopinfra'],
+                    buttons=(
+                        MenuItemButton(
+                            link=f'plugins:sop_infra:sizing_add',
+                            title='Add',
+                            icon_class='mdi mdi-plus-thick',
+                            permissions=[f'sop_infra.add_sopinfra'],
+                        ),
+                    ),
+                ),
             ),
         ),
     ),

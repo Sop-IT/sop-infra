@@ -10,7 +10,7 @@ from dcim.models import Site
 
 from .models import *
 from .forms import *
-from .tables import SopInfraClassificationTable
+from .tables import *
 
 
 __all__ = (
@@ -23,6 +23,7 @@ __all__ = (
     'SopInfraMerakiEditView',
     'SopInfraSizingAddView',
     'SopInfraSizingEditView',
+    'SopInfraSizingListView',
     'SopInfraClassificationAddView',
     'SopInfraClassificationEditView',
     'SopInfraClassificationListView',
@@ -52,6 +53,10 @@ class SopInfraTabView(View, ObjectPermissionRequiredMixin):
         if not request.user.has_perm(get_permission_for_model(SopInfra, 'view')):
             return self.handle_no_permission()
         return render(request, self.template_name, self.get_extra_context(request, pk))
+
+
+#____________________________
+# SOP INFRA BASE MODEL VIEWS
 
 
 class SopInfraDeleteView(generic.ObjectDeleteView):
@@ -115,6 +120,10 @@ class SopInfraAddView(generic.ObjectEditView):
             return f'/plugins/sop_infra/list'
 
 
+#____________________________
+# CLASSIFICATION ADD/EDIT
+
+
 class SopInfraClassificationAddView(generic.ObjectEditView):
     '''
     only adds classification objects in a SopInfra instance
@@ -127,7 +136,7 @@ class SopInfraClassificationAddView(generic.ObjectEditView):
         '''        
         '''
         if 'pk' in kwargs:
-            site= get_object_or_404(Site, pk=kwargs['pk'])
+            site = get_object_or_404(Site, pk=kwargs['pk'])
             obj = self.queryset.model
             return obj(site=site)
         return super().get_object(**kwargs)
@@ -142,15 +151,20 @@ class SopInfraClassificationAddView(generic.ObjectEditView):
         return super().alter_object(obj, request, args, kwargs)
 
     def get_return_url(self, request, obj):
-        if obj.site:
-            return f'/dcim/sites/{obj.site.id}/infra'
+        try:
+            if obj.site:
+                return f'/dcim/sites/{obj.site.id}/infra'
+        except:
+            return f'/plugins/sop_infra/class/list'
 
     def get_extra_context(self, request, obj) -> dict:
         context = super().get_extra_context(request, obj)
         context['object_type'] = 'Classification'
-        if obj and obj.site:
-            context['site'] = obj.site
-        return context
+        try:
+            if obj.site:
+                context['site'] = obj.site
+        except:
+            return context
 
 
 class SopInfraClassificationEditView(generic.ObjectEditView):
@@ -171,6 +185,10 @@ class SopInfraClassificationEditView(generic.ObjectEditView):
         if obj and obj.site:
             context['site'] = obj.site
         return context
+
+
+#____________________________
+# MERAKI SDWAN ADD/EDIT
 
 
 class SopInfraMerakiAddView(generic.ObjectEditView):
@@ -222,6 +240,10 @@ class SopInfraMerakiEditView(generic.ObjectEditView):
         return context
 
 
+#____________________________
+# SIZING ADD/EDIT
+
+
 class SopInfraSizingAddView(generic.ObjectEditView):
     '''
     only adds sizing objects in a sopinfra instance
@@ -239,16 +261,30 @@ class SopInfraSizingAddView(generic.ObjectEditView):
             return obj(site=site)
         return super().get_object(**kwargs)
 
+    def alter_object(self, obj, request, args, kwargs):
+        '''
+        '''
+        if 'pk' in kwargs:
+            site = get_object_or_404(Site, pk=kwargs['pk'])
+            obj = self.queryset.model
+            return obj(site=site)
+        return super().alter_object(obj, request, args, kwargs)
+
     def get_return_url(self, request, obj):
-        if obj.site:
-            return f'/dcim/sites/{obj.site.id}/infra'
+        try:
+            if obj.site:
+                return f'/dcim/sites/{obj.site.id}/infra'
+        except:
+            return f'/plugins/sop_infra/sizing/list'
 
     def get_extra_context(self, request, obj) -> dict:
         context = super().get_extra_context(request, obj)
         context['object_type'] = 'Sizing'
-        if obj and obj.site:
-            context['site'] = obj.site
-        return context
+        try:
+            if obj and obj.site:
+                context['site'] = obj.site
+        except:
+            return context
 
 
 class SopInfraSizingEditView(generic.ObjectEditView):
@@ -271,6 +307,10 @@ class SopInfraSizingEditView(generic.ObjectEditView):
         return context
 
 
+#____________________________
+# DETAIL VIEW
+
+
 class SopInfraDetailView(generic.ObjectView):
     '''
     detail view with changelog and journal
@@ -278,10 +318,36 @@ class SopInfraDetailView(generic.ObjectView):
     queryset = SopInfra.objects.all()
 
 
+#____________________________
+# LIST VIEWS
+
+
 class SopInfraClassificationListView(generic.ObjectListView):
     '''
     list view of all sopinfra - classification related instances
     '''
+    template_name:str = "sop_infra/tools/tables.html"
     queryset = SopInfra.objects.all()
     table = SopInfraClassificationTable
+
+    def get_extra_context(self, request):
+        '''add context for title'''
+        context = super().get_extra_context(request)
+        context['title'] = "Classification"
+        return context
+
+
+class SopInfraSizingListView(generic.ObjectListView):
+    '''
+    list view of all sopinfra - sizing related instances
+    '''
+    template_name:str = "sop_infra/tools/tables.html"
+    queryset = SopInfra.objects.all()
+    table = SopInfraSizingTable
+
+    def get_extra_context(self, request):
+        '''add context for title'''
+        context = super().get_extra_context(request)
+        context['title'] = "Sizing"
+        return context
 

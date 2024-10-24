@@ -9,22 +9,22 @@
 
     <tr>
       <th scope="row">{% trans "AD cumul. users" %}</th>
-      <td>{{object.ad_cumul_users}}</td>
+      <td>{{object.ad_cumul_users|placeholder}}</td>
     </tr>
 
     <tr>
       <th scope="row">{% trans "EST cumul. users" %}</th>
-      <td>{{object.est_cumul_users}}</td>
+      <td>{{object.est_cumul_users|placeholder}}</td>
     </tr>
 
     <tr>
       <th scope="row">{% trans "Reco. BW (Mbps)" %}</th>
-      <td>{{object.wan_reco_bw}}</td>
+      <td>{{object.wan_reco_bw|placeholder}}</td>
     </tr>
 
     <tr>
       <th scope="row">{% trans "WAN users" %}</th>
-      <td>{{object.wan_computed_users}}</td>
+      <td>{{object.wan_computed_users|placeholder}}</td>
     </tr>
 
   </table>
