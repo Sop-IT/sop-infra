@@ -1,6 +1,9 @@
 {% load helpers %}
 
-
+<!--___________________________________________________
+  if there is an object, linkify it; else dont just CSS
+  _____
+-->
   {% if object.pk %}
     <a href="{% url object|viewname:"detail" pk=object.id %}"
        class="list-group-item list-group-item-action d-flex justify-content-between">
@@ -8,11 +11,18 @@
     <a class="list-group-item list-group-item-action d-flex justify-content-between">
   {% endif %}
 
+
   {{name}}
+
+
+<!--___________________________________________________
+  if this is a badge, or a choice object
+  _____
+-->
   {% if badge %}
       {% include "sop_infra/tools/badge.html" with object=var %}
   {% else %}
-      {{var|placeholder}}
+      <span>{{var|placeholder}}</span>
   {% endif %}
 
     </a>

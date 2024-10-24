@@ -1,2 +1,51 @@
 {% extends "generic/object.html" %}
+{% load buttons %}
+{% load custom_links %}
+{% load helpers %}
+{% load perms %}
+{% load plugins %}
+
+
+{% block breadcrumbs %}
+    {% include 'sop_infra/tools/breadcrumbs.html' with name=object|meta:"verbose_name" %}
+{% endblock %}
+
+
+{% block control-buttons %}
+  {% if perms.extras.add_bookmark and object.bookmarks %}
+    {% bookmark_button object %}
+  {% endif %}
+  {% if perms.extras.add_subscription and object.subscriptions %}
+    {% subscribe_button object %}
+  {% endif %}
+  {% if request.user|can_change:object %}
+    {% edit_button object %}
+  {% endif %}
+  {% if request.user|can_delete:object %}
+    {% delete_button object %}
+  {% endif %}
+{% endblock control-buttons %}
+
+
+
+{% block title %}{{object}}{% endblock %}
+
+
+{% block content %}
+<div class="row">
+
+  <div class="col col-md-6">
+    {% include 'sop_infra/classification.html' %}
+  </div>
+
+  <div class="col col-md-6">
+    {% include 'sop_infra/meraki.html' %}
+  </div>
+
+  <div class="col col-md-6">
+    {% include 'sop_infra/sizing.html' %}
+  </div>
+
+</div>
+{% endblock %}
 

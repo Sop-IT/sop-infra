@@ -24,7 +24,14 @@ class SopInfraTable(NetBoxTable):
         model = SopInfra
         fields = (
             'actions', 'pk', 'id', 'created', 'last_updated', 'site',
+            'site_infra_sysinfra', 'site_type_indus', 'site_phone_critical',
+            'site_type_red', 'site_type_vip', 'site_type_wms',
+            'est_cumulative_users',
+            'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
+            'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
+            'sdwan_master_site', 'migration_sdwan', 'monitor_in_starting',
         )
-        default_columns = ('actions', 'site',)
 
+        default_columns = ('actions', 'site', 'site_infra_sysinfra',
+                           'site_type_indus')
 

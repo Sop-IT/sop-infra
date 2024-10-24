@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views import View
 
 from utilities.permissions import get_permission_for_model
-from utilities.views import register_model_view, ViewTab
+from utilities.views import register_model_view, ViewTab, ObjectPermissionRequiredMixin
 from netbox.constants import DEFAULT_ACTION_PERMISSIONS
 from netbox.views import generic
 from dcim.models import Site
@@ -30,7 +30,7 @@ __all__ = (
 
 
 @register_model_view(Site, name='infra')
-class SopInfraTabView(View):
+class SopInfraTabView(View, ObjectPermissionRequiredMixin):
     '''
     creates an "infrastructure" tab on the site page
     '''
@@ -65,12 +65,20 @@ class SopInfraEditView(generic.ObjectEditView):
     '''
     edits an existing SopInfra instance
     '''
+    template_name:str = 'sop_infra/tools/forms.html'
     queryset = SopInfra.objects.all()
     form = SopInfraForm
 
     def get_return_url(self, request, obj):
         if obj.site:
             return f'/dcim/sites/{obj.site.id}/infra'
+
+    def get_extra_context(self, request, obj):
+        context = super().get_extra_context(request, obj)
+        if not obj:
+            return context
+        context['object_type'] = obj
+        return context
 
 
 class SopInfraAddView(generic.ObjectEditView):

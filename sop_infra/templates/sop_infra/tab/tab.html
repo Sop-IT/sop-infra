@@ -17,8 +17,10 @@
       <i class="mdi mdi-pencil"></i>{% trans "Edit Infrastructure" %}</a>
   {% endif %}
 
+  {% if 'bulk_delete' in context.actions and context.sop_infra.pk %}
   <a href="{% url 'plugins:sop_infra:sopinfra_delete' pk=context.sop_infra.pk %}" type="button" class="btn btn-red">
     <i class="mdi mdi-trash-can-outline"></i>{% trans "Delete Infrastructure" %}</a>
+  {% endif %}
 
 {% endblock controls %}
 
@@ -38,6 +40,7 @@
   <div class="col-md-6">
     {% include 'sop_infra/tab/sizing.html' with object=context.sop_infra site=object %}
   </div>
+
 </div>
 
 <script>

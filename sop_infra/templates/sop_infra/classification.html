@@ -1,0 +1,43 @@
+{% load helpers %}
+{% load i18n %}
+
+
+<div class="card">
+
+  <h5 class="card-header">{% trans "Meraki SDWAN" %}</h5>
+  <table class="table table-hover attr-table">
+
+    <tr>
+      <th scope="row">{% trans "Infrastructure" %}</th>
+      <td>{{object.get_site_infra_sysinfra_display}}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "System Industrial" %}</th>
+      <td>{{object.get_site_type_indus_display}}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "PHONE Critical ?" %}</th>
+      <td>{% include 'sop_infra/tools/badge.html' with object=object.site_phone_critical %}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "R&D ?" %}</th>
+      <td>{% include 'sop_infra/tools/badge.html' with object=object.site_type_red %}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "VIP ?" %}</th>
+      <td>{% include 'sop_infra/tools/badge.html' with object=object.site_type_vip %}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "WMS ? " %}</th>
+      <td>{% include 'sop_infra/tools/badge.html' with object=object.site_type_wms %}<td>
+    </tr>
+
+</table>
+
+</div>
+

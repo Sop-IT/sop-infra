@@ -123,7 +123,7 @@ class SopInfra(NetBoxModel):
     )
     #_______
     # Meraki
-    swanha = models.CharField(
+    sdwanha = models.CharField(
         choices=InfraSdwanhaChoices,
         null=True,
         blank=True,
@@ -163,10 +163,10 @@ class SopInfra(NetBoxModel):
     )
 
     def __str__(self):
-        return f'{self.site}'
+        return f'{self.site} Infrastructure'
 
     def get_absolute_url(self) -> str:
-        return reverse('plugins:sop_infra:sopinfra', args=[self.pk])
+        return f'dcim/sites/{self.site.pk}/infra'
 
     class Meta(NetBoxModel.Meta):
         verbose_name = _('Infrastructure')

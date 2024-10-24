@@ -25,9 +25,9 @@
 
     <ul class="list-group list-group-flush">
 
-      {% include 'sop_infra/tools/display.html' with name="System Infrastructure" var=object.site_infra_sysinfra %}
+      {% include 'sop_infra/tools/display.html' with name="System Infrastructure" var=object.get_site_infra_sysinfra_display %}
 
-      {% include 'sop_infra/tools/display.html' with name="Industrial" var=object.site_type_indus %}
+      {% include 'sop_infra/tools/display.html' with name="Industrial" var=object.get_site_type_indus_display %}
 
       {% include 'sop_infra/tools/display.html' with name="PHONE Critical ?" var=object.site_phone_critical badge=1 %}
 
