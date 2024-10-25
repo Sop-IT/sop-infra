@@ -7,7 +7,8 @@ from netbox.forms import NetBoxModelFilterSetForm, NetBoxModelForm
 from utilities.forms.widgets import DatePicker
 from utilities.forms.rendering import FieldSet
 from utilities.forms import add_blank_choice
-from dcim.models import Site, Location
+from dcim.models import Site, Location, Region, SiteGroup
+from dcim.choices import SiteStatusChoices
 
 from .models import *
 
@@ -16,7 +17,8 @@ __all__ = (
     'SopInfraForm',
     'SopInfraMerakiForm',
     'SopInfraSizingForm',
-    'SopInfraClassificationForm',
+    'SopInfraSizingFilterForm',
+    'SopInfraClassificationForm'
 )
 
 
@@ -228,4 +230,66 @@ class SopInfraForm(
 
         if 'tags' in self.fields:
             del self.fields['tags']
+
+
+#_____________
+# filter forms
+
+
+class SopInfraSizingFilterForm(NetBoxModelFilterSetForm):
+    model = SopInfra
+
+    site_id = DynamicModelChoiceField(
+        queryset=Site.objects.all(),
+        required=False,
+        label=_('Site')
+    )
+    region_id = DynamicModelChoiceField(
+        queryset=Region.objects.all(),
+        required=False,
+        label=_('Region')
+    )
+    group_id = DynamicModelChoiceField(
+        queryset=SiteGroup.objects.all(),
+        required=False,
+        label=_('Site group')
+    )
+    status = forms.ChoiceField(
+        choices=add_blank_choice(SiteStatusChoices),
+        initial=None,
+        required=False,
+        label=_('Status')
+    )
+    ad_cumul_user = forms.IntegerField(
+        required=False,
+        label=_('AD cumul. users')
+    )
+    est_cumulative_users = forms.IntegerField(
+        required=False,
+        label=_('AD cumul. users')
+    )
+    wan_reco_bw = forms.IntegerField(
+        required=False,
+        label=_('Reco. BW (Mbps)')
+    )
+    wan_computed_users = forms.IntegerField(
+        required=False,
+        label=_('WAN computed users')
+    )
+
+    fieldsets = (
+        FieldSet(
+            'region_id', 'group_id', 'site_id',
+            name=_('Location')
+        ),
+        FieldSet(
+            'status',
+            name=_('Status')
+        ),
+        FieldSet(
+            'ad_cumul_user', 'est_cumulative_users',
+            'wan_reco_bw', 'wan_computed_users',
+            name=_('Attributes')
+        )
+    )
 

@@ -11,6 +11,7 @@ from dcim.models import Site
 from .models import *
 from .forms import *
 from .tables import *
+from .filtersets import *
 
 
 __all__ = (
@@ -359,6 +360,8 @@ class SopInfraSizingListView(generic.ObjectListView):
     template_name:str = "sop_infra/tools/tables.html"
     queryset = SopInfra.objects.all()
     table = SopInfraSizingTable
+    filterset = SopInfraSizingFilterset
+    filterset_form = SopInfraSizingFilterForm
 
     def get_extra_context(self, request) -> dict:
         '''add context for title'''
@@ -380,4 +383,5 @@ class SopInfraMerakiListView(generic.ObjectListView):
         context = super().get_extra_context(request)
         context['title'] = "Meraki SDWAN"
         return context
+
 
