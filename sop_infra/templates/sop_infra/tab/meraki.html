@@ -51,6 +51,20 @@
         </a>
 
       <!--___________________________________________________
+        special case : master site linked to a Site instance
+        ____
+      -->
+      {% if object.master_site.pk %}
+        <a href="{% url 'dcim:site' pk=object.master_site.id %}"
+           class="list-group-item list-group-item-action d-flex justify-content-between">
+      {% else %}
+        <a class="list-group-item list-group-item-action d-flex justify-content-between">
+      {% endif %}
+        {% trans "MASTER Site" %}
+          <span>{{object.master_site|placeholder}}</span>
+        </a>
+
+      <!--___________________________________________________
         special case : date display
         ____
       -->

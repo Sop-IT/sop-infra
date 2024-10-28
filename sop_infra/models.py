@@ -79,7 +79,7 @@ class SopInfra(NetBoxModel):
         blank=True
     )
     site_type_indus = models.CharField(
-        choices=InfraTypeIndusChoices(),
+        choices=InfraTypeIndusChoices,
         null=True,
         blank=True
     )
