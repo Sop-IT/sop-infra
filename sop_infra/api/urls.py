@@ -1,10 +1,11 @@
 from netbox.api.routers import NetBoxRouter
 
-from .views import *
+from .views import SopInfraViewSet
 
 
 router = NetBoxRouter()
 
-router.register('sop-infras', SopInfraViewSet)
+router.register('infrastructures', SopInfraViewSet)
 
 urlpatterns = router.urls
+
