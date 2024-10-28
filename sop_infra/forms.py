@@ -16,9 +16,11 @@ from .models import *
 __all__ = (
     'SopInfraForm',
     'SopInfraMerakiForm',
+    'SopInfraMerakiFilterForm',
     'SopInfraSizingForm',
     'SopInfraSizingFilterForm',
-    'SopInfraClassificationForm'
+    'SopInfraClassificationForm',
+    'SopInfraClassificationFilterForm'
 )
 
 
@@ -236,7 +238,9 @@ class SopInfraForm(
 # filter forms
 
 
-class SopInfraSizingFilterForm(NetBoxModelFilterSetForm):
+#_____________
+# template to avoid code-repetition
+class SopInfraBaseFilterForm(NetBoxModelFilterSetForm):
     model = SopInfra
 
     site_id = DynamicModelChoiceField(
@@ -260,21 +264,125 @@ class SopInfraSizingFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_('Status')
     )
+
+
+class SopInfraMerakiFilterForm(SopInfraBaseFilterForm):
+    sdwanha = forms.ChoiceField(
+        label=_('HA(S) / NHA target'),
+        required=False
+    )
+    hub_order_setting = forms.ChoiceField(
+        label=_('HUB order setting'),
+        choices=add_blank_choice(InfraHubOrderChoices),
+        initial='',
+        required=False
+    )
+    hub_default_route_setting = forms.ChoiceField(
+        label=_('HUB default route setting'),
+        choices=add_blank_choice(InfraBoolChoices),
+        initial='',
+        required=False
+    )
+    sdwan1_bw = forms.CharField(
+        label=_('WAN1 BW'),
+        required=False
+    )
+    sdwan2_bw = forms.CharField(
+        label=_('WAN2 BW'),
+        required=False
+    )
+    site_sdwan_master_location = DynamicModelChoiceField(
+        label=_('MASTER Location'),
+        queryset=Location.objects.all(),
+        required=False
+    )
+    sdwan_master_site = forms.CharField(
+        label=_('MASTER Site'),
+        required=False
+    )
+    migration_sdwan = forms.DateField(
+        label=_('Migration SDWAN'),
+        widget=DatePicker(),
+        required=False
+    )
+    monitor_in_starting = forms.ChoiceField(
+        label=_('Monitor in starting'),
+        choices=add_blank_choice(InfraBoolChoices),
+        required=False
+    )
+
+    
+
+
+class SopInfraClassificationFilterForm(SopInfraBaseFilterForm):
+    site_infra_sysinfra = forms.ChoiceField(
+        label=_('Infrastructure'),
+        choices=add_blank_choice(InfraTypeChoices),
+        required=False
+    )
+    site_type_indus = forms.ChoiceField(
+        label=_('Industrial'),
+        choices=add_blank_choice(InfraTypeIndusChoices),
+        required=False
+    )
+    site_phone_critical = forms.ChoiceField(
+        label=_('Phone critical'),
+        choices=add_blank_choice(InfraBoolChoices),
+        required=False,
+    )
+    site_type_red = forms.ChoiceField(
+        label=_('R&D'),
+        choices=add_blank_choice(InfraBoolChoices),
+        required=False,
+    )
+    site_type_vip = forms.ChoiceField(
+        label=_('VIP'),
+        choices=add_blank_choice(InfraBoolChoices),
+        required=False,
+    )
+    site_type_wms = forms.ChoiceField(
+        label=_('WMS'),
+        choices=add_blank_choice(InfraBoolChoices),
+        required=False,
+    )
+
+    fieldsets = (
+        FieldSet(
+            'region_id', 'group_id', 'site_id',
+            name=_('Location')
+        ),
+        FieldSet(
+            'status',
+            name=_('Status')
+        ),
+        FieldSet(
+            'site_infra_sysinfra', 'site_type_indus', 'site_phone_critical',
+            'site_type_red', 'site_type_vip', 'site_type_wms',
+            name=_('Attributes')
+        )
+    )
+
+
+class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
     ad_cumul_user = forms.IntegerField(
         required=False,
-        label=_('AD cumul. users')
+        label=_('AD cumul. users'),
+        help_text=_('Numbers only')
     )
     est_cumulative_users = forms.IntegerField(
         required=False,
-        label=_('AD cumul. users')
+        label=_('AD cumul. users'),
+        help_text=_('Numbers only')
     )
     wan_reco_bw = forms.IntegerField(
         required=False,
-        label=_('Reco. BW (Mbps)')
+        label=_('Reco. BW (Mbps)'),
+        help_text=_('Numbers only')
     )
     wan_computed_users = forms.IntegerField(
         required=False,
-        label=_('WAN computed users')
+        label=_('WAN computed users'),
+        help_text=_('Numbers only')
     )
 
     fieldsets = (

@@ -2,18 +2,19 @@ import django_filters
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Site, Region, SiteGroup
+from dcim.models import Site, Region, SiteGroup, Location
 from netbox.filtersets import NetBoxModelFilterSet
 from utilities.filters import TreeNodeMultipleChoiceFilter
-from .models import *
+
+from .models import SopInfra
 
 
 __all__ = (
-    'SopInfraSizingFilterset',
+    'SopInfraFilterset',
 )
 
 
-class SopInfraSizingFilterset(NetBoxModelFilterSet):
+class SopInfraFilterset(NetBoxModelFilterSet):
     site_id = django_filters.ModelMultipleChoiceFilter(
         queryset=Site.objects.all(),
         field_name='site__id'
