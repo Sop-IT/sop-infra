@@ -5,10 +5,10 @@ class SopInfraConfig(PluginConfig):
     name = "sop_infra"
     verbose_name = "SOP Infra"
     description = "Manage infrastructure informations of each site"
-    version = "0.0.2"
+    version = "0.0.3"
     author = "Leorevoir"
     author_email = "leo.quinzler@epitech.eu"
-    base_rul = "sop-infra"
+    base_url = "sop-infra"
     min_version = '4.1.0'
 
 
