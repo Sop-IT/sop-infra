@@ -1,3 +1,4 @@
+from django.db import models
 import django_tables2 as tables
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -84,6 +85,8 @@ class SopInfraMerakiTable(NetBoxTable):
         
         value = record.site.status
         bg_color = SiteStatusChoices.colors.get(value)
+        if not bg_color:
+            bg_color = "gray"
         return mark_safe(f'<span class="badge text-bg-{bg_color}">{value.title()}</span>')
 
 
@@ -107,12 +110,12 @@ class SopInfraSizingTable(NetBoxTable):
         verbose_name=_('EST cumul. users'),
         linkify=True
     )
-    wan_reco_bw = tables.Column(
-        verbose_name=_('Reco. BW (Mbps)'),
-        linkify=True
-    )
     wan_computed_users = tables.Column(
         verbose_name=_('Wan users'),
+        linkify=True
+    )
+    wan_reco_bw = tables.Column(
+        verbose_name=_('Reco. BW (Mbps)'),
         linkify=True
     )
 
@@ -120,22 +123,37 @@ class SopInfraSizingTable(NetBoxTable):
         model = SopInfra
         fields = (
             'actions', 'pk', 'id', 'created', 'last_updated', 'site', 'status',
-            'ad_cumul_user', 'est_cumulative_users',
-            'wan_reco_bw', 'wan_computed_users'
+            'ad_cumul_user', 'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw'
         )
         default_columns = (
             'site', 'status', 'ad_cumul_user', 'est_cumulative_users',
-            'wan_reco_bw', 'wan_computed_users'
+            'wan_computed_users', 'wan_reco_bw'
         )
+        order_by = ('-wan_reco_bw',)
+
+    '''
+    order_<object> methods order from biggest to lowest positive integer
+    and skip every 'None' or 'NULL' data
+
+    returns a tuple of (restricted_queryset, is_descending)
+    '''
+    def order_wan_reco_bw(self, queryset, is_descending):
+        return queryset.order_by(models.F('wan_reco_bw').desc(nulls_last=True)), is_descending
+
+    def order_est_cumulative_users(self, queryset, is_descending):
+        return queryset.order_by(models.F('est_cumulative_users').desc(nulls_last=True)), is_descending
+
+    def render_wan_reco_bw(self, record):
+        return f'{record.wan_reco_bw} (Mbps)'
 
     def render_status(self, record):
         if not record.site:
             return None
-        
         value = record.site.status
         bg_color = SiteStatusChoices.colors.get(value)
+        if not bg_color:
+            bg_color = "gray"
         return mark_safe(f'<span class="badge text-bg-{bg_color}">{value.title()}</span>')
-
 
 class SopInfraClassificationTable(NetBoxTable):
     '''
@@ -186,6 +204,7 @@ class SopInfraClassificationTable(NetBoxTable):
             'site_phone_critical',
             'site_type_red', 'site_type_vip', 'site_type_wms',
         )
+        order_by = ('site_infra_sysinfra',)
 
     def render_status(self, record):
         if not record.site:

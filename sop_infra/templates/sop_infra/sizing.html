@@ -18,13 +18,16 @@
     </tr>
 
     <tr>
-      <th scope="row">{% trans "Reco. BW (Mbps)" %}</th>
-      <td>{{object.wan_reco_bw|placeholder}}</td>
+      <th scope="row">{% trans "WAN users" %}</th>
+      <td>{{object.wan_computed_users|placeholder}}</td>
     </tr>
 
     <tr>
-      <th scope="row">{% trans "WAN users" %}</th>
-      <td>{{object.wan_computed_users|placeholder}}</td>
+      <th scope="row">{% trans "Reco. BW (Mbps)" %}</th>
+      <td>
+        {{object.wan_reco_bw|placeholder}}
+        {% if object.wan_reco_bw %}(Mbps){% endif %}
+      </td>
     </tr>
 
   </table>

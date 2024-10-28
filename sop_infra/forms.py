@@ -396,7 +396,7 @@ class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
         ),
         FieldSet(
             'ad_cumul_user', 'est_cumulative_users',
-            'wan_reco_bw', 'wan_computed_users',
+            'wan_computed_users', 'wan_reco_bw',
             name=_('Attributes')
         )
     )

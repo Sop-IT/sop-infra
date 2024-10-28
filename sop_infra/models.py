@@ -206,3 +206,6 @@ class SopInfra(NetBoxModel):
             )
         ]
 
+    def clean(self):
+        super().clean()
+
