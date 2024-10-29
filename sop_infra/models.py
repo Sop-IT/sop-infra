@@ -7,6 +7,8 @@ from netbox.models import NetBoxModel
 from utilities.choices import ChoiceSet
 from dcim.models import Site, Location
 
+from .validators import SopInfraValidator
+
 
 __all__ = (
     'SopInfra',
@@ -121,6 +123,10 @@ class SopInfra(NetBoxModel):
         null=True,
         blank=True
     )
+    site_user_count = models.CharField(
+        null=True,
+        blank=True
+    )
     #_______
     # Meraki
     sdwanha = models.CharField(
@@ -203,9 +209,49 @@ class SopInfra(NetBoxModel):
                 fields=['site'],
                 name='%(app_label)s_%(class)s_unique_site',
                 violation_error_message=_('This site has already an Infrastrcture.')
+            ),
+            # PostgreSQL doesnt provide database-level constraints with related fields
+            # That is why i cannot check if site == master_location__site on db level, only with clean()
+            models.CheckConstraint(
+                check=~models.Q(site=models.F('master_site')),
+                name='%(app_label)s_%(class)s_master_site_equal_site',
+                violation_error_message=_('SDWAN MASTER site cannot be itself')
             )
         ]
 
     def clean(self):
         super().clean()
+
+        # slave sites
+        if self.site_sdwan_master_location:
+            # check that the location doesn't already have another slave site linked to it
+            if SopInfra.objects.exclude(pk=self.pk).filter(site_sdwan_master_location=self.site_sdwan_master_location).exists():
+                raise ValidationError({
+                    'site_sdwan_master_location': 'This location is already the master location for other sites.'
+                })
+            # check that there is no loop
+            if self.site_sdwan_master_location.site == self.site:
+                raise ValidationError({
+                    'site_sdwan_master_location': 'SDWAN MASTER site cannot be itself'
+                })
+
+            # forces the master site to match the master location
+            if self.master_site is None:
+                self.master_site = self.site_sdwan_master_location.site
+
+            # reset some fields
+            SopInfraValidator.slave_site_reset_fields(self)
+
+        # non-slave sites
+        else:
+
+            # compute user count depending on status
+            self.wan_computed_users = SopInfraValidator.count_wan_computed_users(self)
+            if self.wan_computed_users is None:
+                self.wan_computed_users = 0
+
+            # count site_user_count depending on wan_computed_users
+            self.site_user_count = SopInfraValidator.count_site_user(self.wan_computed_users)
+            # compute and set recommended bandwidth
+            self.wan_reco_bw = SopInfraValidator.set_recommended_bandwidth(self.wan_computed_users)
 
