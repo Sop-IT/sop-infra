@@ -255,3 +255,6 @@ class SopInfra(NetBoxModel):
             # compute and set recommended bandwidth
             self.wan_reco_bw = SopInfraValidator.set_recommended_bandwidth(self.wan_computed_users)
 
+            # compute SDWANHA
+            SopInfraValidator.compute_sdwanha(self)
+

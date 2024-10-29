@@ -19,6 +19,8 @@ class SopInfraValidator:
         instance.site_type_wms = None
         instance.site_type_red = None
         instance.site_phone_critical = None
+        instance.site_infra_sysinfra = None
+        instance.site_type_indus = None
         instance.est_cumulative_users = None
         instance.wan_reco_bw = None
         instance.wan_computed_users = None
@@ -65,4 +67,32 @@ class SopInfraValidator:
             return round(wan * 4)
         else:
             return round(wan * 5)
+
+    @staticmethod
+    def compute_sdwanha(instance):
+        if instance.site.status in ['no_infra', 'candidate', 'reserved', 'template', 'inventory', 'teleworker']:
+        # enforce no_infra constraints
+            instance.sdwanha = '-NO NETWORK-'
+            instance.sdwan1_bw = None
+            instance.sdwan2_bw = None
+            instance.site_infra_sysinfra = None
+        else:
+            # compute sdwanha for normal sites
+            target_ha = '-NHA-'
+            if instance.site_type_indus == 'ipl':
+                target_ha = 'HAS-'
+            elif instance.site_type_vip == True:
+                target_ha = '-HA-'
+            elif instance.site_type_indus == 'fac' \
+                or instance.site_phone_critical == True \
+                or instance.site_type_red == True \
+                or instance.site_type_wms == True \
+                or instance.site_infra_sysinfra == 'sysclust' \
+                or instance.site_user_count in ['50<100', '100<200', '200<500', '>500']:
+                target_ha = '-HA-'
+
+            # changed stored HA status in necessary
+            if instance.sdwanha != target_ha:
+                instance.sdwanha == target_ha
+
 
