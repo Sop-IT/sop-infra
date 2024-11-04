@@ -141,3 +141,32 @@ class SopInfraTestCase(TestCase):
         i.full_clean()
         self.assertTrue(i.wan_reco_bw == 9 * 5)
 
+    def test_sdwanha_no_network(self):
+        """Test that valid SopInfra computes SDWANHA value"""
+        i = SopInfra.objects.create(site=self.bree)
+        i.full_clean()
+        self.assertTrue(i.sdwanha == '-NO NETWORK-')
+
+    def test_sdwanha_nha(self):
+        """Test that valid SopInfra computes SDWANHA value"""
+        i = SopInfra.objects.create(site=self.minas)
+        i.full_clean()
+        self.assertTrue(i.sdwanha == '-NHA-')
+
+    def test_sdwanha_ha(self):
+        """Test that valid SopInfra computes SDWANHA value"""
+        i = SopInfra.objects.create(
+            site=self.minas,
+            site_type_vip='true',
+        )
+        i.full_clean()
+        self.assertTrue(i.sdwanha == '-HA-')
+
+        j = SopInfra.objects.create(
+            site=self.rivendell,
+            site_infra_sysinfra='sysclust'
+        )
+        j.full_clean()
+        self.assertTrue(j.sdwanha == '-HA-')
+
+

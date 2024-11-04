@@ -78,21 +78,32 @@ class SopInfraValidator:
             instance.site_infra_sysinfra = None
         else:
             # compute sdwanha for normal sites
-            target_ha = '-NHA-'
-            if instance.site_type_indus == 'ipl':
-                target_ha = 'HAS-'
-            elif instance.site_type_vip == True:
-                target_ha = '-HA-'
+            instance.sdwanha = '-NHA-'
+            if instance.site_type_vip == 'true':
+                instance.sdwanha = '-HA-'
+            # no -HAS- because there is no site_type_indus == IPL
             elif instance.site_type_indus == 'fac' \
-                or instance.site_phone_critical == True \
-                or instance.site_type_red == True \
-                or instance.site_type_wms == True \
+                or instance.site_phone_critical == 'true' \
+                or instance.site_type_red == 'true' \
+                or instance.site_type_wms == 'true' \
                 or instance.site_infra_sysinfra == 'sysclust' \
                 or instance.site_user_count in ['50<100', '100<200', '200<500', '>500']:
-                target_ha = '-HA-'
+                instance.sdwanha = '-HA-'
 
-            # changed stored HA status in necessary
-            if instance.sdwanha != target_ha:
-                instance.sdwanha == target_ha
+    @staticmethod
+    def force_sdwan_migration_date(instance):
+        # only with active site
+        if instance.site.status != 'active':
+            return
 
+        # dit not find _prechange_snapshot
+        if hasattr(instance.site, '_prechange_snapshot') and site._prechange_snapshot.get('status') != 'active':
+            if instance.migration_sdwan is None or instance.migration_sdwan == '':
+                raise ValidationError({
+                    'migration_sdwan': 'Setting SDWAN to active requires a migration date'
+                })
+            if instance.sdwan1_bw is None and instance.sdwan2_bw is None:
+                raise ValidationError({
+                    'sdwan1_bw': 'SDWAN requires at least one bandwidth set'
+                })
 

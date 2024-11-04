@@ -258,3 +258,6 @@ class SopInfra(NetBoxModel):
             # compute SDWANHA
             SopInfraValidator.compute_sdwanha(self)
 
+        SopInfraValidator.force_sdwan_migration_date(self)
+
+
