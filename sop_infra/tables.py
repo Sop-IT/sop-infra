@@ -21,50 +21,17 @@ class SopInfraMerakiTable(NetBoxTable):
     '''
     table for all SopInfra - meraki sdwan related instances
     '''
-    site = tables.Column(
-        verbose_name=_('Site'),
-        linkify=True
-    )
-    status = tables.Column(
-        accessor='site__status',
-        linkify=True
-    )
-    sdwanha = tables.Column(
-        verbose_name=_('HA(S) / NHA Target'),
-        linkify=True
-    )
-    hub_order_setting = tables.Column(
-        verbose_name=_('HUB Order Settings'),
-        linkify=True
-    )
-    hub_default_route_setting = ChoiceFieldColumn(
-        verbose_name=_('HUB Default Route Settings'),
-        linkify=True
-    )
-    sdwan1_bw = tables.Column(
-        verbose_name=_('WAN1 BW'),
-        linkify=True
-    )
-    sdwan2_bw = tables.Column(
-        verbose_name=_('WAN2 BW'),
-        linkify=True
-    )
-    site_sdwan_master_location = tables.Column(
-        verbose_name=_('MASTER Location'),
-        linkify=True
-    )
-    master_site = tables.Column(
-        verbose_name=_('MASTER Site'),
-        linkify=True
-    )
-    migration_sdwan = tables.Column(
-        verbose_name=_('Migration Date'),
-        linkify=True
-    )
-    monitor_in_starting = tables.Column(
-        verbose_name=_('Monitor in Starting'),
-        linkify=True
-    )
+    site = tables.Column(linkify=True)
+    status = tables.Column(accessor='site__status', linkify=True)
+    sdwanha = tables.Column(linkify=True)
+    hub_order_setting = tables.Column(linkify=True)
+    hub_default_route_setting = ChoiceFieldColumn(linkify=True)
+    sdwan1_bw = tables.Column(linkify=True)
+    sdwan2_bw = tables.Column(linkify=True)
+    site_sdwan_master_location = tables.Column(linkify=True)
+    master_site = tables.Column(linkify=True)
+    migration_sdwan = tables.Column(linkify=True)
+    monitor_in_starting = tables.Column(linkify=True)
 
     class Meta(NetBoxTable.Meta):
         model = SopInfra
@@ -94,30 +61,12 @@ class SopInfraSizingTable(NetBoxTable):
     '''
     table for all SopInfra - sizing related instances
     '''
-    site = tables.Column(
-        verbose_name=_('Site'),
-        linkify=True
-    )
-    status = tables.Column(
-        accessor='site__status',
-        linkify=True
-    )
-    ad_cumul_user = tables.Column(
-        verbose_name=_('AD cumul. users'),
-        linkify=True
-    )
-    est_cumulative_users = tables.Column(
-        verbose_name=_('EST cumul. users'),
-        linkify=True
-    )
-    wan_computed_users = tables.Column(
-        verbose_name=_('Wan users'),
-        linkify=True
-    )
-    wan_reco_bw = tables.Column(
-        verbose_name=_('Reco. BW (Mbps)'),
-        linkify=True
-    )
+    site = tables.Column(linkify=True)
+    status = tables.Column(accessor='site__status', linkify=True)
+    ad_cumul_user = tables.Column(linkify=True)
+    est_cumulative_users = tables.Column(linkify=True)
+    wan_computed_users = tables.Column(linkify=True)
+    wan_reco_bw = tables.Column(linkify=True)
 
     class Meta(NetBoxTable.Meta):
         model = SopInfra
@@ -159,38 +108,15 @@ class SopInfraClassificationTable(NetBoxTable):
     '''
     table for all SopInfra - classification related instances
     '''
-    site = tables.Column(
-        verbose_name=_('Site'),
-        linkify=True
-    )
-    status = tables.Column(
-        accessor="site__status",
-        linkify=True
-    )
-    site_infra_sysinfra = tables.Column(
-        verbose_name=_('System Infrastructure'),
-        linkify=True
-    )
-    site_type_indus = tables.Column(
-        verbose_name=_('Industrial'),
-        linkify=True
-    )
-    site_phone_critical = ChoiceFieldColumn(
-        verbose_name=_('PHONE Critical ?'),
-        linkify=True
-    )
-    site_type_red = ChoiceFieldColumn(
-        verbose_name=_('R&D ?'),
-        linkify=True
-    )
-    site_type_vip = ChoiceFieldColumn(
-        verbose_name=_('VIP ?'),
-        linkify=True
-    )
-    site_type_wms = ChoiceFieldColumn(
-        verbose_name=_('WMS ?'),
-        linkify=True
-    )
+    site = tables.Column(linkify=True)
+    status = tables.Column(accessor='site__status', linkify=True)
+    site_infra_sysinfra = tables.Column(linkify=True)
+    site_type_indus = tables.Column(linkify=True)
+    criticity_stars = tables.Column(linkify=True)
+    site_phone_critical = ChoiceFieldColumn(linkify=True)
+    site_type_red = ChoiceFieldColumn(linkify=True)
+    site_type_vip = ChoiceFieldColumn(linkify=True)
+    site_type_wms = ChoiceFieldColumn(linkify=True)
 
     class Meta(NetBoxTable.Meta):
         model = SopInfra
@@ -215,4 +141,10 @@ class SopInfraClassificationTable(NetBoxTable):
         if not bg_color:
             bg_color = "gray"
         return mark_safe(f'<span class="badge text-bg-{bg_color}">{value.title()}</span>')
+
+    def render_criticity_stars(self, record):
+        if not record.criticity_stars:
+            return None
+
+        return record.get_criticity_stars()
 

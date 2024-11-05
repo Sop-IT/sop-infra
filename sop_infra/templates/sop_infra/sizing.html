@@ -18,8 +18,18 @@
     </tr>
 
     <tr>
+      <th scope="row">{% trans "Site user count" %}</th>
+      <td>{{object.site_user_count|placeholder}}</td>
+    </tr>
+
+    <tr>
       <th scope="row">{% trans "WAN users" %}</th>
       <td>{{object.wan_computed_users|placeholder}}</td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "Reco. MX Model" %}></th>
+      <td>{{object.site_mx_model|placeholder}}</td>
     </tr>
 
     <tr>
