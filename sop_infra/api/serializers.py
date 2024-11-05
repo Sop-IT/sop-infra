@@ -31,14 +31,14 @@ class SopInfraSerializer(NetBoxModelSerializer):
         fields = (
             'id', 'url', 'display', 'site',
             'site_infra_sysinfra', 'site_type_indus', 'site_phone_critical',
-            'site_type_red', 'site_type_vip', 'site_type_wms',
+            'site_type_red', 'site_type_vip', 'site_type_wms', 'criticity_stars',
             'ad_cumul_user', 'est_cumulative_users', 'wan_reco_bw', 'wan_computed_users',
             'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
             'master_site', 'migration_sdwan', 'monitor_in_starting',
             'created', 'last_updated',
         )
-        brief_fields = ('id', 'url', 'display', 'site_infra_sysinfra',
+        brief_fields = ('id', 'url', 'display', 'site_infra_sysinfra', 'criticity_stars',
                         'site_type_indus', 'sdwanha', 'site_sdwan_master_location', 'master_site')
 
     def get_site(self, obj):

@@ -29,6 +29,8 @@
 
       {% include 'sop_infra/tools/display.html' with name="Industrial" var=object.get_site_type_indus_display %}
 
+      {% include 'sop_infra/tools/display.html' with name="Criticity stars" var=object.get_criticity_stars %}
+
       {% include 'sop_infra/tools/display.html' with name="PHONE Critical ?" var=object.site_phone_critical badge=1 %}
 
       {% include 'sop_infra/tools/display.html' with name="R&D ?" var=object.site_type_red badge=1 %}

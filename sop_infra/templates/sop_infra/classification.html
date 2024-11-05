@@ -18,6 +18,11 @@
     </tr>
 
     <tr>
+      <th scope="row">{% trans "Criticity stars" %}</th>
+      <td>{{object.get_criticity_stars|placeholder}}</td>
+    </tr>
+
+    <tr>
       <th scope="row">{% trans "PHONE Critical ?" %}</th>
       <td>{% include 'sop_infra/tools/badge.html' with object=object.site_phone_critical %}</td>
     </tr>
