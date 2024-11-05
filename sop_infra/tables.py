@@ -72,11 +72,12 @@ class SopInfraSizingTable(NetBoxTable):
         model = SopInfra
         fields = (
             'actions', 'pk', 'id', 'created', 'last_updated', 'site', 'status',
-            'ad_cumul_user', 'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw'
+            'ad_cumul_user', 'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw',
+            'ad_direct_users', 'site_mx_model'
         )
         default_columns = (
             'site', 'status', 'ad_cumul_user', 'est_cumulative_users',
-            'wan_computed_users', 'wan_reco_bw'
+            'wan_computed_users', 'wan_reco_bw', 'site_mx_model'
         )
         order_by = ('-wan_reco_bw',)
 

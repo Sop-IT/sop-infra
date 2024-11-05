@@ -8,13 +8,18 @@
   <table class="table table-hover attr-table">
 
     <tr>
+      <th scope="row">{% trans "AD direct. users" %}</th>
+      <td>{{object.ad_direct_users|placeholder}}</td>
+    </tr>
+
+    <tr>
       <th scope="row">{% trans "AD cumul. users" %}</th>
-      <td>{{object.ad_cumul_users|placeholder}}</td>
+      <td>{{object.ad_cumul_user|placeholder}}</td>
     </tr>
 
     <tr>
       <th scope="row">{% trans "EST cumul. users" %}</th>
-      <td>{{object.est_cumul_users|placeholder}}</td>
+      <td>{{object.est_cumulative_users|placeholder}}</td>
     </tr>
 
     <tr>

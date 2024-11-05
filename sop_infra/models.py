@@ -151,6 +151,11 @@ class SopInfra(NetBoxModel):
         blank=True,
         verbose_name=_('WAN users')
     )
+    ad_direct_users = models.PositiveBigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('AD direct. users')
+    )
     #_______
     # Meraki
     sdwanha = models.CharField(
@@ -234,7 +239,9 @@ class SopInfra(NetBoxModel):
     def get_monitor_in_starting_color(self) -> str:
         return InfraBoolChoices.colors.get(self.hub_default_route_setting)
 
-    def get_criticity_stars(self) -> str:
+    def get_criticity_stars(self) -> str|None:
+        if self.criticity_stars is None:
+            return None
         html:str = ['<span class="mdi mdi-star-outline"></span>' for _ in self.criticity_stars]
         return mark_safe(''.join(html))
 
@@ -256,8 +263,24 @@ class SopInfra(NetBoxModel):
             )
         ]
 
+    def compute_ad_cumulative_users(self, instance, slave=None) -> int:
+        ad:int = instance.ad_direct_users
+
+        # check if this is a master site
+        targets = SopInfra.objects.filter(master_site=instance.site)
+
+        if targets.exists():
+            # if it is, ad slave's ad cumul users to master site
+            for target in targets:
+                ad += target.ad_cumul_user
+
+        return ad
+
     def clean(self):
         super().clean()
+
+        # first set ad to direct users
+        self.ad_cumul_user = self.ad_direct_users
 
         # DC site status special case
         if self.site.status == 'dc':
@@ -288,20 +311,14 @@ class SopInfra(NetBoxModel):
 
             # no master site on non-slave
             self.master_site = None
+
+            # compute real ad users with related slaves sites
+            self.ad_cumul_user = self.compute_ad_cumulative_users(self)
+
             # compute user count depending on status
             self.wan_computed_users = SopInfraValidator.count_wan_computed_users(self)
             if self.wan_computed_users is None:
                 self.wan_computed_users = 0
-
-            '''
-            # if the site is a children, add its compute users to the parent
-            target = Site.objects.filter(pk=self.master_site)
-            if target.exists():
-                parent = SopInfra.objects.filter(site=target.first())
-                if parent.exists():
-                    parent = parent.first()
-                    parent.wan_computed_users += self.wan_computed_users
-            '''
 
             # count site_user_count and fix user slice
             # according to wan computed users
