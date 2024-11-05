@@ -40,15 +40,36 @@ class SopInfraTabView(View, ObjectPermissionRequiredMixin):
     tab = ViewTab(label=_('Infrastructure'), permission=get_permission_for_model(SopInfra, 'view'))
     template_name: str = 'sop_infra/tab/tab.html'
 
+    def get_slave_sites(self, infra):
+        '''
+        look for slaves sites and join their id
+        '''
+        if not infra.exists():
+            return None
+
+        # get every SopInfra instances with master_site = current site
+        # and prefetch the only attribute that matters to optimize the request
+        target = SopInfra.objects.filter(master_site=(infra.first()).site).prefetch_related('site').values_list('site__pk', flat=True)
+        if not target:
+            return None
+
+        qs = [str(item) for item in target]
+        if qs == []:
+            return None
+
+        return f'id=' + '&id='.join(qs)
+
     def get_extra_context(self, request, pk) -> dict:
         context: dict = {}
         
         site = get_object_or_404(Site, pk=pk)
-        if SopInfra.objects.filter(site=site).exists():
-            context['sop_infra'] = SopInfra.objects.get(site=site)
+        infra = SopInfra.objects.filter(site=site)
+        if infra.exists():
+            context['sop_infra'] = infra.first()
         else:
             context['sop_infra'] = SopInfra
         context['actions'] = DEFAULT_ACTION_PERMISSIONS
+        context['slave'] = self.get_slave_sites(infra)
         return {'object': site, 'context': context}
 
     def get(self, request, pk):

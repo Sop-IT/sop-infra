@@ -43,6 +43,23 @@
 
 </div>
 
+{% if context.slave %}
+<div class="col col-md-12">
+  <div class="card">
+
+    <h2 class="card-header">
+      <a href="{% url object|viewname:"list" %}?{{context.slave}}">Slave sites</a>
+    </h2>
+
+    <div class="htmx-container table-responsive"
+      hx-get="{% url object|viewname:"list" %}?embedded=True&{{context.slave}}"
+      hx-target="this"
+      hx-trigger="load" hx-select=".htmx-container" hx-swap="outerHTML"
+    ></div>
+{% endif %}
+  </div>
+</div>
+
 <script>
   document.addEventListener('DOMContentLoaded', function()
   {
