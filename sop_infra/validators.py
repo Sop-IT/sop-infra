@@ -39,6 +39,8 @@ class SopInfraValidator:
 
     @staticmethod
     def count_wan_computed_users(instance) -> int:
+
+
         if instance.site.status in ['active', 'decommissioning']:
             return instance.ad_cumul_user
 
@@ -46,7 +48,10 @@ class SopInfraValidator:
             return instance.est_cumulative_users
 
         elif instance.site.status in ['starting']:
-            wan:int = instance.ad_cumul_user
+            wan:int|None = instance.ad_cumul_user
+
+            if wan is None:
+                wan:int = 0
 
             if instance.est_cumulative_users is not None and instance.est_cumulative_users > wan:
                 return instance.est_cumulative_users

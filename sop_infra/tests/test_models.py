@@ -71,22 +71,22 @@ class SopInfraTestCase(TestCase):
         """Test that valid SopInfra computes wan users"""
         i_act = SopInfra.objects.create(
             site=self.minas,
-            ad_cumul_user=self.ad,
+            ad_direct_users=self.ad,
             est_cumulative_users=self.est
         )
         i_cand = SopInfra.objects.create(
             site=self.bree,
-            ad_cumul_user=self.ad,
+            ad_direct_users=self.ad,
             est_cumulative_users=self.est
         )
         i_star = SopInfra.objects.create(
             site=self.rivendell,
-            ad_cumul_user=self.ad,
+            ad_direct_users=self.ad,
             est_cumulative_users=self.est
         )
         i_unk = SopInfra.objects.create(
             site=self.moria,
-            ad_cumul_user=self.ad,
+            ad_direct_users=self.ad,
             est_cumulative_users=self.est
         )
         
@@ -108,17 +108,17 @@ class SopInfraTestCase(TestCase):
         """Test that valid SopInfra computes site users"""
         i = SopInfra.objects.create(
             site=self.minas,
-            ad_cumul_user=self.ad,
+            ad_direct_users=self.ad,
             est_cumulative_users=self.est
         )
         i.full_clean()
         self.assertTrue(i.site_user_count == '20<50')
 
-        i.ad_cumul_user = 235
+        i.ad_direct_users = 235
         i.full_clean()
         self.assertTrue(i.site_user_count == '200<500')
 
-        i.ad_cumul_user = 9
+        i.ad_direct_users = 9
         i.full_clean()
         self.assertTrue(i.site_user_count == '<10')
 
@@ -126,18 +126,18 @@ class SopInfraTestCase(TestCase):
         """Test that valid SopInfra computes recomended bandwidth"""
         i = SopInfra.objects.create(
             site=self.minas,
-            ad_cumul_user=self.ad,
+            ad_direct_users=self.ad,
             est_cumulative_users=self.est
         )
         # reco bw = wan * cm
         i.full_clean()
         self.assertTrue(i.wan_reco_bw == 42 * 4)
 
-        i.ad_cumul_user = 235
+        i.ad_direct_users = 235
         i.full_clean()
         self.assertTrue(i.wan_reco_bw == round(235 * 2.5))
 
-        i.ad_cumul_user = 9
+        i.ad_direct_users = 9
         i.full_clean()
         self.assertTrue(i.wan_reco_bw == 9 * 5)
 
