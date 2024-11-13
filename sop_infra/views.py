@@ -57,11 +57,11 @@ class SopInfraTabView(View, ObjectPermissionRequiredMixin):
         if not target:
             return None
 
-        qs = [str(item) for item in target]
-        if qs == []:
+        self.qs = [str(item) for item in target]
+        if self.qs == []:
             return None
 
-        return f'id=' + '&id='.join(qs)
+        return f'id=' + '&id='.join(self.qs)
 
     def get_extra_context(self, request, pk) -> dict:
         context: dict = {}
@@ -187,11 +187,7 @@ class SopInfraClassificationAddView(generic.ObjectEditView):
     def get_extra_context(self, request, obj) -> dict:
         context = super().get_extra_context(request, obj)
         context['object_type'] = 'Classification'
-        try:
-            if obj.site:
-                context['site'] = obj.site
-        except:
-            return context
+        return context
 
 
 class SopInfraClassificationEditView(generic.ObjectEditView):
@@ -254,11 +250,7 @@ class SopInfraMerakiAddView(generic.ObjectEditView):
     def get_extra_context(self, request, obj) -> dict:
         context = super().get_extra_context(request, obj)
         context['object_type'] = 'Meraki SDWAN'
-        try:
-            if obj.site:
-                context['site'] = obj.site
-        except:
-            return context
+        return context
 
 
 class SopInfraMerakiEditView(generic.ObjectEditView):
@@ -321,11 +313,7 @@ class SopInfraSizingAddView(generic.ObjectEditView):
     def get_extra_context(self, request, obj) -> dict:
         context = super().get_extra_context(request, obj)
         context['object_type'] = 'Sizing'
-        try:
-            if obj and obj.site:
-                context['site'] = obj.site
-        except:
-            return context
+        return context
 
 
 class SopInfraSizingEditView(generic.ObjectEditView):
@@ -423,11 +411,20 @@ class SopInfraRefreshView(View):
 
     def get_return_url(self, qs=None) -> str:
 
-        if qs is not None and isinstance(qs, int):
-            obj = SopInfra.objects.get(pk=qs)
+        if self.qs is not None and self.qs != '':
+            obj = SopInfra.objects.get(pk=self.qs)
             return obj.get_absolute_url()
 
         return reverse('dcim:site_list')
+
+    def get_extra_context(self) -> dict:
+        context:dict = {}
+
+        if self.qs is not None and self.qs != '':
+            context['site'] = SopInfra.objects.get(pk=self.qs)
+        else:
+            context['site'] = 'Site'
+        return context
 
     def refresh_infra(self, request, infra):
 
@@ -439,31 +436,29 @@ class SopInfraRefreshView(View):
 
     def get(self, request, *args, **kwargs):
         
-        qs = request.GET.get('qs')
-        form = self.form()
-
-        if qs is not None:
-            form = self.form(initial={'sites': qs})
+        self.qs = request.GET.get('qs')
+        form = self.form(initial={'sites': self.qs})
 
         restrict_form_fields(form, request.user)
-        self.return_url = self.get_return_url(qs)
+        self.return_url = self.get_return_url(self.qs)
 
         return render(request, self.template_name, {
             'form': form,
-            'return_url': self.return_url
+            'return_url': self.return_url,
+            **self.get_extra_context()
         })
 
     def post(self, request, *args, **kwargs):
 
+        self.qs = request.GET.get('qs')
         form = self.form(data=request.POST, files=request.FILES)
-        qs=request.GET.get('qs')
 
         if form.is_valid():
             data = form.cleaned_data
             infra = data.get('sites')
             self.refresh_infra(request, infra)
 
-        self.return_url = self.get_return_url(qs)
+        self.return_url = self.get_return_url(self.qs)
 
         return redirect(self.return_url)
 
