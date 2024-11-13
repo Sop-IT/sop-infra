@@ -16,6 +16,7 @@ urlpatterns = [
     path('add/<int:pk>/', SopInfraAddView.as_view(), name='sopinfra_add'),
     path('edit/<int:pk>/', SopInfraEditView.as_view(), name='sopinfra_edit'),
     path('delete/<int:pk>/', SopInfraDeleteView.as_view(), name='sopinfra_delete'),
+    path('refresh/', SopInfraRefreshView.as_view(), name='sopinfra_refresh'),
     path('journal/<int:pk>', ObjectJournalView.as_view(), name='sopinfra_journal', kwargs={'model': SopInfra}),
     path('changelog/<int:pk>', ObjectChangeLogView.as_view(), name='sopinfra_changelog', kwargs={'model': SopInfra}),
 

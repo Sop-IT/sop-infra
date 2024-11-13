@@ -1,9 +1,12 @@
 from django.utils.translation import gettext_lazy as _
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 from django.views import View
+from django.urls import reverse
 
 from utilities.permissions import get_permission_for_model
 from utilities.views import register_model_view, ViewTab, ObjectPermissionRequiredMixin
+from utilities.forms import restrict_form_fields
 from netbox.constants import DEFAULT_ACTION_PERMISSIONS
 from netbox.views import generic
 from dcim.models import Site
@@ -16,9 +19,10 @@ from .filtersets import SopInfraFilterset
 
 __all__ = (
     'SopInfraTabView',
-    'SopInfraDeleteView',
-    'SopInfraEditView',
     'SopInfraAddView',
+    'SopInfraEditView',
+    'SopInfraDeleteView',
+    'SopInfraRefreshView',
     'SopInfraDetailView',
     'SopInfraMerakiAddView',
     'SopInfraMerakiEditView',
@@ -409,4 +413,57 @@ class SopInfraMerakiListView(generic.ObjectListView):
         context['title'] = "Meraki SDWAN"
         return context
 
+
+class SopInfraRefreshView(View):
+    '''
+    refresh targeted sopinfra computed values
+    '''
+    form = SopInfraRefreshForm
+    template_name:str = 'sop_infra/tools/refresh_form.html'
+
+    def get_return_url(self, qs=None) -> str:
+
+        if qs is not None and isinstance(qs, int):
+            obj = SopInfra.objects.get(pk=qs)
+            return obj.get_absolute_url()
+
+        return reverse('dcim:site_list')
+
+    def refresh_infra(self, request, infra):
+
+        for obj in infra:
+            obj.snapshot()
+            obj.full_clean()
+            obj.save()
+            messages.success(request, f"Successfully updated {obj}")
+
+    def get(self, request, *args, **kwargs):
+        
+        qs = request.GET.get('qs')
+        form = self.form()
+
+        if qs is not None:
+            form = self.form(initial={'sites': qs})
+
+        restrict_form_fields(form, request.user)
+        self.return_url = self.get_return_url(qs)
+
+        return render(request, self.template_name, {
+            'form': form,
+            'return_url': self.return_url
+        })
+
+    def post(self, request, *args, **kwargs):
+
+        form = self.form(data=request.POST, files=request.FILES)
+        qs=request.GET.get('qs')
+
+        if form.is_valid():
+            data = form.cleaned_data
+            infra = data.get('sites')
+            self.refresh_infra(request, infra)
+
+        self.return_url = self.get_return_url(qs)
+
+        return redirect(self.return_url)
 

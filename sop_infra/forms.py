@@ -20,7 +20,8 @@ __all__ = (
     'SopInfraSizingForm',
     'SopInfraSizingFilterForm',
     'SopInfraClassificationForm',
-    'SopInfraClassificationFilterForm'
+    'SopInfraClassificationFilterForm',
+    'SopInfraRefreshForm',
 )
 
 
@@ -399,5 +400,13 @@ class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
             'wan_computed_users', 'wan_reco_bw',
             name=_('Attributes')
         )
+    )
+
+
+class SopInfraRefreshForm(forms.Form):
+
+    sites = forms.ModelMultipleChoiceField(
+        queryset=SopInfra.objects.all(),
+        help_text=_('Enter all site infrastructure to Refresh')
     )
 

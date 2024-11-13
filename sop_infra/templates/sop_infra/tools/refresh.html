@@ -1,0 +1,13 @@
+{% load helpers %}
+
+<a href="{% url 'plugins:sop_infra:sopinfra_refresh' %}?qs={{params}}" type="button" class="btn btn-primary">
+
+  {% if site %}
+  <i class="mdi mdi-refresh" title="Refresh {{site}} infrastructure"></i>
+    Refresh {{site}} Infrastructure
+  {% else %}
+  <i class="mdi mdi-refresh" title="Refresh all sites infrastructures"></i>
+    Refresh Infrastructures
+  {% endif %}
+</a>
+
