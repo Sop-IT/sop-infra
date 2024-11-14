@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 ('site_type_red', models.CharField(blank=True, null=True)),
                 ('site_type_vip', models.CharField(blank=True, null=True)),
                 ('site_type_wms', models.CharField(blank=True, null=True)),
-                ('ad_cumul_user', models.PositiveBigIntegerField(blank=True, null=True)),
+                ('ad_cumulative_users', models.PositiveBigIntegerField(blank=True, null=True)),
                 ('est_cumulative_users', models.PositiveBigIntegerField(blank=True, null=True)),
                 ('wan_reco_bw', models.PositiveBigIntegerField(blank=True, null=True)),
                 ('wan_computed_users', models.PositiveBigIntegerField(blank=True, null=True)),
