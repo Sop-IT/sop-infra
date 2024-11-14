@@ -4,15 +4,15 @@ from django.contrib import messages
 from django.views import View
 from django.urls import reverse
 
+from utilities.views import register_model_view, ViewTab, ObjectPermissionRequiredMixin 
 from utilities.permissions import get_permission_for_model
-from utilities.views import register_model_view, ViewTab, ObjectPermissionRequiredMixin
 from utilities.forms import restrict_form_fields
-from netbox.constants import DEFAULT_ACTION_PERMISSIONS
 from netbox.views import generic
 from dcim.models import Site
 
 from .models import *
 from .forms import *
+from .utils import SopInfraRelatedModelsMixin
 from .tables import *
 from .filtersets import SopInfraFilterset
 
@@ -21,9 +21,12 @@ __all__ = (
     'SopInfraTabView',
     'SopInfraAddView',
     'SopInfraEditView',
+    'SopInfraListView',
     'SopInfraDeleteView',
     'SopInfraRefreshView',
     'SopInfraDetailView',
+    'SopInfraBulkEditView',
+    'SopInfraBulkDeleteView',
     'SopInfraMerakiAddView',
     'SopInfraMerakiEditView',
     'SopInfraMerakiListView',
@@ -37,46 +40,35 @@ __all__ = (
 
 
 @register_model_view(Site, name='infra')
-class SopInfraTabView(View, ObjectPermissionRequiredMixin):
+class SopInfraTabView(
+    View,
+    ObjectPermissionRequiredMixin,
+    SopInfraRelatedModelsMixin):
     '''
     creates an "infrastructure" tab on the site page
     '''
     tab = ViewTab(label=_('Infrastructure'), permission=get_permission_for_model(SopInfra, 'view'))
     template_name: str = 'sop_infra/tab/tab.html'
-
-    def get_slave_sites(self, infra):
-        '''
-        look for slaves sites and join their id
-        '''
-        if not infra.exists():
-            return None
-
-        # get every SopInfra instances with master_site = current site
-        # and prefetch the only attribute that matters to optimize the request
-        target = SopInfra.objects.filter(master_site=(infra.first()).site).prefetch_related('site').values_list('site__pk', flat=True)
-        if not target:
-            return None
-
-        self.qs = [str(item) for item in target]
-        if self.qs == []:
-            return None
-
-        return f'id=' + '&id='.join(self.qs)
+    queryset = SopInfra.objects.all()
 
     def get_extra_context(self, request, pk) -> dict:
         context: dict = {}
         
         site = get_object_or_404(Site, pk=pk)
+
         infra = SopInfra.objects.filter(site=site)
+
         if infra.exists():
             context['sop_infra'] = infra.first()
         else:
             context['sop_infra'] = SopInfra
-        context['actions'] = DEFAULT_ACTION_PERMISSIONS
-        context['slave'] = self.get_slave_sites(infra)
+        context['slave'], context['count_slave'] = self.get_slave_sites(infra)
+        context['slave_infra'] = self.get_slave_infra(infra)
+        context['count_slave_infra'] = context['slave_infra'].count()
         return {'object': site, 'context': context}
 
     def get(self, request, pk):
+        # additional permission security
         if not request.user.has_perm(get_permission_for_model(SopInfra, 'view')):
             return self.handle_no_permission()
         return render(request, self.template_name, self.get_extra_context(request, pk))
@@ -402,6 +394,14 @@ class SopInfraMerakiListView(generic.ObjectListView):
         return context
 
 
+class SopInfraListView(generic.ObjectListView):
+    '''list of all SopInfra objects and instances'''
+    queryset = SopInfra.objects.all()
+    table = SopInfraTable
+    filterset = SopInfraFilterset
+    filterset_form = SopInfraFilterForm
+
+
 class SopInfraRefreshView(View):
     '''
     refresh targeted sopinfra computed values
@@ -416,15 +416,6 @@ class SopInfraRefreshView(View):
             return obj.get_absolute_url()
 
         return reverse('dcim:site_list')
-
-    def get_extra_context(self) -> dict:
-        context:dict = {}
-
-        if self.qs is not None and self.qs != '':
-            context['site'] = SopInfra.objects.get(pk=self.qs)
-        else:
-            context['site'] = 'Site'
-        return context
 
     def refresh_infra(self, request, infra):
 
@@ -445,7 +436,6 @@ class SopInfraRefreshView(View):
         return render(request, self.template_name, {
             'form': form,
             'return_url': self.return_url,
-            **self.get_extra_context()
         })
 
     def post(self, request, *args, **kwargs):
@@ -461,4 +451,25 @@ class SopInfraRefreshView(View):
         self.return_url = self.get_return_url(self.qs)
 
         return redirect(self.return_url)
+
+
+#____________________________
+# bulk views
+
+
+class SopInfraBulkEditView(generic.BulkEditView):
+
+    queryset = SopInfra.objects.all()
+    form = SopInfraForm
+    table = SopInfraTable
+    filterset = SopInfraFilterset
+    filterset_form = SopInfraFilterForm
+
+
+class SopInfraBulkDeleteView(generic.BulkDeleteView):
+
+    queryset = SopInfra.objects.all()
+    table = SopInfraTable
+    filterset = SopInfraFilterset
+    filterset_form = SopInfraFilterForm
 
