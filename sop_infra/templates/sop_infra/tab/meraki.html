@@ -1,4 +1,5 @@
 {% load helpers %}
+{% load perms %}
 {% load i18n %}
 
 
@@ -7,11 +8,11 @@
   <h2 class="card-header"> {% trans "Meraki SDWAN" %}
 
     <div class="card-actions">
-      {% if not object.id and 'add' in context.actions %}
+      {% if not object.id and request.user|can_add:object %}
       <a href="{% url 'plugins:sop_infra:meraki_add' pk=site.id %}" class="btn btn-ghost-primary btn-sm">
         <i class="mdi mdi-plus-thick" aria-hidden="true"></i>Add Meraki SDWAN
       </a>
-      {% elif object.id and 'bulk_edit' in context.actions %}
+      {% elif object.id and request.user|can_change:object %}
       <a href="{% url 'plugins:sop_infra:meraki_edit' pk=object.id %}" class="btn btn-ghost-primary btn-sm">
         <i class="mdi mdi-pencil" aria-hidden="true"></i>Edit Meraki SDWAN
       </a>
@@ -21,7 +22,7 @@
   </h2>
 
 
-  {% if 'export' in context.actions %}
+  {% if request.user|can_view:object %}
   <table class="table table-hover attr-table">
 
     <ul class="list-group list-group-flush">

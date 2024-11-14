@@ -3,3 +3,10 @@
 
 {% block title %}{{title}}{% endblock %}
 
+
+{% block extra_controls %}
+  {% if title == "Sizing" %}
+    {% include 'sop_infra/tools/refresh.html' %}
+  {% endif %}
+{% endblock extra_controls %}
+
