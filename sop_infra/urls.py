@@ -40,9 +40,15 @@ urlpatterns = [
 
     #____________________
     # list views
+    path('list/', SopInfraListView.as_view(), name='sopinfra_list'),
     path('class/list/', SopInfraClassificationListView.as_view(), name='class_list'),
     path('sizing/list/', SopInfraSizingListView.as_view(), name='sizing_list'),
     path('meraki/list/', SopInfraMerakiListView.as_view(), name='meraki_list'),
+
+    #____________________
+    # bulk views
+    path('delete/', SopInfraBulkDeleteView.as_view(), name='sopinfra_bulk_delete'),
+    path('edit/', SopInfraBulkEditView.as_view(), name='sopinfra_bulk_edit')
 
 ]
 

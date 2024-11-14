@@ -18,6 +18,7 @@ __all__ = (
     'SopInfraMerakiForm',
     'SopInfraMerakiFilterForm',
     'SopInfraSizingForm',
+    'SopInfraFilterForm',
     'SopInfraSizingFilterForm',
     'SopInfraClassificationForm',
     'SopInfraClassificationFilterForm',
@@ -365,7 +366,7 @@ class SopInfraClassificationFilterForm(SopInfraBaseFilterForm):
 
 
 class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
-    ad_cumul_user = forms.IntegerField(
+    ad_cumulative_users = forms.IntegerField(
         required=False,
         label=_('AD cumul. users'),
         help_text=_('Numbers only')
@@ -396,9 +397,36 @@ class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
             name=_('Status')
         ),
         FieldSet(
-            'ad_cumul_user', 'est_cumulative_users',
+            'ad_cumulative_users', 'est_cumulative_users',
             'wan_computed_users', 'wan_reco_bw',
             name=_('Attributes')
+        )
+    )
+
+
+class SopInfraFilterForm(
+    SopInfraClassificationFilterForm,
+    SopInfraMerakiFilterForm,
+    SopInfraSizingFilterForm):
+
+    fieldsets = (
+        FieldSet(
+            'site', name=_('Site')
+        ),
+        FieldSet(
+            'site_infra_sysinfra', 'site_type_indus', 'site_phone_critical',
+            'site_type_red', 'site_type_vip', 'site_type_wms',
+            name=_('Classification')
+        ),
+        FieldSet(
+            'est_cumulative_users',
+            name=_('Sizing')
+        ),
+        FieldSet(
+            'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
+            'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
+            'sdwan_master_site', 'migration_sdwan', 'monitor_in_starting',
+            name=_('Meraki SDWAN')
         )
     )
 
