@@ -1,83 +1,144 @@
-from django.test import TestCase
 from django.urls import reverse
 
-from dcim.models import Site, Location
+from utilities.testing import TestCase
+from dcim.models import Site
 
 from sop_infra.models import SopInfra
 
 
+__all__ = (
+    'SopInfraViewTestCase',
+)
+
+
+VIEW_PERM = 'sop_infra.view_sopinfra'
+ADD_PERM = 'sop_infra.add_sopinfra'
+EDIT_PERM = 'sop_infra.change_sopinfra'
+
+
 class SopInfraViewTestCase(TestCase):
+
+    user_permissions = ()
 
     @classmethod
     def setUpTestData(cls):
-        cls.minas = Site.objects.create(
-            name="Minas Tirith",
-            slug="minas-tirith",
-            status="active"
+
+        sites = (
+            Site(name='site 1', slug='site-1', status='active'),
+            Site(name='site 2', slug='site-2', status='retired'),
         )
-        cls.bree = Site.objects.create(
-            name="Bree",
-            slug="bree",
-            status="candidate"
+        for site in sites:
+            site.full_clean()
+            site.save()
+
+        infras = (
+            SopInfra(site=Site.objects.get(slug='site-1')),
+            SopInfra(site=Site.objects.get(slug='site-2'))
         )
-        cls.gondor = Location.objects.create(
-            name="Gondor",
-            slug="gondor",
-            site=cls.minas
-        )
+        for infra in infras:
+            infra.full_clean()
+            infra.save()
 
-    def test_sopinfra_view(self):
-        infra = SopInfra.objects.create(
-            site=self.bree
-        )
-        infra.full_clean()
-        infra.save()
-        url = reverse('plugins:sop_infra:sopinfra_detail', args=[infra.pk])
+
+    def get_action_url(self, action, instance=None):
+        """reverse sopinfra plugin url with action"""
+        url = f'plugins:sop_infra:sopinfra_{action}'
+
+        if instance is None:
+            return reverse(url)
+
+        return reverse(url, kwargs={'pk': instance.pk})
+
+
+    def test_list_no_perm(self):
+        """test list view no perm"""
+        url = self.get_action_url('list')
+
         response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
+        self.assertHttpStatus(response, 403)
 
-    def test_sopinfra_tab_view(self):
-        url = f'/dcim/sites/{self.minas.pk}/infra'
+
+    def test_list_perm(self):
+        """test list view perm"""
+        url = self.get_action_url('list')
+
+        self.add_permissions(VIEW_PERM)
         response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
+        self.assertHttpStatus(response, 200)
 
-    def test_sopinfra_add_view(self):
 
-        url = reverse('plugins:sop_infra:sopinfra_add', args=[self.minas.pk])
+    def test_add_no_perm(self):
+        """test add view no perm"""
+        url = self.get_action_url('add')
+
         response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
+        self.assertHttpStatus(response, 403)
 
-        url = reverse('plugins:sop_infra:meraki_add', args=[self.minas.pk])
+
+    def test_add_perm(self):
+        """test add view perm"""
+        url = self.get_action_url('add')
+
+        self.add_permissions(ADD_PERM)
         response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
+        self.assertHttpStatus(response, 200)
 
-        url = reverse('plugins:sop_infra:sizing_add', args=[self.bree.pk])
+
+    def test_detail_no_perm(self):
+        """test detail no perm"""
+        instance = SopInfra.objects.first()
+        url = self.get_action_url('detail', instance)
+
         response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
+        self.assertHttpStatus(response, 403)
 
-        url = reverse('plugins:sop_infra:class_add', args=[self.minas.pk])
+
+    def test_detail_perm(self):
+        """test detail perm"""
+        instance = SopInfra.objects.first()
+        url = self.get_action_url('detail', instance)
+
+        self.add_permissions(VIEW_PERM)
         response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
+        self.assertHttpStatus(response, 200)
 
-    def test_sopinfra_edit_view(self):
 
-        infra = SopInfra.objects.create(site=self.minas,)
-        infra.full_clean()
-        infra.save()
+    def test_edit_no_perm(self):
+        """test edit no perm"""
+        instance = SopInfra.objects.first()
+        url = self.get_action_url('edit', instance)
 
-        url = reverse('plugins:sop_infra:sopinfra_edit', args=[infra.pk])
         response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
+        self.assertHttpStatus(response, 403)
 
-        url = reverse('plugins:sop_infra:meraki_edit', args=[infra.pk])
-        response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
 
-        url = reverse('plugins:sop_infra:sizing_edit', args=[infra.pk])
-        response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
+    def test_edit_perm(self):
+        """test detail perm"""
+        instance = SopInfra.objects.first()
+        url = self.get_action_url('edit', instance)
 
-        url = reverse('plugins:sop_infra:class_edit', args=[infra.pk])
+        self.add_permissions(EDIT_PERM)
         response = self.client.get(url)
-        self.assertTrue(response.status_code, 200)
+        self.assertHttpStatus(response, 200)
+
+
+    def test_tab_view_no_perm(self):
+        """test tab no perm"""
+        instance = Site.objects.first()
+        url = f'/dcim/sites/{instance.pk}/infra/'
+
+        self.add_permissions('dcim.view_site')
+        response = self.client.get(url)
+        self.assertHttpStatus(response, 403)
+
+
+    def test_tab_view_perm(self):
+        """test tab perm"""
+        instance = Site.objects.first()
+        url = f'/dcim/sites/{instance.pk}/infra/'
+
+        self.add_permissions('dcim.view_site')
+        self.add_permissions(VIEW_PERM)
+        response = self.client.get(url)
+        self.assertHttpStatus(response, 200)
 
