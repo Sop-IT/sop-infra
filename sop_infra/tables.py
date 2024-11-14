@@ -11,6 +11,7 @@ from .models import SopInfra
 
 
 __all__ = (
+    'SopInfraTable',
     'SopInfraSizingTable',
     'SopInfraMerakiTable',
     'SopInfraClassificationTable'
@@ -63,7 +64,7 @@ class SopInfraSizingTable(NetBoxTable):
     '''
     site = tables.Column(linkify=True)
     status = tables.Column(accessor='site__status', linkify=True)
-    ad_cumul_user = tables.Column(linkify=True)
+    ad_cumulative_users = tables.Column(linkify=True)
     est_cumulative_users = tables.Column(linkify=True)
     wan_computed_users = tables.Column(linkify=True)
     wan_reco_bw = tables.Column(linkify=True)
@@ -72,11 +73,11 @@ class SopInfraSizingTable(NetBoxTable):
         model = SopInfra
         fields = (
             'actions', 'pk', 'id', 'created', 'last_updated', 'site', 'status',
-            'ad_cumul_user', 'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw',
+            'ad_cumulative_users', 'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw',
             'ad_direct_users', 'site_mx_model'
         )
         default_columns = (
-            'site', 'status', 'ad_cumul_user', 'est_cumulative_users',
+            'site', 'status', 'ad_cumulative_users', 'est_cumulative_users',
             'wan_computed_users', 'wan_reco_bw', 'site_mx_model'
         )
         order_by = ('-wan_reco_bw',)
@@ -104,6 +105,7 @@ class SopInfraSizingTable(NetBoxTable):
         if not bg_color:
             bg_color = "gray"
         return mark_safe(f'<span class="badge text-bg-{bg_color}">{value.title()}</span>')
+
 
 class SopInfraClassificationTable(NetBoxTable):
     '''
@@ -148,4 +150,29 @@ class SopInfraClassificationTable(NetBoxTable):
             return None
 
         return record.get_criticity_stars()
+
+
+class SopInfraTable(
+    SopInfraClassificationTable,
+    SopInfraMerakiTable,
+    SopInfraSizingTable):
+
+    class Meta(NetBoxTable.Meta):
+        model = SopInfra
+        fields = (
+            'actions', 'pk', 'id', 'created', 'last_updated', 'site', 'status'
+            'site_infra_sysinfra', 'site_type_indus', 'site_phone_critical',
+            'site_type_red', 'site_type_vip', 'site_type_wms',
+            'ad_cumulative_users', 'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw',
+            'ad_direct_users', 'site_mx_model',
+            'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
+            'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
+            'master_site', 'migration_sdwan', 'monitor_in_starting'
+        )
+        default_columns = (
+            'site', 'status',
+            'sdwanha',
+            'site_infra_sysinfra', 'site_type_indus',
+            'wan_computed_users', 'wan_reco_bw'
+        )
 

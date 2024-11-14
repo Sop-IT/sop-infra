@@ -121,7 +121,7 @@ class SopInfra(NetBoxModel):
     )
     #_______
     # Sizing
-    ad_cumul_user = models.PositiveBigIntegerField(
+    ad_cumulative_users = models.PositiveBigIntegerField(
         null=True,
         blank=True,
         verbose_name=_('AD cumul. users')
@@ -272,7 +272,7 @@ class SopInfra(NetBoxModel):
         if targets.exists():
             # if it is, ad slave's ad cumul users to master site
             for target in targets:
-                ad += target.ad_cumul_user
+                ad += target.ad_cumulative_users
 
         return ad
 
@@ -280,7 +280,7 @@ class SopInfra(NetBoxModel):
         super().clean()
 
         # first set ad to direct users
-        self.ad_cumul_user = self.ad_direct_users
+        self.ad_cumulative_users = self.ad_direct_users
 
         # DC site status special case
         if self.site.status == 'dc':
@@ -313,7 +313,7 @@ class SopInfra(NetBoxModel):
             self.master_site = None
 
             # compute real ad users with related slaves sites
-            self.ad_cumul_user = self.compute_ad_cumulative_users(self)
+            self.ad_cumulative_users = self.compute_ad_cumulative_users(self)
 
             # compute user count depending on status
             self.wan_computed_users = SopInfraValidator.count_wan_computed_users(self)

@@ -42,13 +42,13 @@ class SopInfraValidator:
 
 
         if instance.site.status in ['active', 'decommissioning']:
-            return instance.ad_cumul_user
+            return instance.ad_cumulative_users
 
         elif instance.site.status in ['candidate', 'planned', 'staging']:
             return instance.est_cumulative_users
 
         elif instance.site.status in ['starting']:
-            wan:int|None = instance.ad_cumul_user
+            wan:int|None = instance.ad_cumulative_users
 
             if wan is None:
                 wan:int = 0
@@ -56,7 +56,7 @@ class SopInfraValidator:
             if instance.est_cumulative_users is not None and instance.est_cumulative_users > wan:
                 return instance.est_cumulative_users
 
-            return instance.ad_cumul_user
+            return instance.ad_cumulative_users
 
         return 0
 

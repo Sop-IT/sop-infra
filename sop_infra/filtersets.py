@@ -41,7 +41,7 @@ class SopInfraFilterset(NetBoxModelFilterSet):
 
     class Meta:
         model = SopInfra
-        fields = ('id', 'site', 'ad_cumul_user', 'est_cumulative_users',
+        fields = ('id', 'site', 'ad_cumulative_users', 'est_cumulative_users',
                   'wan_reco_bw', 'wan_computed_users')
 
     def search(self, queryset, name, value):
@@ -49,7 +49,7 @@ class SopInfraFilterset(NetBoxModelFilterSet):
             return queryset
         return queryset.filter(
             Q(site__name__icontains=value) |
-            Q(ad_cumul_user__icontains=value) |
+            Q(ad_cumulative_users__icontains=value) |
             Q(est_cumulative_users__icontains=value) |
             Q(wan_reco_bw__icontains=value) |
             Q(wan_computed_users__icontains=value)
