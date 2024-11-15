@@ -129,12 +129,7 @@ class SopInfraMerakiForm(NetBoxModelForm):
     )
     sdwan_master_site = forms.CharField(
         label=_('MASTER Site'),
-        help_text=_('Automatically derived from the SDWAN master location'),
-        widget=forms.Select(
-            attrs={
-                'disabled':'disabled'
-            }
-        ),
+        help_text=_('Or select the MASTER site.'),
         required=False
     )
     migration_sdwan = forms.DateField(
@@ -312,8 +307,6 @@ class SopInfraMerakiFilterForm(SopInfraBaseFilterForm):
         choices=add_blank_choice(InfraBoolChoices),
         required=False
     )
-
-    
 
 
 class SopInfraClassificationFilterForm(SopInfraBaseFilterForm):
