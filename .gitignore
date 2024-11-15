@@ -3,5 +3,9 @@ __pycache__/
 build/
 dist/
 *.sh
+!install_dependencies.sh
+!lazy_upgrade.sh
+!run_tests.sh
 !deploy.sh
+!remove_old.sh
 venv/
