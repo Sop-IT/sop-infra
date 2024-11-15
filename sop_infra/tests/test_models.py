@@ -1,172 +1,321 @@
-from django.test import TestCase
-from django.db import IntegrityError, transaction
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 
+from utilities.testing import TestCase
 from dcim.models import Site, Location
 
-from ..models import SopInfra
+from sop_infra.models import SopInfra
 
 
-class SopInfraTestCase(TestCase):
-    
+__all__ = (
+    'SopInfraSlaveModelTestCase',
+    'SopInfraMasterModelTestCase'
+)
+
+
+class SopInfraSlaveModelTestCase(TestCase):
+
+    user_permissions = ()
+
+
     @classmethod
     def setUpTestData(cls):
-        cls.minas = Site.objects.create(
-            name="Minas Tirith",
-            slug="minas-tirith",
-            status="active"
-        )
-        cls.bree = Site.objects.create(
-            name="Bree",
-            slug="bree",
-            status="candidate"
-        )
-        cls.rivendell = Site.objects.create(
-            name="Rivendell",
-            slug="rivendell",
-            status="starting"
-        )
-        cls.moria = Site.objects.create(
-            name="Moria",
-            slug="moria",
-            status="unknown"
-        )
-        cls.gondor = Location.objects.create(
-            name="Gondor",
-            slug="gondor",
-            site=cls.minas
-        )
-        cls.ad:int = 42
-        cls.est:int = 69
 
-    def test_slave_site_wrong_location_db(self):
-        """Test that invalid master_site raises IntegrityError"""
+        sites = (
+            Site(name='site 1', slug='site-1', status='active'),
+            Site(name='site 2', slug='site-2', status='starting'),
+            Site(name='site 3', slug='site-3', status='staging')
+        )
+        for site in sites:
+            site.save()
+
+        location = Location(site=Site.objects.first(), name="test-location", slug='test-loc')
+        location.full_clean()
+        location.save()
+
+        cls.site1 = Site.objects.get(slug='site-1')
+        cls.site2 = Site.objects.get(slug='site-2')
+        cls.site3 = Site.objects.get(slug='site-3')
+        cls.location = location
+
+
+    def test_slave_wrong_location(self):
+        """Test that invalid master location raises ValidationError"""
+        with self.assertRaises(ValidationError):
+            infra = SopInfra.objects.create(
+                site=self.site1,
+                site_sdwan_master_location=self.location
+            )
+            infra.full_clean()
+
+
+    def test_slave_wrong_master_site(self):
+        """Test that invalid master site raises IntegrityError"""
         with transaction.atomic():
             with self.assertRaises(IntegrityError):
-                i = SopInfra.objects.create(
-                    site=self.minas,
-                    site_sdwan_master_location=self.gondor,
-                    master_site=self.gondor.site
+                infra = SopInfra.objects.create(
+                    site=self.site1,
+                    master_site=self.site1
                 )
 
-    def test_slave_site_wrong_location_clean(self): 
-        """Test that invalid master_location raises ValidationError""" 
+
+    def test_slave_master_location_site_not_master_site(self):
+        """Test master site coherence """
         with self.assertRaises(ValidationError):
-            i = SopInfra.objects.create(
-                site=self.minas,
-                site_sdwan_master_location=self.gondor
+            infra = SopInfra.objects.create(
+                site=self.site1,
+                site_sdwan_master_location=self.location,
+                master_site=self.site3
             )
-            i.full_clean()
+            infra.full_clean()
 
-    def test_slave_site_sdwan(self):
-        """Test that valid slave site creates '-SLAVE SITE-' sdwanha"""
-        i = SopInfra.objects.create(
-            site=self.bree,
-            site_sdwan_master_location=self.gondor
+
+    def test_slave_correct_master_location(self):
+        """Test valid master location"""
+        infra = SopInfra.objects.create(
+            site=self.site2,
+        site_sdwan_master_location=self.location
         )
-        i.full_clean()
-        self.assertTrue(i.sdwanha == '-SLAVE SITE-')
+        infra.full_clean()
+        self.assertEqual(infra.master_site, infra.site_sdwan_master_location.site)
 
-    def test_count_wan_computed_users(self):
-        """Test that valid SopInfra computes wan users"""
-        i_act = SopInfra.objects.create(
-            site=self.minas,
-            ad_direct_users=self.ad,
-            est_cumulative_users=self.est
+
+    def test_slave_correct_master_site(self):
+        """Test valid master site"""
+        infra = SopInfra.objects.create(
+            site=self.site2,
+            master_site=self.site1
         )
-        i_cand = SopInfra.objects.create(
-            site=self.bree,
-            ad_direct_users=self.ad,
-            est_cumulative_users=self.est
+        infra.full_clean()
+        self.assertEqual(infra.site_sdwan_master_location, None)
+
+
+    def test_slave_master_location_already_exists(self):
+        """Test that if master location already exists -> raise ValidationError"""
+        with self.assertRaises(ValidationError):
+            infra = SopInfra.objects.create(
+                site=self.site2,
+                site_sdwan_master_location=self.location
+            )
+            infra2 = SopInfra.objects.create(
+                site=self.site3,
+                site_sdwan_master_location=self.location
+            )
+            infra.full_clean()
+            infra2.full_clean()
+
+
+    def test_slave_master_site_already_exists(self):
+        """Test that if master site already exists -> raise ValidationError"""
+        with self.assertRaises(ValidationError):
+            infra = SopInfra.objects.create(
+                site=self.site2,
+                master_site=self.site1
+            )
+            infra2 = SopInfra.objects.create(
+                site=self.site3,
+                master_site=self.site1
+            )
+            infra.full_clean()
+            infra2.full_clean()
+
+
+    def test_slave_compute_sizing(self):
+        """Test that valid slave infra computes sizing"""
+        infra = SopInfra.objects.create(
+            site=self.site1,
+            master_site=self.site3
         )
-        i_star = SopInfra.objects.create(
-            site=self.rivendell,
-            ad_direct_users=self.ad,
-            est_cumulative_users=self.est
+        infra.full_clean()
+        self.assertEqual(infra.wan_computed_users, 0)
+
+        infra.ad_direct_users = 42
+        infra.est_cumulative_users = 69
+        infra.full_clean()
+        self.assertEqual(infra.wan_computed_users, 42)
+
+        infra.site = self.site2
+        infra.full_clean()
+        self.assertEqual(infra.wan_computed_users, 69)
+
+
+    def test_slave_default_fields(self):
+        """Test that valid slave infra computes default fields"""
+        infra = SopInfra.objects.create(
+            site=self.site1,
+            master_site=self.site2
         )
-        i_unk = SopInfra.objects.create(
-            site=self.moria,
-            ad_direct_users=self.ad,
-            est_cumulative_users=self.est
+        infra.full_clean()
+        self.assertEqual(infra.sdwanha, '-SLAVE SITE-')
+
+        infra.master_site = None
+        infra.full_clean()
+        self.assertEqual(infra.sdwanha, '-NHA-')
+
+
+
+class SopInfraMasterModelTestCase(TestCase):
+
+    user_permissions = ()
+
+
+    @classmethod
+    def setUpTestData(cls):
+
+        sites = (
+            Site(name='site 1', slug='site-1', status='active'),
+            Site(name='site 2', slug='site-2', status='starting'),
+            Site(name='site 3', slug='site-3', status='staging')
         )
-        
-        i_act.full_clean()
-        i_cand.full_clean()
-        i_star.full_clean()
-        i_unk.full_clean()
+        for site in sites:
+            site.save()
 
-        # active -> wan = ad
-        self.assertTrue(i_act.wan_computed_users == 42)
-        # candidate -> wan = est
-        self.assertTrue(i_cand.wan_computed_users == 69)
-        # starting -> wan = est ? est > wan : ad
-        self.assertTrue(i_star.wan_computed_users == 69)
-        # unkown -> wan = 0
-        self.assertTrue(i_unk.wan_computed_users == 0)
+        cls.site1 = Site.objects.get(slug='site-1')
+        cls.site2 = Site.objects.get(slug='site-2')
+        cls.site3 = Site.objects.get(slug='site-3')
 
-    def test_count_site_users(self):
-        """Test that valid SopInfra computes site users"""
-        i = SopInfra.objects.create(
-            site=self.minas,
-            ad_direct_users=self.ad,
-            est_cumulative_users=self.est
+        infras = (
+            SopInfra(site=cls.site1, ad_direct_users=442),
+            SopInfra(site=cls.site2, ad_direct_users=42, est_cumulative_users=69, site_type_red='true'),
+            SopInfra(site=cls.site3, ad_direct_users=0, est_cumulative_users=19, site_type_vip='true'),
         )
-        i.full_clean()
-        self.assertTrue(i.site_user_count == '20<50')
+        for infra in infras:
+            infra.full_clean()
+            infra.save()
 
-        i.ad_direct_users = 235
-        i.full_clean()
-        self.assertTrue(i.site_user_count == '200<500')
+        cls.infra1 = SopInfra.objects.get(site__slug='site-1')
+        cls.infra2 = SopInfra.objects.get(site__slug='site-2')
+        cls.infra3 = SopInfra.objects.get(site__slug='site-3')
 
-        i.ad_direct_users = 9
-        i.full_clean()
-        self.assertTrue(i.site_user_count == '<10')
 
-    def test_recommended_bandwidth(self):
-        """Test that valid SopInfra computes recomended bandwidth"""
-        i = SopInfra.objects.create(
-            site=self.minas,
-            ad_direct_users=self.ad,
-            est_cumulative_users=self.est
-        )
-        # reco bw = wan * cm
-        i.full_clean()
-        self.assertTrue(i.wan_reco_bw == 42 * 4)
+    def test_master_ad_cumulative_users(self):
+        """Test that valid MASTER SopInfra computes ad_cumulative_users"""
+        self.assertEqual(self.infra1.ad_cumulative_users, 442)
+        self.assertEqual(self.infra2.ad_cumulative_users, 42)
+        self.assertEqual(self.infra3.ad_cumulative_users, 0)
 
-        i.ad_direct_users = 235
-        i.full_clean()
-        self.assertTrue(i.wan_reco_bw == round(235 * 2.5))
 
-        i.ad_direct_users = 9
-        i.full_clean()
-        self.assertTrue(i.wan_reco_bw == 9 * 5)
+    def test_master_ad_cumulative_users_children(self):
+        """Test that valid MASTER SopInfra with children computes ad_cumulative_users"""
+        self.infra1.master_site = self.infra2.site
 
-    def test_sdwanha_no_network(self):
-        """Test that valid SopInfra computes SDWANHA value"""
-        i = SopInfra.objects.create(site=self.bree)
-        i.full_clean()
-        self.assertTrue(i.sdwanha == '-NO NETWORK-')
+        # need to save bc ad_cumulative_users algorithm uses db queryset
+        self.infra1.full_clean()
+        self.infra1.save()
+        self.infra2.full_clean()
+        self.infra1.save()
 
-    def test_sdwanha_nha(self):
-        """Test that valid SopInfra computes SDWANHA value"""
-        i = SopInfra.objects.create(site=self.minas)
-        i.full_clean()
-        self.assertTrue(i.sdwanha == '-NHA-')
+        self.assertEqual(self.infra1.ad_cumulative_users, 442)
+        self.assertEqual(self.infra2.ad_cumulative_users, 484)
 
-    def test_sdwanha_ha(self):
-        """Test that valid SopInfra computes SDWANHA value"""
-        i = SopInfra.objects.create(
-            site=self.minas,
-            site_type_vip='true',
-        )
-        i.full_clean()
-        self.assertTrue(i.sdwanha == '-HA-')
 
-        j = SopInfra.objects.create(
-            site=self.rivendell,
-            site_infra_sysinfra='sysclust'
-        )
-        j.full_clean()
-        self.assertTrue(j.sdwanha == '-HA-')
+    def test_master_wan_computed_users(self):
+        """Test that valid MASTER SopInfra computes wan_computed_users"""
+        self.assertEqual(self.infra1.wan_computed_users, 442)
+        self.assertEqual(self.infra2.wan_computed_users, 69)
+        self.assertEqual(self.infra3.wan_computed_users, 19)
 
+
+    def test_master_wan_computed_users_children(self):
+        """Test that valid MASTER SopInfra with children computes wan_computed_users"""
+        self.infra1.master_site = self.infra2.site
+
+        # need to save bc ad_cumulative_users algorithm uses db queryset
+        self.infra1.full_clean()
+        self.infra1.save()
+        self.infra2.full_clean()
+        self.infra1.save()
+
+        self.assertEqual(self.infra1.wan_computed_users, 442)
+        self.assertEqual(self.infra2.wan_computed_users, 484)
+
+
+    def test_master_mx_user_slice(self):
+        """Test that valid MASTER SopInfra computes mx and user_slice"""
+
+        self.assertEqual(self.infra1.site_mx_model, 'MX95')
+        self.assertEqual(self.infra2.site_mx_model, 'MX85')
+        self.assertEqual(self.infra3.site_mx_model, 'MX67')
+
+        self.assertEqual(self.infra1.site_user_count, '200<500')
+        self.assertEqual(self.infra2.site_user_count, '50<100')
+        self.assertEqual(self.infra3.site_user_count, '10<20')
+
+
+    def test_master_mx_user_slice_children(self):
+        """Test that valid MASTER SopInfra with children computes mx and user_slice"""
+        self.infra1.master_site = self.infra2.site
+        self.infra2.ad_direct_users = 84
+
+        # need to save bc ad_cumulative_users algorithm uses db queryset
+        self.infra1.full_clean()
+        self.infra1.save()
+        self.infra2.full_clean()
+        self.infra1.save()
+
+        self.assertEqual(self.infra1.site_mx_model, None)
+        self.assertEqual(self.infra2.site_mx_model, 'MX250')
+
+        self.assertEqual(self.infra1.site_user_count, '200<500')
+        self.assertEqual(self.infra2.site_user_count, '>500')
+
+
+    def test_master_recommended_bandwidth(self):
+        """Test that valid MASTER SopInfra computes recommended bandwidth"""
+
+        # bw = wan * cm where cm depends of wan size
+        self.assertEqual(self.infra1.wan_reco_bw, round(442 * 2.5 ))
+        self.assertEqual(self.infra2.wan_reco_bw, round(69 * 3))
+        self.assertEqual(self.infra3.wan_reco_bw, round(19 * 4))
+
+
+        self.infra2.est_cumulative_users = 9
+        self.infra2.ad_direct_users = 8
+        self.infra2.full_clean()
+        self.infra2.save()
+
+        self.assertEqual(self.infra2.wan_reco_bw, round(9 * 5))
+
+
+    def test_master_recommended_bandwidth_children(self):
+        """Test that valid MASTER SopInfra with children computes recommended bandwidth"""
+        self.infra1.master_site = self.infra2.site
+        self.infra2.ad_direct_users = 84
+
+        # need to save bc ad_cumulative_users algorithm uses db queryset
+        self.infra1.full_clean()
+        self.infra1.save()
+        self.infra2.full_clean()
+        self.infra1.save()
+
+        self.assertEqual(self.infra1.wan_reco_bw, None)
+        self.assertEqual(self.infra2.wan_reco_bw, round(526 * 2.5))
+
+
+    def test_master_compute_sdwanha(self):
+        """Test that valid MASTER SopInfra computes default fields"""
+
+        self.infra2.site_type_vip = 'true'
+        self.infra3.site.status = 'candidate'
+
+        self.infra2.full_clean()
+        self.infra2.save()
+        self.infra3.full_clean()
+        self.infra3.save()
+
+        self.assertEqual(self.infra1.sdwanha, '-HA-')
+        self.assertEqual(self.infra1.criticity_stars, '**')
+
+        self.assertEqual(self.infra2.sdwanha, '-HA-')
+        self.assertEqual(self.infra2.criticity_stars, '***')
+
+        self.assertEqual(self.infra3.sdwanha, '-NO NETWORK-')
+        self.assertEqual(self.infra3.criticity_stars, None)
+
+        self.infra1.ad_direct_users = 9
+        self.infra1.full_clean()
+        self.infra1.save()
+
+        self.assertEqual(self.infra1.sdwanha, '-NHA-')
+        self.assertEqual(self.infra1.criticity_stars, '*')
 
