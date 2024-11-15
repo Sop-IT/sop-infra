@@ -1,0 +1,33 @@
+name: Test SopInfra Plugins
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  NETBOX_VERSION: v4.1.1
+
+
+jobs:
+  run-sopinfra-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Check dependencies
+        run: |
+          sudo bash .github/workflows/scripts/install_dependencies.sh
+      - name: Install NetBox
+        run: |
+          git clone --depth 1 --branch $NETBOX_VERSION https://github.com/netbox-community/netbox.git netbox
+      - name: Move plugin to NetBox
+        run: |
+          mv sop_infra/ netbox/netbox/
+      - name: Run lazy upgrade.sh
+        run: |
+          sudo bash .github/workflows/scripts/lazy_upgrade.sh
+      - name: Run tests
+        run: |
+          bash .github/workflows/scripts/run_tests.sh
+
