@@ -429,7 +429,10 @@ class SopInfraRefreshView(
 
         # if ?qs= not None -> initial sites form qs.
         self.qs = request.GET.get('qs')
-        form = self.form(initial={'sites': SopInfra.objects.get(pk=self.qs).site})
+        if self.qs is not None and self.qs != '':
+            form = self.form(initial={'sites': SopInfra.objects.get(pk=self.qs).site})
+        else:
+            form = self.form()
         restrict_form_fields(form, request.user)
 
         return render(request, self.template_name, {
