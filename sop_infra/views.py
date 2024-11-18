@@ -429,7 +429,7 @@ class SopInfraRefreshView(
 
         # if ?qs= not None -> initial sites form qs.
         self.qs = request.GET.get('qs')
-        form = self.form(initial={'sites': self.qs})
+        form = self.form(initial={'sites': SopInfra.objects.get(pk=self.qs).site})
         restrict_form_fields(form, request.user)
 
         return render(request, self.template_name, {
@@ -449,8 +449,7 @@ class SopInfraRefreshView(
 
         if form.is_valid():
             data = form.cleaned_data
-            infra = data.get('sites')
-            self.refresh_infra(request, infra)
+            self.refresh_infra(request, data)
 
         return redirect(self.get_return_url(self.qs))
 

@@ -37,7 +37,7 @@ class SopInfraClassificationForm(NetBoxModelForm):
     )
     site_infra_sysinfra = forms.ChoiceField(
         label=_('Infrastructure'),
-        choices=add_blank_choice(InfraTypeChoices),
+    choices=add_blank_choice(InfraTypeChoices),
         required=False
     )
     site_type_indus = forms.ChoiceField(
@@ -129,7 +129,7 @@ class SopInfraMerakiForm(NetBoxModelForm):
         help_text=_('When this site is an SDWAN SLAVE, you have to materialize a location on the MASTER site and link it here'),
         required=False
     )
-    sdwan_master_site = forms.CharField(
+    master_site = forms.CharField(
         label=_('MASTER Site'),
         help_text=_('Or select the MASTER site.'),
         required=False
@@ -150,7 +150,7 @@ class SopInfraMerakiForm(NetBoxModelForm):
     class Meta:
         model = SopInfra
         fields = ['site', 'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
-                  'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location', 'sdwan_master_site',
+                  'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location', 'master_site',
                   'migration_sdwan', 'monitor_in_starting']
 
     def __init__(self, *args, **kwargs):
@@ -210,7 +210,7 @@ class SopInfraForm(
         FieldSet(
             'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
-            'sdwan_master_site', 'migration_sdwan', 'monitor_in_starting',
+            'master_site', 'migration_sdwan', 'monitor_in_starting',
             name=_('Meraki SDWAN')
         )
     )
@@ -223,7 +223,7 @@ class SopInfraForm(
             'est_cumulative_users',
             'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
-            'sdwan_master_site', 'migration_sdwan', 'monitor_in_starting',
+            'master_site', 'migration_sdwan', 'monitor_in_starting',
         ]
 
     def __init__(self, *args, **kwargs):
@@ -268,6 +268,7 @@ class SopInfraBaseFilterForm(NetBoxModelFilterSetForm):
 class SopInfraMerakiFilterForm(SopInfraBaseFilterForm):
     sdwanha = forms.ChoiceField(
         label=_('HA(S) / NHA target'),
+        choices=add_blank_choice(InfraSdwanhaChoices),
         required=False
     )
     hub_order_setting = forms.ChoiceField(
@@ -295,8 +296,9 @@ class SopInfraMerakiFilterForm(SopInfraBaseFilterForm):
         queryset=Location.objects.all(),
         required=False
     )
-    sdwan_master_site = forms.CharField(
+    master_site = DynamicModelChoiceField(
         label=_('MASTER Site'),
+        queryset=Site.objects.all(),
         required=False
     )
     migration_sdwan = forms.DateField(
@@ -309,6 +311,24 @@ class SopInfraMerakiFilterForm(SopInfraBaseFilterForm):
         choices=add_blank_choice(InfraBoolChoices),
         required=False
     )
+
+    fieldsets = (
+        FieldSet(
+            'region_id', 'group_id', 'site_id',
+            name=_('Location')
+        ),
+        FieldSet(
+            'status',
+            name=_('Status')
+        ),
+        FieldSet(
+            'sdwanha', 'hub_order_setting', 'hub_default_route_setting', 'sdwan1_bw',
+            'sdwan2_bw', 'site_sdwan_master_location', 'master_site', 'migration_sdwan',
+            'monitor_in_starting',
+            name=_('Attributes')
+        )
+    )
+
 
 
 class SopInfraClassificationFilterForm(SopInfraBaseFilterForm):
@@ -420,7 +440,7 @@ class SopInfraFilterForm(
         FieldSet(
             'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
-            'sdwan_master_site', 'migration_sdwan', 'monitor_in_starting',
+            'master_site', 'migration_sdwan', 'monitor_in_starting',
             name=_('Meraki SDWAN')
         )
     )
@@ -428,18 +448,16 @@ class SopInfraFilterForm(
 
 class SopInfraRefreshForm(forms.Form):
 
-    sites = forms.ModelMultipleChoiceField(
-        queryset=SopInfra.objects.all(),
-        required=True,
-        label='Select sites to recompute.'
+    sites = DynamicModelMultipleChoiceField(
+        queryset=Site.objects.all(),
+        required=False,
     )
-
+  
     def clean(self):
         data = super().clean()
         sites = data.get('sites')
-        request = current_request.get()
 
-        if sites.filter(site__status='dc').exists():
+        if sites.filter(status__in='dc').exists():
             messages.error(request, "You cannot refresh -DC- status site.")
             raise ValidationError({'sites': 'You cannot refresh -DC- status site.'})
 
@@ -447,5 +465,6 @@ class SopInfraRefreshForm(forms.Form):
             messages.error(request, "You cannot select the same site multiple times.")
             raise ValidationError({'sites': "You cannot select the same site multiple times."}) 
 
+        sites = SopInfra.objects.filter(site__in=sites)
         return sites
 

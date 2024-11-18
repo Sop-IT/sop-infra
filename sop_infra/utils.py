@@ -40,12 +40,14 @@ class SopInfraRefreshMixin:
 
             if parent is False:
                 self.update_child_instance(
+                    request,
                     instance,
                     instance.compute_ad_cumulative_users(instance)
                 )
                 continue
 
             self.update_master_instance(
+                request,
                 instance,
                 instance.compute_ad_cumulative_users(instance)
             )
@@ -61,6 +63,9 @@ class SopInfraRefreshMixin:
 
         slave = queryset.filter(master_site__isnull=False)
         maybe_master = queryset.filter(master_site__isnull=True)
+
+        self.pre_compute_queryset(request, slave, False)
+        self.pre_compute_queryset(request, maybe_master, True)
 
 
 
