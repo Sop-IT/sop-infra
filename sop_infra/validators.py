@@ -111,11 +111,6 @@ class SopInfraSlaveValidator:
                     'site_sdwan_master_location': 'This location is already the MASTER location for other sites infrastructures.'
                 })
 
-        if target.filter(master_site=instance.master_site).exists():
-            raise ValidationError({
-                'master_site': 'This MASTER site is already the MASTER site for other sites infrastructures.'
-            })
-
 
     def check_no_loop(self, instance):
 

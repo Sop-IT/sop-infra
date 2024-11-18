@@ -105,21 +105,6 @@ class SopInfraSlaveModelTestCase(TestCase):
             infra2.full_clean()
 
 
-    def test_slave_master_site_already_exists(self):
-        """Test that if master site already exists -> raise ValidationError"""
-        with self.assertRaises(ValidationError):
-            infra = SopInfra.objects.create(
-                site=self.site2,
-                master_site=self.site1
-            )
-            infra2 = SopInfra.objects.create(
-                site=self.site3,
-                master_site=self.site1
-            )
-            infra.full_clean()
-            infra2.full_clean()
-
-
     def test_slave_compute_sizing(self):
         """Test that valid slave infra computes sizing"""
         infra = SopInfra.objects.create(

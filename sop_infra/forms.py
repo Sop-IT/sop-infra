@@ -1,11 +1,13 @@
 from django import forms
+from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from utilities.forms.fields import DynamicModelChoiceField
+from utilities.forms.fields import DynamicModelChoiceField, DynamicModelMultipleChoiceField
 from netbox.forms import NetBoxModelFilterSetForm, NetBoxModelForm
 from utilities.forms.widgets import DatePicker
 from utilities.forms.rendering import FieldSet
+from netbox.context import current_request
 from utilities.forms import add_blank_choice
 from dcim.models import Site, Location, Region, SiteGroup
 from dcim.choices import SiteStatusChoices
@@ -92,7 +94,7 @@ class SopInfraMerakiForm(NetBoxModelForm):
         help_text=_('Calculated target for this site'),
         widget=forms.Select(
             attrs={
-                'disabled':'disabled'
+'disabled':'disabled'
             }
         ),
         required=False
@@ -428,6 +430,22 @@ class SopInfraRefreshForm(forms.Form):
 
     sites = forms.ModelMultipleChoiceField(
         queryset=SopInfra.objects.all(),
-        help_text=_('Enter all site infrastructure to Refresh')
+        required=True,
+        label='Select sites to recompute.'
     )
+
+    def clean(self):
+        data = super().clean()
+        sites = data.get('sites')
+        request = current_request.get()
+
+        if sites.filter(site__status='dc').exists():
+            messages.error(request, "You cannot refresh -DC- status site.")
+            raise ValidationError({'sites': 'You cannot refresh -DC- status site.'})
+
+        if len(sites) != len(set(sites)):
+            messages.error(request, "You cannot select the same site multiple times.")
+            raise ValidationError({'sites': "You cannot select the same site multiple times."}) 
+
+        return sites
 

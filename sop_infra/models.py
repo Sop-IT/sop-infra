@@ -267,7 +267,7 @@ class SopInfra(NetBoxModel):
             )
         ]
 
-    def compute_ad_cumulative_users(self, instance, slave=None) -> int:
+    def compute_ad_cumulative_users(self, instance) -> int:
 
         ad:int = instance.ad_direct_users
 

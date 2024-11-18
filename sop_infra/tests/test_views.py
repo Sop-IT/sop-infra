@@ -142,3 +142,44 @@ class SopInfraViewTestCase(TestCase):
         response = self.client.get(url)
         self.assertHttpStatus(response, 200)
 
+
+    def test_tab_view_context(self):
+        """test tab view context"""
+        site = Site.objects.first()
+        infra = SopInfra.objects.get(site=site)
+        url = f'/dcim/sites/{site.pk}/infra/'
+
+        for i in range(3):
+            s = Site.objects.create(name=f'salut{i}', slug=f'salut{i}')
+            s.full_clean()
+            s.save()
+            t = SopInfra.objects.create(site=s, master_site=site)
+            t.full_clean()
+            t.save()
+
+        self.add_permissions('dcim.view_site')
+        self.add_permissions(VIEW_PERM)
+        response = self.client.get(url)
+        self.assertHttpStatus(response, 200)
+
+        context = response.context['context']
+
+        self.assertEqual(context['sop_infra'], infra)
+        self.assertEqual(context['count_slave'], 3)
+        self.assertEqual(context['count_slave_infra'], 3)
+        self.assertEqual(context['slave_infra'][0], SopInfra.objects.filter(master_site=site).first())
+        self.assertEqual(context['slave_infra'][1], SopInfra.objects.filter(master_site=site)[1])
+        self.assertEqual(context['slave_infra'][2], SopInfra.objects.filter(master_site=site)[2])
+
+
+    def test_recompute_sizing_no_perm(self):
+        """test recompute sizing no perm"""
+        instance = Site.objects.first()
+        url = self.get_action_url('refresh')
+
+        response = self.client.get(url)
+        self.assertHttpStatus(response, 403)
+
+        response = self.client.get(f'{url}?qs={instance.pk}')
+        self.assertHttpStatus(response, 403)
+

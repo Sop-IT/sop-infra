@@ -31,6 +31,12 @@ INFRA = Menu(
                     permissions=[f'sop_infra.view_sopinfra'],
                     buttons=(
                         MenuItemButton(
+                            link=f'plugins:sop_infra:sopinfra_refresh',
+                            title='Recompute',
+                            icon_class='mdi mdi-refresh',
+                            permissions=[f'sop_infra.change_sop_infra'],
+                        ),
+                        MenuItemButton(
                             link=f'plugins:sop_infra:sizing_add',
                             title='Add',
                             icon_class='mdi mdi-plus-thick',

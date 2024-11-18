@@ -1,6 +1,5 @@
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
 from django.views import View
 from django.urls import reverse
 
@@ -10,11 +9,11 @@ from utilities.forms import restrict_form_fields
 from netbox.views import generic
 from dcim.models import Site
 
-from .models import *
 from .forms import *
-from .utils import SopInfraRelatedModelsMixin
 from .tables import *
+from .models import *
 from .filtersets import SopInfraFilterset
+from .utils import SopInfraRelatedModelsMixin, SopInfraRefreshMixin
 
 
 __all__ = (
@@ -402,7 +401,10 @@ class SopInfraListView(generic.ObjectListView):
     filterset_form = SopInfraFilterForm
 
 
-class SopInfraRefreshView(View):
+class SopInfraRefreshView(
+    View,
+    SopInfraRefreshMixin,
+    ObjectPermissionRequiredMixin):
     '''
     refresh targeted sopinfra computed values
     '''
@@ -412,34 +414,36 @@ class SopInfraRefreshView(View):
     def get_return_url(self, qs=None) -> str:
 
         if self.qs is not None and self.qs != '':
-            obj = SopInfra.objects.get(pk=self.qs)
-            return obj.get_absolute_url()
 
-        return reverse('dcim:site_list')
+            query = SopInfra.objects.filter(pk=self.qs)
+            if query.exists():
+                return (query.first()).get_absolute_url()
 
-    def refresh_infra(self, request, infra):
-
-        for obj in infra:
-            obj.snapshot()
-            obj.full_clean()
-            obj.save()
-            messages.success(request, f"Successfully updated {obj}")
+        return reverse('plugins:sop_infra:sizing_list')
 
     def get(self, request, *args, **kwargs):
         
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(SopInfra, 'change')):
+            return self.handle_no_permission()
+
+        # if ?qs= not None -> initial sites form qs.
         self.qs = request.GET.get('qs')
         form = self.form(initial={'sites': self.qs})
-
         restrict_form_fields(form, request.user)
-        self.return_url = self.get_return_url(self.qs)
 
         return render(request, self.template_name, {
             'form': form,
-            'return_url': self.return_url,
+            'return_url': self.get_return_url(self.qs),
         })
 
     def post(self, request, *args, **kwargs):
 
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(SopInfra, 'change')):
+            return self.handle_no_permission()
+
+        # if ?qs= not None -> initial sites form qs.
         self.qs = request.GET.get('qs')
         form = self.form(data=request.POST, files=request.FILES)
 
@@ -448,9 +452,7 @@ class SopInfraRefreshView(View):
             infra = data.get('sites')
             self.refresh_infra(request, infra)
 
-        self.return_url = self.get_return_url(self.qs)
-
-        return redirect(self.return_url)
+        return redirect(self.get_return_url(self.qs))
 
 
 #____________________________
