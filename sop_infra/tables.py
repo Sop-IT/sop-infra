@@ -46,6 +46,7 @@ class SopInfraMerakiTable(NetBoxTable):
             'actions', 'site', 'status', 'sdwanha', 'hub_order_setting',
             'hub_default_route_setting', 'sdwan1_bw', 'sdwan2_bw'
         )
+        order_by = ('site',)
 
     def render_status(self, record):
         if not record.site:
@@ -80,22 +81,7 @@ class SopInfraSizingTable(NetBoxTable):
             'site', 'status', 'ad_cumulative_users', 'est_cumulative_users',
             'wan_computed_users', 'wan_reco_bw', 'site_mx_model'
         )
-        order_by = ('-wan_reco_bw',)
-
-    '''
-    order_<object> methods order from biggest to lowest positive integer
-    and skip every 'None' or 'NULL' data
-
-    returns a tuple of (restricted_queryset, is_descending)
-    '''
-    def order_wan_reco_bw(self, queryset, is_descending):
-        return queryset.order_by(models.F('wan_reco_bw').desc(nulls_last=True)), is_descending
-
-    def order_est_cumulative_users(self, queryset, is_descending):
-        return queryset.order_by(models.F('est_cumulative_users').desc(nulls_last=True)), is_descending
-
-    def render_wan_reco_bw(self, record):
-        return f'{record.wan_reco_bw} (Mbps)'
+        order_by = ('site',)
 
     def render_status(self, record):
         if not record.site:
@@ -131,9 +117,9 @@ class SopInfraClassificationTable(NetBoxTable):
         default_columns = (
             'site', 'status', 'site_infra_sysinfra', 'site_type_indus',
             'site_phone_critical',
-            'site_type_red', 'site_type_vip', 'site_type_wms',
+            'site_type_red', 'site_type_vip', 'site_type_wms', 'criticity_stars',
         )
-        order_by = ('site_infra_sysinfra',)
+        order_by = ('site',)
 
     def render_status(self, record):
         if not record.site:
@@ -175,4 +161,6 @@ class SopInfraTable(
             'site_infra_sysinfra', 'site_type_indus',
             'wan_computed_users', 'wan_reco_bw'
         )
+
+        order_by = ('site',)
 
