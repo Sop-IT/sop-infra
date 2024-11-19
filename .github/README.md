@@ -30,27 +30,21 @@ sudo bash upgrade.sh
 
 ## Customization
 The following options are available:
-- `panels`
-  - **Type**: List
-  - **Choices**: ['meraki', 'classification', 'sizing']
-  - **Description**: Chose what panel you want to display on dcim:site
-- `display_default`
-  - **Type**: String
-  - **Choices**: ['left_page', 'right_page',...]
-  - **Description**: Chose where all panels should be displayed by default.
-- `display_custom`
-  - **Type**: Dict
-  - **Choices**: {'panel':'display'}
-  - **Description**: Chose where specific panel should be displayed
-  - **Override**: overrides `display_default`.
+- `display`
+  - **Type**: dict {panel:position}
+  - **Panels choices**: ['meraki', 'classification', 'sizing']
+  - **Positions choices**: ['left_page', 'right_page']
+  - **Description**: Chose what panel and where it should be displayed on dcim:site
 
 Plugin config exemple in netbox/netbox/configuration.py
 ```python
 PLUGINS_CONFIG = {
     'sop_infra': {
-        'panels': ['meraki', 'classification', 'sizing'],
-        'display_default': 'left_page',
-        'display_custom': {'sizing':'right_page'}
+        'display': {
+            'meraki':'left_page',
+            'classification':'left_page',
+            'sizing':'right_page'
+        }
     }
 }
 ```
