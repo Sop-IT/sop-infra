@@ -53,3 +53,17 @@ With this exemple configuration,
 meraki and classification panels will be displayed on the left
 and sizing on the right of the Site detail page.
 
+## Development
+The repository will automatically execute unit-tests on every main push.
+
+Tests will be executed on NetBox v4.1.1
+To change this version, edit [`test.yml`](https://github.com/Sop-IT/sop-infra/blob/main/.github/workflows/test.yml)
+`NETBOX_VERSION` variable.
+
+```yml
+env:
+  NETBOX_VERSION: v4.1.1
+```
+
+Django unit-tests must be in [`tests`](https://github.com/Sop-IT/sop-infra/tree/main/sop_infra/tests) folder.
+
