@@ -495,10 +495,9 @@ class SopInfraRefreshForm(forms.Form):
 
         if sites.filter(status='dc').exists():
             messages.warning(
-                request,
-                f'{
-                    ' '.join(str(site.name) for site in sites.filter(status='dc'))
-                  } skipped: You cannot recompute sizing on -DC- status site.')
+                request, f'{' '.join(str(site.name) for site in sites.filter(status='dc'))}\
+ skipped: You cannot recompute sizing on -DC- status site.'
+            )
 
         infra = SopInfra.objects.filter(site__in=(sites.exclude(status='dc').distinct()))
 
