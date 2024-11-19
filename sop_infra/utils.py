@@ -11,43 +11,38 @@ __all__ = (
 
 class SopInfraRefreshMixin:
 
-    def update_master_instance(self, request, instance, ad):
+    def update_master_instance(self, instance, ad):
 
         if instance.ad_cumulative_users == ad:
-            messages.success(request, f'{instance} has already been updated !')
             return
 
         instance.snapshot()
         instance.full_clean()
         instance.save()
-        messages.success(request, f'{instance} successfully updated !')
 
 
-    def update_child_instance(self, request, instance, ad):
+    def update_child_instance(self, instance, ad):
 
         if instance.ad_cumulative_users == ad:
-            messages.success(request, f'{instance} has already been updated !')
             return
 
         instance.snapshot()
+        instance.full_clean()
         instance.save()
-        messages.success(request, f'{instance} successfully updated !')
 
 
-    def pre_compute_queryset(self, request, queryset, parent=False):
+    def pre_compute_queryset(self, queryset, parent=False):
 
         for instance in queryset:
 
             if parent is False:
                 self.update_child_instance(
-                    request,
                     instance,
                     instance.compute_ad_cumulative_users(instance)
                 )
                 continue
 
             self.update_master_instance(
-                request,
                 instance,
                 instance.compute_ad_cumulative_users(instance)
             )
@@ -55,18 +50,23 @@ class SopInfraRefreshMixin:
 
     def refresh_infra(self, request, queryset):
 
+        if queryset.first() is None:
+            messages.error(request, 'Please select at least one site to refresh.')
+            return
+
         # cannot select DC because 
         queryset = queryset.exclude(site__status='dc')
         if queryset.first() is None:
-            messages.error(request, 'You cannot refresh -DC- status sites.')
+            messages.error(request, 'You cannot recompute sizing on -DC- status sites.')
             return
 
         slave = queryset.filter(master_site__isnull=False)
         maybe_master = queryset.filter(master_site__isnull=True)
 
-        self.pre_compute_queryset(request, slave, False)
-        self.pre_compute_queryset(request, maybe_master, True)
+        self.pre_compute_queryset(slave, False)
+        self.pre_compute_queryset(maybe_master, True)
 
+        messages.success(request, f"Successfully updated {queryset.count()} infrastructures.")
 
 
 class SopInfraRelatedModelsMixin:

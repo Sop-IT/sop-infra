@@ -1,6 +1,7 @@
 from django import forms
+from django.db.models import Q
+from django.urls import reverse
 from django.contrib import messages
-from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from utilities.forms.fields import DynamicModelChoiceField
@@ -461,33 +462,48 @@ class SopInfraRefreshForm(forms.Form):
         required=False
     )
   
-
     def clean(self):
         data = super().clean()
         sites = Site.objects.none()
+        base_url = reverse('plugins:sop_infra:sizing_list')
+        request = current_request.get()
 
-        site = data.get('site')
-        region = data.get('region')
-        group = data.get('group')
+        def get_related_sites(obj:object):
+            
+            ids = (obj.get_descendants()).values_list('sites', flat=True)
+            sites = Site.objects.filter(id__in=ids)
 
-        if site is not None:
-            sites |= site
+            if not sites.exists():
+                messages.error(request, f'No sites has been found on {(obj._meta.verbose_name).title()} : {obj}')
+                raise forms.ValidationError({'site': f"No sites has been found on {obj}"})
 
-        if region is not None:
-            sites |= Site.objects.filter(region=region)
+            return sites
 
-        if group is not None:
-            sites |= Site.objects.filter(group=group)
+        def normalize_queryset(obj):
 
-        print(sites)
-        if sites.filter(status__in='dc').exists():
-            messages.error(request, "You cannot refresh -DC- status site.")
-            raise ValidationError({'sites': 'You cannot refresh -DC- status site.'})
+            qs = [str(item) for item in obj]
+            if qs == []:
+                return None
 
-        if len(sites) != len(set(sites)):
-            messages.error(request, "You cannot select the same site multiple times.")
-            raise ValidationError({'sites': "You cannot select the same site multiple times."}) 
+            return f'id=' + '&id='.join(qs)
 
-        sites = SopInfra.objects.filter(site__in=sites)
-        return sites
+        if data['region']:
+            sites |= get_related_sites(data['region'])
+
+        if data['group']:
+            sites |= get_related_sites(data['group'])
+
+        if sites.filter(status='dc').exists():
+            messages.warning(
+                request,
+                f'{
+                    ' '.join(str(site.name) for site in sites.filter(status='dc'))
+                  } skipped: You cannot recompute sizing on -DC- status site.')
+
+        infra = SopInfra.objects.filter(site__in=(sites.exclude(status='dc').distinct()))
+
+        return {
+            'infra': infra,
+            'return_url': f'{base_url}?{normalize_queryset(infra.values_list('id', flat=True))}'
+        }
 
