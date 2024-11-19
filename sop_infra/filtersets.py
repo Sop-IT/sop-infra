@@ -69,12 +69,12 @@ class SopInfraFilterset(NetBoxModelFilterSet):
             Q(wan_computed_users__icontains=value) |
             Q(ad_direct_users__icontains=value) |
             Q(sdwanha__icontains=value) |
-            Q(hub_order_settings__icontains=value) |
+            Q(hub_order_setting__icontains=value) |
             Q(hub_default_route_setting__icontains=value) |
             Q(sdwan1_bw__icontains=value) |
             Q(sdwan2_bw__icontains=value) |
-            Q(site_sdwan_master_location__icontains=value) |
-            Q(master__site__name__icontains=value) |
+            Q(site_sdwan_master_location__name__icontains=value) |
+            Q(master_site__name__icontains=value) |
             Q(migration_sdwan__icontains=value)
         )
 
