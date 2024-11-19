@@ -243,10 +243,15 @@ class SopInfra(NetBoxModel):
     def get_monitor_in_starting_color(self) -> str:
         return InfraBoolChoices.colors.get(self.hub_default_route_setting)
 
-    def get_criticity_stars(self) -> str|None:
+    def get_criticity_stars(self) -> str | None:
+
         if self.criticity_stars is None:
             return None
-        html:str = ['<span class="mdi mdi-star-outline"></span>' for _ in self.criticity_stars]
+
+        html: str = [
+            '<span class="mdi mdi-star-outline" style="color: yellow;"></span>' 
+            for _ in self.criticity_stars
+        ]
         return mark_safe(''.join(html))
 
     class Meta(NetBoxModel.Meta):
