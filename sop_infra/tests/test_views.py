@@ -148,28 +148,30 @@ class SopInfraViewTestCase(TestCase):
         site = Site.objects.first()
         infra = SopInfra.objects.get(site=site)
         url = f'/dcim/sites/{site.pk}/infra/'
+        s_ids = {}
+        i_ids = {}
 
         for i in range(3):
             s = Site.objects.create(name=f'salut{i}', slug=f'salut{i}')
             s.full_clean()
             s.save()
+            s_ids[i] = s.pk
             t = SopInfra.objects.create(site=s, master_site=site)
             t.full_clean()
             t.save()
+            i_ids[i] = t.pk
 
         self.add_permissions('dcim.view_site')
         self.add_permissions(VIEW_PERM)
         response = self.client.get(url)
-        self.assertHttpStatus(response, 200)
-
         context = response.context['context']
 
+        self.assertHttpStatus(response, 200)
         self.assertEqual(context['sop_infra'], infra)
-        self.assertEqual(context['count_slave'], 3)
         self.assertEqual(context['count_slave_infra'], 3)
-        self.assertEqual(context['slave_infra'][0], SopInfra.objects.filter(master_site=site).first())
-        self.assertEqual(context['slave_infra'][1], SopInfra.objects.filter(master_site=site)[1])
-        self.assertEqual(context['slave_infra'][2], SopInfra.objects.filter(master_site=site)[2])
+        self.assertEqual(context['count_slave'], 3)
+        self.assertEqual(context['slave'], f'id={s_ids[0]}&id={s_ids[1]}&id={s_ids[2]}')
+        self.assertEqual(context['slave_infra'], f'id={i_ids[0]}&id={i_ids[1]}&id={i_ids[2]}')
 
 
     def test_recompute_sizing_no_perm(self):

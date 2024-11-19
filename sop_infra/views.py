@@ -22,8 +22,9 @@ __all__ = (
     'SopInfraEditView',
     'SopInfraListView',
     'SopInfraDeleteView',
-    'SopInfraRefreshView',
     'SopInfraDetailView',
+    'SopInfraRefreshView',
+    'SopInfraRefreshNoForm',
     'SopInfraBulkEditView',
     'SopInfraBulkDeleteView',
     'SopInfraMerakiAddView',
@@ -410,15 +411,6 @@ class SopInfraRefreshView(
     form = SopInfraRefreshForm
     template_name:str = 'sop_infra/tools/refresh_form.html'
 
-    def get_return_url(self, qs=None) -> str:
-
-        if self.qs is not None and self.qs != '':
-
-            query = SopInfra.objects.filter(pk=self.qs)
-            if query.exists():
-                return (query.first()).get_absolute_url()
-
-        return reverse('plugins:sop_infra:sizing_list')
 
     def get(self, request, *args, **kwargs):
         
@@ -426,17 +418,11 @@ class SopInfraRefreshView(
         if not request.user.has_perm(get_permission_for_model(SopInfra, 'change')):
             return self.handle_no_permission()
 
-        # if ?qs= not None -> initial sites form qs.
-        self.qs = request.GET.get('qs')
-        if self.qs is not None and self.qs != '':
-            form = self.form(initial={'sites': SopInfra.objects.get(pk=self.qs).site})
-        else:
-            form = self.form()
-        restrict_form_fields(form, request.user)
+        restrict_form_fields(self.form(), request.user)
 
         return render(request, self.template_name, {
-            'form': form,
-            'return_url': self.get_return_url(self.qs),
+            'form': self.form(),
+            'return_url': reverse('plugins:sop_infra:sizing_list')
         })
 
     def post(self, request, *args, **kwargs):
@@ -445,16 +431,39 @@ class SopInfraRefreshView(
         if not request.user.has_perm(get_permission_for_model(SopInfra, 'change')):
             return self.handle_no_permission()
 
-        # if ?qs= not None -> initial sites form qs.
-        self.qs = request.GET.get('qs')
+        return_url = reverse('plugins:sop_infra:sizing_list')
         form = self.form(data=request.POST, files=request.FILES)
-
         if form.is_valid():
-            data = form.cleaned_data
-            self.refresh_infra(request, data)
+            data:dict = form.cleaned_data
+            return_url = data['return_url']
+            self.refresh_infra(request, data['infra'])
+            return redirect(return_url)
 
-        return redirect(self.get_return_url(self.qs))
+        return render(request, self.template_name, {
+            'form': self.form(),
+            'return_url': return_url
+        })
 
+
+
+class SopInfraRefreshNoForm(
+    View,
+    SopInfraRefreshMixin,
+    ObjectPermissionRequiredMixin):
+
+    def get_return_url(self, pk) -> str:
+
+        return f'/dcim/sites/{pk}/infra/'
+
+    def get(self, request, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(SopInfra, 'change')):
+            return self.handle_no_permission()
+
+        pk = request.GET.get('qs')
+        self.refresh_infra(request, SopInfra.objects.filter(site__pk=pk))
+        return redirect(self.get_return_url(pk))
 
 #____________________________
 # bulk views

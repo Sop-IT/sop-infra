@@ -14,7 +14,7 @@
   {% endif %}
 
   {% if request.user|can_change:context.sop_infra and context.sop_infra.pk %}
-    {% include 'sop_infra/tools/refresh.html' with params=context.sop_infra.pk site=object %}
+    {% include 'sop_infra/tools/refresh.html' with site=object %}
     <a href="{% url 'plugins:sop_infra:sopinfra_edit' pk=context.sop_infra.pk %}" type="button" class="btn btn-yellow">
       <i class="mdi mdi-pencil"></i>{% trans "Edit Infrastructure" %}</a>
   {% endif %}
