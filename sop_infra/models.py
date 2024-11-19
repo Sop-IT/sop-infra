@@ -280,9 +280,9 @@ class SopInfra(NetBoxModel):
         targets = SopInfra.objects.filter(master_site=instance.site)
 
         if targets.exists():
-            # if it is, ad slave's ad cumul users to master site
+            # if it is, ad slave's wan computed user to master site
             for target in targets:
-                ad += target.ad_cumulative_users
+                ad += target.wan_computed_users
 
         return ad
 
