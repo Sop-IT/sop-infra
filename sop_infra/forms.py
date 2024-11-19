@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from utilities.forms.fields import DynamicModelChoiceField, DynamicModelMultipleChoiceField
+from utilities.forms.fields import DynamicModelChoiceField
 from netbox.forms import NetBoxModelFilterSetForm, NetBoxModelForm
 from utilities.forms.widgets import DatePicker
 from utilities.forms.rendering import FieldSet
@@ -448,15 +448,38 @@ class SopInfraFilterForm(
 
 class SopInfraRefreshForm(forms.Form):
 
-    sites = DynamicModelMultipleChoiceField(
+    site = DynamicModelChoiceField(
         queryset=Site.objects.all(),
-        required=False,
+        required=False
+    )
+    region = DynamicModelChoiceField(
+        queryset=Region.objects.all(),
+        required=False
+    )
+    group = DynamicModelChoiceField(
+        queryset=SiteGroup.objects.all(),
+        required=False
     )
   
+
     def clean(self):
         data = super().clean()
-        sites = data.get('sites')
+        sites = Site.objects.none()
 
+        site = data.get('site')
+        region = data.get('region')
+        group = data.get('group')
+
+        if site is not None:
+            sites |= site
+
+        if region is not None:
+            sites |= Site.objects.filter(region=region)
+
+        if group is not None:
+            sites |= Site.objects.filter(group=group)
+
+        print(sites)
         if sites.filter(status__in='dc').exists():
             messages.error(request, "You cannot refresh -DC- status site.")
             raise ValidationError({'sites': 'You cannot refresh -DC- status site.'})
