@@ -19,7 +19,7 @@ def DC_status_site_fields(instance) -> None:
     instance.wan_reco_bw = None
     instance.wan_computed_users = None
     instance.criticity_stars = '****'
-    instance.site_mx_model = 'mx450'
+    instance.site_mx_model = 'MX450'
 
 
 
@@ -153,9 +153,7 @@ class SopInfraSlaveValidator:
         instance.site_phone_critical = None
         instance.site_infra_sysinfra = None
         instance.site_type_indus = None
-#        instance.est_cumulative_users = None
         instance.wan_reco_bw = None
-#        instance.wan_computed_users = None
         instance.criticity_stars = None
         instance.site_mx_model = None
 
