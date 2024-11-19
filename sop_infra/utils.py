@@ -14,7 +14,7 @@ class SopInfraRefreshMixin:
     def update_master_instance(self, request, instance, ad):
 
         if instance.ad_cumulative_users == ad:
-            messages.warning(request, f'{instance} has already been updated !')
+            messages.success(request, f'{instance} has already been updated !')
             return
 
         instance.snapshot()
@@ -26,7 +26,7 @@ class SopInfraRefreshMixin:
     def update_child_instance(self, request, instance, ad):
 
         if instance.ad_cumulative_users == ad:
-            messages.warning(request, f'{instance} has already been updated !')
+            messages.success(request, f'{instance} has already been updated !')
             return
 
         instance.snapshot()
@@ -58,7 +58,7 @@ class SopInfraRefreshMixin:
         # cannot select DC because 
         queryset = queryset.exclude(site__status='dc')
         if queryset.first() is None:
-            messages.warning(request, 'You cannot refresh -DC- status sites.')
+            messages.error(request, 'You cannot refresh -DC- status sites.')
             return
 
         slave = queryset.filter(master_site__isnull=False)
@@ -70,6 +70,16 @@ class SopInfraRefreshMixin:
 
 
 class SopInfraRelatedModelsMixin:
+
+
+    def normalize_queryset(self, obj):
+
+        qs = [str(item) for item in obj]
+        if qs == []:
+            return None
+
+        return f'id=' + '&id='.join(qs)
+
 
     def get_slave_sites(self, infra):
         '''
@@ -87,11 +97,7 @@ class SopInfraRelatedModelsMixin:
         if not target:
             return None, None
         
-        qs = [str(item) for item in target]
-        if qs == []:
-            return None, None
-
-        return f'id=' + '&id'.join(qs), count
+        return self.normalize_queryset(target), count
 
 
     def get_slave_infra(self, infra):
@@ -99,5 +105,12 @@ class SopInfraRelatedModelsMixin:
         if not infra.exists():
             return None
 
-        return SopInfra.objects.filter(master_site=(infra.first().site))
+        infras = SopInfra.objects.filter(master_site=(infra.first().site))
+        count = infras.count()
+
+        target = infras.values_list('id', flat=True)
+        if not target:
+            return None, None
+
+        return self.normalize_queryset(target), count
 

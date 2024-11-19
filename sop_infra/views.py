@@ -62,8 +62,7 @@ class SopInfraTabView(
         else:
             context['sop_infra'] = SopInfra
         context['slave'], context['count_slave'] = self.get_slave_sites(infra)
-        context['slave_infra'] = self.get_slave_infra(infra)
-        context['count_slave_infra'] = context['slave_infra'].count()
+        context['slave_infra'], context['count_slave_infra'] = self.get_slave_infra(infra)
         return {'object': site, 'context': context}
 
     def get(self, request, pk):

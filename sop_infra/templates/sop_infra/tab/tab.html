@@ -49,16 +49,16 @@
 
 </div>
 
-{% if context.slave %}
+{% if context.slave_infra %}
 <div class="col col-md-12">
   <div class="card">
 
     <h2 class="card-header">
-      <a href="{% url object|viewname:"list" %}?{{context.slave}}">Slave sites</a>
+      <a href="{% url context.sop_infra|viewname:"list" %}?{{context.slave_infra}}">Slave sites</a>
     </h2>
 
     <div class="htmx-container table-responsive"
-      hx-get="{% url object|viewname:"list" %}?embedded=True&{{context.slave}}"
+      hx-get="{% url context.sop_infra|viewname:"list" %}?embedded=True&{{context.slave_infra}}"
       hx-target="this"
       hx-trigger="load" hx-select=".htmx-container" hx-swap="outerHTML"
     ></div>
