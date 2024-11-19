@@ -157,9 +157,7 @@ class SopInfraTable(
         )
         default_columns = (
             'site', 'status',
-            'sdwanha',
-            'site_infra_sysinfra', 'site_type_indus',
-            'wan_computed_users', 'wan_reco_bw'
+            'sdwanha', 'ad_direct_users', 'wan_computed_users'
         )
 
         order_by = ('site',)
