@@ -9,7 +9,6 @@ __all__ = (
 )
 
 
-
 def DC_status_site_fields(instance) -> None:
 
     instance.sdwanha = '-DC-'
@@ -32,13 +31,13 @@ class SopInfraSizingValidator:
     def get_wan_computed_users(instance) -> int:
 
         if instance.site.status in ['active', 'decommissioning']:
-            return instance.ad_cumulative_users
+            return instance.ad_direct_users
 
         elif instance.site.status in ['candidate', 'planned', 'staging']:
             return instance.est_cumulative_users
 
         elif instance.site.status in ['starting']:
-            wan = instance.ad_cumulative_users
+            wan = instance.ad_direct_users
 
             if wan is None:
                 wan = 0
@@ -46,7 +45,7 @@ class SopInfraSizingValidator:
             if instance.est_cumulative_users is not None and instance.est_cumulative_users > wan:
                 return instance.est_cumulative_users
 
-            return instance.ad_cumulative_users
+            return instance.ad_direct_users
 
         return 0
 
@@ -180,16 +179,14 @@ class SopInfraMasterValidator:
 
         sizing = SopInfraSizingValidator()
 
-        # ad
-        ad = instance.compute_ad_cumulative_users(instance)
-        if ad is None:
-            ad = 0
-        instance.ad_cumulative_users = ad
-
-        # wan
+        # base wan
         wan = sizing.get_wan_computed_users(instance)
         if wan is None:
             wan = 0
+        instance.wan_computed_users = wan
+
+        # additional wan
+        wan = instance.compute_wan_cumulative_users(instance)
         instance.wan_computed_users = wan
 
         # user slice
