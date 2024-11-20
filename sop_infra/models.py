@@ -258,7 +258,7 @@ class SopInfra(NetBoxModel):
             return None
 
         html: str = [
-            '<span class="mdi mdi-star-outline" style="color: yellow;"></span>' 
+            '<span class="mdi mdi-star-outline" style="color: rgba(218, 165, 32, 1);"></span>' 
             for _ in self.criticity_stars
         ]
         return mark_safe(''.join(html))
