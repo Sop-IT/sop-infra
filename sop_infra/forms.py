@@ -382,10 +382,25 @@ class SopInfraClassificationFilterForm(SopInfraBaseFilterForm):
 
 
 class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
+    ad_direct_users = forms.IntegerField(
+        required=False,
+        label=_('AD direct. users'),
+        help_text=_('Numbers only')
+    )
     est_cumulative_users = forms.IntegerField(
         required=False,
-        label=_('AD cumul. users'),
+        label=_('EST cumul. users'),
         help_text=_('Numbers only')
+    )
+    site_user_count = forms.CharField(
+        required=False,
+        label=_('Site user count'),
+        help_text=_('Example: 50<100')
+    )
+    site_mx_model = forms.CharField(
+        required=False,
+        label=_('Reco. MX Model'),
+        help_text=_('Example: MX85')
     )
     wan_reco_bw = forms.IntegerField(
         required=False,
@@ -408,8 +423,9 @@ class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
             name=_('Status')
         ),
         FieldSet(
-            'est_cumulative_users',
+            'ad_direct_users', 'est_cumulative_users',
             'wan_computed_users', 'wan_reco_bw',
+            'site_user_count', 'site_mx_model',
             name=_('Attributes')
         )
     )
@@ -430,7 +446,9 @@ class SopInfraFilterForm(
             name=_('Classification')
         ),
         FieldSet(
-            'est_cumulative_users',
+            'ad_direct_users', 'est_cumulative_users',
+            'wan_computed_users', 'wan_reco_bw',
+            'site_user_count', 'site_mx_model',
             name=_('Sizing')
         ),
         FieldSet(
