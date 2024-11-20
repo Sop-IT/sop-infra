@@ -7,50 +7,15 @@
   <h5 class="card-header">{% trans "Meraki SDWAN" %}</h5>
   <table class="table table-hover attr-table">
 
-    <tr>
-      <th scope="row">{% trans "HA(S) / NHA Target" %}</th>
-      <td>{{object.get_sdwanha_display|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "HUB order setting" %}</th>
-      <td>{{object.get_hub_order_setting_display|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "HUB default route setting" %}</th>
-      <td>{% include 'sop_infra/tools/badge.html' with object=object.hub_default_route_setting %}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "WAN1 BW" %}</th>
-      <td>{{object.sdwan1_bw|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "WAN2 BW" %}</th>
-      <td>{{object.sdwan2_bw|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "MASTER Location" %}</th>
-      <td>{{object.site_sdwan_master_location|placeholder}}</td>
-    </tr>
-    <!-- object ? or no object and only related script that grep Location site idk -->
-    <tr>
-      <th scope="row">{% trans "MASTER Site" %}</th>
-      <td>{{object.master_site|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "Migration date" %}</th>
-      <td>{{object.migration_sdwan|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "Monitor in starting" %}</th>
-      <td>{{object.monitor_in_starting|placeholder}}</td>
-    </tr>
+    {% include 'sop_infra/tools/display_detail.html' with name="sdwanha" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="hub_order_setting" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="hub_default_route_setting" badge=1 %}
+    {% include 'sop_infra/tools/display_detail.html' with name="sdwan1_bw" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="sdwan2_bw" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="site_sdwan_master_location" link=1 %}
+    {% include 'sop_infra/tools/display_detail.html' with name="master_site" link=1 %}
+    {% include 'sop_infra/tools/display_detail.html' with name="migration_sdwan" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="monitor_in_starting" %}
 
   </table>
 

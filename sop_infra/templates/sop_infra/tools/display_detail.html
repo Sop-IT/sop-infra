@@ -1,0 +1,33 @@
+{% load infra_custom_tags %}
+{% load helpers %}
+
+<tr>
+  <th scope="row">{{object|field_verbose_name:name}}
+
+    {% if object|field_help_exists:name %}
+      <i class="mdi mdi-information text-primary ms-2"
+         data-bs-toggle="tooltip" |
+         title="{{object|field_help_text:name}}"
+       ></i>
+    {% endif %}
+  </th>
+  <td>
+
+      {% if badge %}
+        {% include 'sop_infra/tools/badge.html' with object=object|field_value:name %}
+      {% else %}
+
+        {% if link and object|field_exists:name %}
+          {% with obj=object|field_value:name %}
+            <a href="{% url object|field_value:name|viewname:"" pk=obj.pk %}">
+          {% endwith %}
+          {{object|field_value:name|placeholder}}</a>
+        {% else %}
+          {{object|field_value:name|placeholder}}
+        {% endif %}
+
+      {% endif %}
+
+  </td>
+</tr>
+

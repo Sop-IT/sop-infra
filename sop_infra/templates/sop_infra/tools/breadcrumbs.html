@@ -1,8 +1,5 @@
 {% load helpers %}
 
-<!-- inspired by netbox breadcrumbs block -->
-<!-- link the breadcrumb to site model -->
-
 {% if object.site %}
 <li class="breadcrumb-item">
   <a href="{% url 'dcim:site' pk=object.site.id %}">{{ object.site }}</a>

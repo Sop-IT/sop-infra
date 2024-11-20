@@ -1,16 +1,9 @@
 {% load helpers %}
 {% load mptt %}
 
-
-<!--
-      true: display a green V
-      false: display a red X
-      else: display a yellow ?
--->
-
-{% if object == "false" %}
+{% if object == "False" %}
   <i class="mdi mdi-close-thick text-danger" title="False"></i>
-{% elif object == "true" %}
+{% elif object == "True" %}
     <i class="mdi mdi-check-bold text-success" title="True"></i>
 {% else %}
     <span>&mdash;</span>

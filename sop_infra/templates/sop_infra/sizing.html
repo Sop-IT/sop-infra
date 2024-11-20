@@ -6,43 +6,12 @@
   <h5 class="card-header">{% trans "Sizing" %}</h5>
   <table class="table table-hover attr-table">
 
-    <tr>
-      <th scope="row">{% trans "AD direct. users" %}</th>
-      <td>{{object.ad_direct_users|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "AD cumul. users" %}</th>
-      <td>{{object.ad_cumulative_users|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "EST cumul. users" %}</th>
-      <td>{{object.est_cumulative_users|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "Site user count" %}</th>
-      <td>{{object.site_user_count|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "WAN users" %}</th>
-      <td>{{object.wan_computed_users|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "Reco. MX Model" %}></th>
-      <td>{{object.site_mx_model|placeholder}}</td>
-    </tr>
-
-    <tr>
-      <th scope="row">{% trans "Reco. BW (Mbps)" %}</th>
-      <td>
-        {{object.wan_reco_bw|placeholder}}
-        {% if object.wan_reco_bw %}(Mbps){% endif %}
-      </td>
-    </tr>
+    {% include 'sop_infra/tools/display_detail.html' with name="ad_direct_users" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="est_cumulative_users" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="site_user_count" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="wan_computed_users" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="site_mx_model" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="wan_reco_bw" %}
 
   </table>
 

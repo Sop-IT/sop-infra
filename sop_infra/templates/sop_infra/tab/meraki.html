@@ -27,59 +27,15 @@
 
     <ul class="list-group list-group-flush">
 
-      {% include 'sop_infra/tools/display.html' with name="HA(S) / NHA Target" var=object.get_sdwanha_display %}
-
-      {% include 'sop_infra/tools/display.html' with name="HUB order setting" var=object.get_hub_order_setting_display %}
-
-      {% include 'sop_infra/tools/display.html' with name="HUB default route setting" var=object.hub_default_route_setting badge=1 %}
-
-      {% include 'sop_infra/tools/display.html' with name="WAN1 BW" var=object.sdwan1_bw %}
-
-      {% include 'sop_infra/tools/display.html' with name="WAN2 BW" var=object.sdwan2_bw %}
-
-      <!--___________________________________________________
-        special case : linked to a Location instance
-        ____
-      -->
-      {% if object.site_sdwan_master_location.pk %}
-        <a href="{% url 'dcim:location' pk=object.site_sdwan_master_location.id %}"
-          class="list-group-item list-group-item-action d-flex justify-content-between">
-      {% else %}
-        <a class="list-group-item list-group-item-action d-flex justify-content-between">
-      {% endif %}
-          {% trans "MASTER Location" %}
-          <span>{{object.site_sdwan_master_location|placeholder}}</span>
-        </a>
-
-      <!--___________________________________________________
-        special case : master site linked to a Site instance
-        ____
-      -->
-      {% if object.master_site.pk %}
-        <a href="{% url 'dcim:site' pk=object.master_site.id %}"
-           class="list-group-item list-group-item-action d-flex justify-content-between">
-      {% else %}
-        <a class="list-group-item list-group-item-action d-flex justify-content-between">
-      {% endif %}
-        {% trans "MASTER Site" %}
-          <span>{{object.master_site|placeholder}}</span>
-        </a>
-
-      <!--___________________________________________________
-        special case : date display
-        ____
-      -->
-      {% if object.pk %}
-        <a href="{% url object|viewname:"detail" pk=object.pk %}"
-           class="list-group-item list-group-item-action d-flex justify-content-between">
-      {% else %}
-        <a class="list-group-item list-group-item-action d-flex justify-content-between">
-      {% endif %}
-          {% trans "Migration Date" %}
-          <span>{{object.migration_sdwan|placeholder}}</span>
-        </a>
-
-      {% include 'sop_infra/tools/display.html' with name="Monitor in Starting" var=object.monitor_in_starting badge=1 %}
+      {% include 'sop_infra/tools/display.html' with name="sdwanha" %}
+      {% include 'sop_infra/tools/display.html' with name="hub_order_setting" %}
+      {% include 'sop_infra/tools/display.html' with name="hub_default_route_setting" badge=1 %}
+      {% include 'sop_infra/tools/display.html' with name="sdwan1_bw" %}
+      {% include 'sop_infra/tools/display.html' with name="sdwan2_bw" %}
+      {% include 'sop_infra/tools/display.html' with name="site_sdwan_master_location" link=1 %}
+      {% include 'sop_infra/tools/display.html' with name="master_site" link=1 %}
+      {% include 'sop_infra/tools/display.html' with name="migration_sdwan" %}
+      {% include 'sop_infra/tools/display.html' with name="monitor_in_starting" badge=1 %}
 
     </ul>
 

@@ -26,19 +26,13 @@
 
     <ul class="list-group list-group-flush">
 
-      {% include 'sop_infra/tools/display.html' with name="System Infrastructure" var=object.get_site_infra_sysinfra_display %}
-
-      {% include 'sop_infra/tools/display.html' with name="Industrial" var=object.get_site_type_indus_display %}
-
-      {% include 'sop_infra/tools/display.html' with name="Criticity stars" var=object.get_criticity_stars %}
-
-      {% include 'sop_infra/tools/display.html' with name="PHONE Critical ?" var=object.site_phone_critical badge=1 %}
-
-      {% include 'sop_infra/tools/display.html' with name="R&D ?" var=object.site_type_red badge=1 %}
-
-      {% include 'sop_infra/tools/display.html' with name="VIP ?" var=object.site_type_vip badge=1 %}
-
-      {% include 'sop_infra/tools/display.html' with name="WMS ?" var=object.site_type_wms badge=1 %}
+      {% include 'sop_infra/tools/display.html' with name="site_infra_sysinfra" %}
+      {% include 'sop_infra/tools/display.html' with name="site_type_indus" %}
+      {% include 'sop_infra/tools/display.html' with name="criticity_stars" %}
+      {% include 'sop_infra/tools/display.html' with name="site_phone_critical" badge=1 %}
+      {% include 'sop_infra/tools/display.html' with name="site_type_red" badge=1 %}
+      {% include 'sop_infra/tools/display.html' with name="site_type_vip" badge=1 %}
+      {% include 'sop_infra/tools/display.html' with name="site_type_wms" badge=1 %}
 
     </ul>
 
