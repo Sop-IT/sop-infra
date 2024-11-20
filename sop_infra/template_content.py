@@ -1,10 +1,53 @@
 import logging
 
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.contrib import messages
 from django.conf import settings
 
 from netbox.plugins import PluginTemplateExtension
+from netbox.context import current_request
+from dcim.models import Site
 
 from sop_infra.models import SopInfra
+
+
+
+#_________SITE_POST_SAVE
+
+
+@receiver(post_save, sender=Site)
+def create_or_update_sopinfra(sender, instance, created, **kwargs):
+    '''
+    when creating or updating a Site
+    create or update its related SopInfra instance
+    '''
+    request = current_request.get()
+    target = SopInfra.objects.filter(site=instance)
+
+    # create
+    if created and not target.exists():
+        infra = SopInfra.objects.create(site=instance)
+        infra.full_clean()
+        infra.snapshot()
+        infra.save()
+        try:
+            messages.success(request, f'Created {infra}')
+        except:pass
+        return
+
+    # update
+    infra = target.first()
+    infra.snapshot()
+    infra.full_clean()
+    infra.save()
+    try:
+        messages.success(request, f'Updated {infra}')
+    except:pass
+
+
+
+#_________PANELS_CONFIGURATION
 
 
 ALLOWED_PANELS = ['meraki', 'classification', 'sizing']
