@@ -8,7 +8,7 @@ from netbox.models import NetBoxModel
 from utilities.choices import ChoiceSet
 from dcim.models import Site, Location
 
-from .validators import (
+from .validators.model_validators import (
     DC_status_site_fields,
     SopInfraSlaveValidator,
     SopInfraMasterValidator
@@ -85,13 +85,13 @@ class SopInfra(NetBoxModel):
         choices=InfraTypeChoices,
         null=True,
         blank=True,
-        verbose_name=_('System infrastructure')
+        verbose_name=_('System infrastructure'),
     )
     site_type_indus = models.CharField(
         choices=InfraTypeIndusChoices,
         null=True,
         blank=True,
-        verbose_name=_('Industrial')
+        verbose_name=_('Industrial'),
     )
     criticity_stars = models.CharField(
         max_length=6,
@@ -103,33 +103,32 @@ class SopInfra(NetBoxModel):
         choices=InfraBoolChoices,
         null=True,
         blank=True,
-        verbose_name=_('PHONE Critical ?')
+        verbose_name=_('PHONE Critical ?'),
+        help_text=_('Is the phone critical for this site ?')
     )
     site_type_red = models.CharField(
         choices=InfraBoolChoices,
         null=True,
         blank=True,
-        verbose_name=_('R&D ?')
+        verbose_name=_('R&D ?'),
+        help_text=_('Does the site have and R&D department or a lab ?')
     )
     site_type_vip = models.CharField(
         choices=InfraBoolChoices,
         null=True,
         blank=True,
-        verbose_name=_('VIP ?')
+        verbose_name=_('VIP ?'),
+        help_text=_('Does the site host VIPs ?')
     )
     site_type_wms = models.CharField(
         choices=InfraBoolChoices,
         null=True,
         blank=True,
-        verbose_name=_('WMS ?')
+        verbose_name=_('WMS ?'),
+        help_text=_('Does the site run WMS ?')
     )
     #_______
     # Sizing
-    ad_cumulative_users = models.PositiveBigIntegerField(
-        null=True,
-        blank=True,
-        verbose_name=_('AD cumul. users')
-    )
     est_cumulative_users = models.PositiveBigIntegerField(
         null=True,
         blank=True,
@@ -142,13 +141,14 @@ class SopInfra(NetBoxModel):
     wan_reco_bw = models.PositiveBigIntegerField(
         null=True,
         blank=True,
-        verbose_name=_('Reco. BW (Mbps)')
+        verbose_name=_('Reco. BW (Mbps)'),
+        help_text=_('Recommended bandwidth (Mbps)')       
     )
     site_mx_model = models.CharField(
         max_length=6,
         null=True,
         blank=True,
-        verbose_name=_('Reco. MX Model')
+        verbose_name=_('Reco. MX Model'),
     )
     wan_computed_users = models.PositiveBigIntegerField(
         null=True,
@@ -166,36 +166,42 @@ class SopInfra(NetBoxModel):
         choices=InfraSdwanhaChoices,
         null=True,
         blank=True,
-        verbose_name=_('HA(S) / NHA target')
+        verbose_name=_('HA(S) / NHA target'),
+        help_text=_('Calculated target for this site'),
     )
     hub_order_setting = models.CharField(
         choices=InfraHubOrderChoices,
         null=True,
         blank=True,
-        verbose_name=_('HUB order setting')
+        verbose_name=_('HUB order setting'),
+        help_text=_('Choose one of the various supported combinations')
     )
     hub_default_route_setting = models.CharField(
         choices=InfraBoolChoices,
         null=True,
         blank=True,
-        verbose_name=_('HUB default route setting')
+        verbose_name=_('HUB default route setting'),
+        help_text=_('Set to true if the default route should be sent through the AutoVPN'),
     )
     sdwan1_bw = models.CharField(
         null=True,
         blank=True,
-        verbose_name=_('WAN1 BW')
+        verbose_name=_('WAN1 BW'),
+        help_text=_('SDWAN > WAN1 Bandwidth (real link bandwidth)'),
     )
     sdwan2_bw = models.CharField(
         null=True,
         blank=True,
-        verbose_name=_('WAN2 BW')
+        verbose_name=_('WAN2 BW'),
+        help_text=_('SDWAN > WAN2 Bandwidth (real link bandwidth)')
     )
     site_sdwan_master_location = models.ForeignKey(
         to=Location,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_('MASTER Location')
+        verbose_name=_('MASTER Location'),
+        help_text=_('When this site is an SDWAN SLAVE, you have to materialize a location on the MASTER site and link it here')
     )
     master_site = models.ForeignKey(
         to=Site,
@@ -203,18 +209,21 @@ class SopInfra(NetBoxModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_('MASTER Site')
+        verbose_name=_('MASTER Site'),
+        help_text=_('Or select the MASTER site.')
     )
     migration_sdwan = models.CharField(
         null=True,
         blank=True,
-        verbose_name=_('Migration date')
+        verbose_name=_('Migration date'),
+        help_text=_('SDWAN > Site migration date to SDWAN')
     )
     monitor_in_starting = models.CharField(
         choices=InfraBoolChoices,
         null=True,
         blank=True,
-        verbose_name=_('Monitor in starting')
+        verbose_name=_('Monitor in starting'),
+        help_text=_('Centreon > Start monitoring when starting the site')
     )
 
     def __str__(self):
@@ -272,9 +281,9 @@ class SopInfra(NetBoxModel):
             )
         ]
 
-    def compute_ad_cumulative_users(self, instance) -> int:
+    def compute_wan_cumulative_users(self, instance) -> int:
 
-        ad:int = instance.ad_direct_users
+        base:int = instance.wan_computed_users
 
         # check if this is a master site
         targets = SopInfra.objects.filter(master_site=instance.site)
@@ -282,9 +291,9 @@ class SopInfra(NetBoxModel):
         if targets.exists():
             # if it is, ad slave's wan computed user to master site
             for target in targets:
-                ad += target.wan_computed_users
+                base += target.wan_computed_users
 
-        return ad
+        return base
 
     def clean(self):
         '''
@@ -306,8 +315,6 @@ class SopInfra(NetBoxModel):
         if self.site.status == 'dc':
             DC_status_site_fields(self)
             return
-
-        self.ad_cumulative_users = self.ad_direct_users
 
         # all slave related validators
         SopInfraSlaveValidator(self)

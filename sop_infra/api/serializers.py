@@ -33,7 +33,7 @@ class SopInfraSerializer(NetBoxModelSerializer):
             'site_infra_sysinfra', 'site_type_indus', 'site_phone_critical',
             'site_type_red', 'site_type_vip', 'site_type_wms', 'criticity_stars',
             'ad_direct_users', 
-            'ad_cumulative_users', 'est_cumulative_users', 'wan_reco_bw', 'wan_computed_users',
+            'est_cumulative_users', 'wan_reco_bw', 'wan_computed_users',
             'site_mx_model',
             'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',

@@ -65,7 +65,6 @@ class SopInfraSizingTable(NetBoxTable):
     '''
     site = tables.Column(linkify=True)
     status = tables.Column(accessor='site__status', linkify=True)
-    ad_cumulative_users = tables.Column(linkify=True)
     est_cumulative_users = tables.Column(linkify=True)
     wan_computed_users = tables.Column(linkify=True)
     wan_reco_bw = tables.Column(linkify=True)
@@ -74,11 +73,11 @@ class SopInfraSizingTable(NetBoxTable):
         model = SopInfra
         fields = (
             'actions', 'pk', 'id', 'created', 'last_updated', 'site', 'status',
-            'ad_cumulative_users', 'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw',
+            'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw',
             'ad_direct_users', 'site_mx_model'
         )
         default_columns = (
-            'site', 'status', 'ad_cumulative_users', 'est_cumulative_users',
+            'site', 'status', 'est_cumulative_users',
             'wan_computed_users', 'wan_reco_bw', 'site_mx_model'
         )
         order_by = ('site',)
@@ -149,7 +148,7 @@ class SopInfraTable(
             'actions', 'pk', 'id', 'created', 'last_updated', 'site', 'status'
             'site_infra_sysinfra', 'site_type_indus', 'site_phone_critical',
             'site_type_red', 'site_type_vip', 'site_type_wms',
-            'ad_cumulative_users', 'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw',
+            'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw',
             'ad_direct_users', 'site_mx_model',
             'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',

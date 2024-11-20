@@ -1,5 +1,6 @@
 from django.contrib import messages
 
+from sop_infra.validators.model_validators import SopInfraSizingValidator
 from sop_infra.models import SopInfra
 
 
@@ -11,9 +12,9 @@ __all__ = (
 
 class SopInfraRefreshMixin:
 
-    def update_master_instance(self, instance, ad):
+    def update_master_instance(self, instance, wan):
 
-        if instance.ad_cumulative_users == ad:
+        if instance.wan_computed_users == wan:
             return
 
         instance.snapshot()
@@ -21,9 +22,9 @@ class SopInfraRefreshMixin:
         instance.save()
 
 
-    def update_child_instance(self, instance, ad):
+    def update_child_instance(self, instance, wan):
 
-        if instance.ad_cumulative_users == ad:
+        if instance.wan_computed_users == wan:
             return
 
         instance.snapshot()
@@ -33,18 +34,22 @@ class SopInfraRefreshMixin:
 
     def pre_compute_queryset(self, queryset, parent=False):
 
+        sizing = SopInfraSizingValidator()
+
         for instance in queryset:
 
             if parent is False:
                 self.update_child_instance(
                     instance,
-                    instance.compute_ad_cumulative_users(instance)
+                    sizing.get_wan_computed_users(instance)
                 )
                 continue
 
+            wan = sizing.get_wan_computed_users(instance)
+            instance.wan_computed_users = wan if wan is not None else 0
             self.update_master_instance(
                 instance,
-                instance.compute_ad_cumulative_users(instance)
+                instance.compute_wan_cumulative_users(instance)
             )
 
 
