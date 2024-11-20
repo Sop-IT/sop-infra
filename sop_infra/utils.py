@@ -108,7 +108,7 @@ class SopInfraRelatedModelsMixin:
     def get_slave_infra(self, infra):
 
         if not infra.exists():
-            return None
+            return None, None
 
         infras = SopInfra.objects.filter(master_site=(infra.first().site))
         count = infras.count()
