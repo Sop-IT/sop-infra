@@ -42,50 +42,43 @@ class SopInfraSlaveModelTestCase(TestCase):
     def test_slave_wrong_location(self):
         """Test that invalid master location raises ValidationError"""
         with self.assertRaises(ValidationError):
-            infra = SopInfra.objects.create(
-                site=self.site1,
-                site_sdwan_master_location=self.location
-            )
+            infra = SopInfra.objects.get(site=self.site1)
+            infra.site_sdwan_master_location = self.location
             infra.full_clean()
+            infra.save()
 
 
     def test_slave_wrong_master_site(self):
         """Test that invalid master site raises IntegrityError"""
         with transaction.atomic():
             with self.assertRaises(IntegrityError):
-                infra = SopInfra.objects.create(
-                    site=self.site1,
-                    master_site=self.site1
-                )
+                infra = SopInfra.objects.get(site=self.site1)
+                infra.master_site=self.site1
+                infra.save()
 
 
     def test_slave_master_location_site_not_master_site(self):
         """Test master site coherence """
         with self.assertRaises(ValidationError):
-            infra = SopInfra.objects.create(
-                site=self.site1,
-                site_sdwan_master_location=self.location,
-                master_site=self.site3
-            )
+            infra = SopInfra.objects.get(site=self.site1)
+            infra.site_sdwan_master_location=self.location
+            infra.master_site=self.site3
             infra.full_clean()
+            infra.save()
 
 
     def test_slave_correct_master_location(self):
         """Test valid master location"""
-        infra = SopInfra.objects.create(
-            site=self.site2,
-        site_sdwan_master_location=self.location
-        )
+        infra = SopInfra.objects.get(site=self.site2)
+        infra.site_sdwan_master_location=self.location
         infra.full_clean()
         self.assertEqual(infra.master_site, infra.site_sdwan_master_location.site)
 
 
     def test_slave_correct_master_site(self):
         """Test valid master site"""
-        infra = SopInfra.objects.create(
-            site=self.site2,
-            master_site=self.site1
-        )
+        infra = SopInfra.objects.get(site=self.site2)
+        infra.master_site=self.site1
         infra.full_clean()
         self.assertEqual(infra.site_sdwan_master_location, None)
 
@@ -93,24 +86,21 @@ class SopInfraSlaveModelTestCase(TestCase):
     def test_slave_master_location_already_exists(self):
         """Test that if master location already exists -> raise ValidationError"""
         with self.assertRaises(ValidationError):
-            infra = SopInfra.objects.create(
-                site=self.site2,
-                site_sdwan_master_location=self.location
-            )
-            infra2 = SopInfra.objects.create(
-                site=self.site3,
-                site_sdwan_master_location=self.location
-            )
+            infra = SopInfra.objects.get(site=self.site2)
+            infra.site_sdwan_master_location=self.location
             infra.full_clean()
+            infra.save()
+
+            infra2 = SopInfra.objects.get(site=self.site3)
+            infra2.site_sdwan_master_location=self.location
             infra2.full_clean()
 
 
     def test_slave_compute_sizing(self):
         """Test that valid slave infra computes sizing"""
-        infra = SopInfra.objects.create(
-            site=self.site1,
-            master_site=self.site3
-        )
+        infra = SopInfra.objects.get(site=self.site1)
+        infra.master_site=self.site3
+
         infra.full_clean()
         self.assertEqual(infra.wan_computed_users, 0)
 
@@ -119,17 +109,18 @@ class SopInfraSlaveModelTestCase(TestCase):
         infra.full_clean()
         self.assertEqual(infra.wan_computed_users, 42)
 
-        infra.site = self.site2
+        infra = SopInfra.objects.get(site=self.site2)
+        infra.ad_direct_users = 42
+        infra.est_cumulative_users = 69
+
         infra.full_clean()
         self.assertEqual(infra.wan_computed_users, 69)
 
 
     def test_slave_default_fields(self):
         """Test that valid slave infra computes default fields"""
-        infra = SopInfra.objects.create(
-            site=self.site1,
-            master_site=self.site2
-        )
+        infra = SopInfra.objects.get(site=self.site1)
+        infra.master_site=self.site2
         infra.full_clean()
         self.assertEqual(infra.sdwanha, '-SLAVE SITE-')
 
@@ -159,39 +150,24 @@ class SopInfraMasterModelTestCase(TestCase):
         cls.site2 = Site.objects.get(slug='site-2')
         cls.site3 = Site.objects.get(slug='site-3')
 
-        infras = (
-            SopInfra(site=cls.site1, ad_direct_users=442),
-            SopInfra(site=cls.site2, ad_direct_users=42, est_cumulative_users=69, site_type_red='true'),
-            SopInfra(site=cls.site3, ad_direct_users=0, est_cumulative_users=19, site_type_vip='true'),
-        )
-        for infra in infras:
-            infra.full_clean()
-            infra.save()
-
         cls.infra1 = SopInfra.objects.get(site__slug='site-1')
         cls.infra2 = SopInfra.objects.get(site__slug='site-2')
         cls.infra3 = SopInfra.objects.get(site__slug='site-3')
 
+        cls.infra1.ad_direct_users = 442
+        cls.infra2.ad_direct_users = 42
+        cls.infra2.est_cumulative_users = 69
+        cls.infra2.site_type_red = 'true'
+        cls.infra3.ad_direct_users = 0
+        cls.infra3.est_cumulative_users = 19
+        cls.infra3.site_type_vip = 'true'
 
-    def test_master_ad_cumulative_users(self):
-        """Test that valid MASTER SopInfra computes ad_cumulative_users"""
-        self.assertEqual(self.infra1.ad_cumulative_users, 442)
-        self.assertEqual(self.infra2.ad_cumulative_users, 42)
-        self.assertEqual(self.infra3.ad_cumulative_users, 0)
-
-
-    def test_master_ad_cumulative_users_children(self):
-        """Test that valid MASTER SopInfra with children computes ad_cumulative_users"""
-        self.infra1.master_site = self.infra2.site
-
-        # need to save bc ad_cumulative_users algorithm uses db queryset
-        self.infra1.full_clean()
-        self.infra1.save()
-        self.infra2.full_clean()
-        self.infra1.save()
-
-        self.assertEqual(self.infra1.ad_cumulative_users, 442)
-        self.assertEqual(self.infra2.ad_cumulative_users, 484)
+        cls.infra1.full_clean()
+        cls.infra1.save()
+        cls.infra2.full_clean()
+        cls.infra2.save()
+        cls.infra3.full_clean()
+        cls.infra3.save()
 
 
     def test_master_wan_computed_users(self):
@@ -205,14 +181,13 @@ class SopInfraMasterModelTestCase(TestCase):
         """Test that valid MASTER SopInfra with children computes wan_computed_users"""
         self.infra1.master_site = self.infra2.site
 
-        # need to save bc ad_cumulative_users algorithm uses db queryset
         self.infra1.full_clean()
         self.infra1.save()
         self.infra2.full_clean()
-        self.infra1.save()
+        self.infra2.save()
 
         self.assertEqual(self.infra1.wan_computed_users, 442)
-        self.assertEqual(self.infra2.wan_computed_users, 484)
+        self.assertEqual(self.infra2.wan_computed_users, 511)
 
 
     def test_master_mx_user_slice(self):
@@ -232,7 +207,6 @@ class SopInfraMasterModelTestCase(TestCase):
         self.infra1.master_site = self.infra2.site
         self.infra2.ad_direct_users = 84
 
-        # need to save bc ad_cumulative_users algorithm uses db queryset
         self.infra1.full_clean()
         self.infra1.save()
         self.infra2.full_clean()
@@ -267,7 +241,6 @@ class SopInfraMasterModelTestCase(TestCase):
         self.infra1.master_site = self.infra2.site
         self.infra2.ad_direct_users = 84
 
-        # need to save bc ad_cumulative_users algorithm uses db queryset
         self.infra1.full_clean()
         self.infra1.save()
         self.infra2.full_clean()

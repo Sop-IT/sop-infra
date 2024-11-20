@@ -31,14 +31,6 @@ class SopInfraViewTestCase(TestCase):
             site.full_clean()
             site.save()
 
-        infras = (
-            SopInfra(site=Site.objects.get(slug='site-1')),
-            SopInfra(site=Site.objects.get(slug='site-2'))
-        )
-        for infra in infras:
-            infra.full_clean()
-            infra.save()
-
 
     def get_action_url(self, action, instance=None):
         """reverse sopinfra plugin url with action"""
@@ -156,7 +148,8 @@ class SopInfraViewTestCase(TestCase):
             s.full_clean()
             s.save()
             s_ids[i] = s.pk
-            t = SopInfra.objects.create(site=s, master_site=site)
+            t = SopInfra.objects.get(site__id=s_ids[i])
+            t.master_site=site
             t.full_clean()
             t.save()
             i_ids[i] = t.pk

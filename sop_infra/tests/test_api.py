@@ -24,14 +24,6 @@ class SopInfraApiTestCase(TestCase):
             site.full_clean()
             site.save()
 
-        infras = (
-            SopInfra(site=Site.objects.get(slug='site-1')),
-            SopInfra(site=Site.objects.get(slug='site-2'))
-        )
-        for infra in infras:
-            infra.full_clean()
-            infra.save()
-
 
     def get_action_url(self, action, instance=None):
         """reverse sopinfra plugin api url with action"""
