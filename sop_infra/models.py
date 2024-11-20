@@ -136,7 +136,8 @@ class SopInfra(NetBoxModel):
     )
     site_user_count = models.CharField(
         null=True,
-        blank=True
+        blank=True,
+        help_text=_('Site user count')
     )
     wan_reco_bw = models.PositiveBigIntegerField(
         null=True,
@@ -153,7 +154,8 @@ class SopInfra(NetBoxModel):
     wan_computed_users = models.PositiveBigIntegerField(
         null=True,
         blank=True,
-        verbose_name=_('WAN users')
+        verbose_name=_('WAN users'),
+        help_text=_('Total computed wan users.')
     )
     ad_direct_users = models.PositiveBigIntegerField(
         null=True,
