@@ -38,7 +38,7 @@ class SopInfraClassificationForm(NetBoxModelForm):
     )
     site_infra_sysinfra = forms.ChoiceField(
         label=_('Infrastructure'),
-    choices=add_blank_choice(InfraTypeChoices),
+        choices=add_blank_choice(InfraTypeChoices),
         required=False
     )
     site_type_indus = forms.ChoiceField(
@@ -382,11 +382,6 @@ class SopInfraClassificationFilterForm(SopInfraBaseFilterForm):
 
 
 class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
-    ad_cumulative_users = forms.IntegerField(
-        required=False,
-        label=_('AD cumul. users'),
-        help_text=_('Numbers only')
-    )
     est_cumulative_users = forms.IntegerField(
         required=False,
         label=_('AD cumul. users'),
@@ -413,7 +408,7 @@ class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
             name=_('Status')
         ),
         FieldSet(
-            'ad_cumulative_users', 'est_cumulative_users',
+            'est_cumulative_users',
             'wan_computed_users', 'wan_reco_bw',
             name=_('Attributes')
         )
@@ -468,16 +463,34 @@ class SopInfraRefreshForm(forms.Form):
         base_url = reverse('plugins:sop_infra:sizing_list')
         request = current_request.get()
 
-        def get_related_sites(obj:object):
-            
+
+        def get_group_sites(obj):
+
             ids = (obj.get_descendants()).values_list('sites', flat=True)
-            sites = Site.objects.filter(id__in=ids)
+            sites = Site.objects.filter(group=obj.pk)
+            if ids.exists():
+                sites = Site.objects.filter(id__in=ids)
 
             if not sites.exists():
                 messages.error(request, f'No sites has been found on {(obj._meta.verbose_name).title()} : {obj}')
                 raise forms.ValidationError({'site': f"No sites has been found on {obj}"})
 
             return sites
+
+
+        def get_region_sites(obj):
+
+            ids = (obj.get_descendants()).values_list('sites', flat=True)
+            sites = Site.objects.filter(region=obj.pk)
+            if ids.exists():
+                sites = Site.objects.filter(id__in=ids)
+
+            if not sites.exists():
+                messages.error(request, f'No sites has been found on {(obj._meta.verbose_name).title()} : {obj}')
+                raise forms.ValidationError({'site': f"No sites has been found on {obj}"})
+
+            return sites
+
 
         def normalize_queryset(obj):
 
@@ -487,22 +500,23 @@ class SopInfraRefreshForm(forms.Form):
 
             return f'id=' + '&id='.join(qs)
 
+
         if data['region']:
-            sites |= get_related_sites(data['region'])
+            sites |= get_region_sites(data['region'])
 
         if data['group']:
-            sites |= get_related_sites(data['group'])
+            sites |= get_group_sites(data['group'])
 
         if sites.filter(status='dc').exists():
             messages.warning(
-                request, f'{' '.join(str(site.name) for site in sites.filter(status='dc'))}\
- skipped: You cannot recompute sizing on -DC- status site.'
+                request, f"{' '.join(str(site.name) for site in sites.filter(status='dc'))} \
+ skipped: You cannot recompute sizing on -DC- status site."
             )
 
         infra = SopInfra.objects.filter(site__in=(sites.exclude(status='dc').distinct()))
 
         return {
             'infra': infra,
-            'return_url': f'{base_url}?{normalize_queryset(infra.values_list('id', flat=True))}'
+            'return_url': f"{base_url}?{normalize_queryset(infra.values_list('id', flat=True))}"
         }
 
