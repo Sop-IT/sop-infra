@@ -436,7 +436,7 @@ class SopInfraRefreshView(
         if form.is_valid():
             data:dict = form.cleaned_data
             return_url = data['return_url']
-            self.refresh_infra(request, data['infra'])
+            self.refresh_infra(data['infra'])
             return redirect(return_url)
 
         return render(request, self.template_name, {
@@ -462,7 +462,7 @@ class SopInfraRefreshNoForm(
             return self.handle_no_permission()
 
         pk = request.GET.get('qs')
-        self.refresh_infra(request, SopInfra.objects.filter(site__pk=pk))
+        self.refresh_infra(SopInfra.objects.filter(site__pk=pk))
         return redirect(self.get_return_url(pk))
 
 #____________________________
