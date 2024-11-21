@@ -1,5 +1,7 @@
 from django.contrib import messages
 
+from netbox.context import current_request
+
 from sop_infra.validators.model_validators import SopInfraSizingValidator
 from sop_infra.models import SopInfra
 
@@ -12,66 +14,78 @@ __all__ = (
 
 class SopInfraRefreshMixin:
 
-    def update_master_instance(self, instance, wan):
+    sizing = SopInfraSizingValidator()
+    count:int = 0
 
-        if instance.wan_computed_users == wan:
-            return
-
-        instance.snapshot()
-        instance.full_clean()
-        instance.save()
-
-
-    def update_child_instance(self, instance, wan):
-
-        if instance.wan_computed_users == wan:
-            return
+    def recompute_instance(self, instance):
 
         instance.snapshot()
         instance.full_clean()
         instance.save()
+        self.count += 1
 
 
-    def pre_compute_queryset(self, queryset, parent=False):
+    def recompute_parent_if_needed(self, instance):
 
-        sizing = SopInfraSizingValidator()
+        # compare current with wan cumul
+        wan = instance.wan_computed_users
+        instance.wan_computed_users = self.sizing.get_wan_computed_users(instance)
+        cumul = instance.compute_wan_cumulative_users(instance)
 
+        # if wan cumul is != current -> recompute sizing.
+        if wan != cumul:
+            self.recompute_instance(instance)
+
+
+    def recompute_child(self, queryset):
+
+        if not queryset.exists():
+            return
+
+        # parse all queryset
         for instance in queryset:
 
-            if parent is False:
-                self.update_child_instance(
-                    instance,
-                    sizing.get_wan_computed_users(instance)
-                )
-                continue
+            # compare computed wan users with current
+            wan = self.sizing.get_wan_computed_users(instance)
+            if wan != instance.wan_computed_users:
+                self.recompute_instance(instance)
 
-            wan = sizing.get_wan_computed_users(instance)
-            instance.wan_computed_users = wan if wan is not None else 0
-            self.update_master_instance(
-                instance,
-                instance.compute_wan_cumulative_users(instance)
-            )
+            # check if the parent is valid and recompute it if needed
+            parent = SopInfra.objects.filter(site=instance.master_site)
+            if parent.exists():
+                self.recompute_parent_if_needed(parent.first())
 
 
-    def refresh_infra(self, request, queryset):
+    def recompute_maybe_parent(self, queryset):
 
-        if queryset.first() is None:
-            messages.error(request, 'Please select at least one site to refresh.')
+        if not queryset.exists():
             return
 
-        # cannot select DC because 
-        queryset = queryset.exclude(site__status='dc')
+        # parse all queryset
+        for instance in queryset:
+
+            # if this is a parent, check that child are up to date
+            maybe_child = SopInfra.objects.filter(master_site=instance.site)
+            if maybe_child.exists():
+                self.recompute_child(maybe_child)
+
+            self.recompute_parent_if_needed(instance)
+
+
+    def refresh_infra(self, queryset):
+        
         if queryset.first() is None:
-            messages.error(request, 'You cannot recompute sizing on -DC- status sites.')
             return
+    
+        # get children
+        self.recompute_child(queryset.filter(master_site__isnull=False))
+        # get maybe_parent
+        self.recompute_maybe_parent(queryset.filter(master_site__isnull=True))
 
-        slave = queryset.filter(master_site__isnull=False)
-        maybe_master = queryset.filter(master_site__isnull=True)
-
-        self.pre_compute_queryset(slave, False)
-        self.pre_compute_queryset(maybe_master, True)
-
-        messages.success(request, f"Successfully updated {queryset.count()} infrastructures.")
+        try:
+            request = current_request.get()
+            messages.success(request, f"Successfully recomputed {self.count} sizing.")
+        except:pass
 
 
 class SopInfraRelatedModelsMixin:
