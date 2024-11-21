@@ -178,3 +178,13 @@ class SopInfraViewTestCase(TestCase):
         response = self.client.get(f'{url}?qs={instance.pk}')
         self.assertHttpStatus(response, 403)
 
+
+    def test_recompute_sizing_perm(self):
+        """test recompute sizing with perm"""
+        instance = Site.objects.first()
+        url = self.get_action_url('refresh')
+
+        self.add_permissions(EDIT_PERM)
+        response = self.client.get(f'{url}?qs={instance.pk}')
+        self.assertHttpStatus(response, 200)
+
