@@ -285,7 +285,11 @@ class SopInfra(NetBoxModel):
 
     def compute_wan_cumulative_users(self, instance) -> int:
 
-        base:int = instance.wan_computed_users
+        base:int|None = instance.wan_computed_users
+
+        # assume base is never None
+        if base is None:
+            base = 0
 
         # check if this is a master site
         targets = SopInfra.objects.filter(master_site=instance.site)
@@ -293,7 +297,12 @@ class SopInfra(NetBoxModel):
         if targets.exists():
             # if it is, ad slave's wan computed user to master site
             for target in targets:
-                base += target.wan_computed_users
+
+                # only add if isinstance integer and not None
+                if target.wan_computed_users is not None \
+                    and isinstance(target.wan_computed_users, int):
+
+                    base += target.wan_computed_users
 
         return base
 
