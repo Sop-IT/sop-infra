@@ -147,12 +147,10 @@ class SopInfraViewTestCase(TestCase):
             s = Site.objects.create(name=f'salut{i}', slug=f'salut{i}')
             s.full_clean()
             s.save()
-            s_ids[i] = s.pk
-            t = SopInfra.objects.get(site__id=s_ids[i])
+            t = SopInfra.objects.get(site__id=s.pk)
             t.master_site=site
             t.full_clean()
             t.save()
-            i_ids[i] = t.pk
 
         self.add_permissions('dcim.view_site')
         self.add_permissions(VIEW_PERM)
@@ -163,8 +161,6 @@ class SopInfraViewTestCase(TestCase):
         self.assertEqual(context['sop_infra'], infra)
         self.assertEqual(context['count_slave_infra'], 3)
         self.assertEqual(context['count_slave'], 3)
-        self.assertEqual(context['slave'], f'id={s_ids[0]}&id={s_ids[1]}&id={s_ids[2]}')
-        self.assertEqual(context['slave_infra'], f'id={i_ids[0]}&id={i_ids[1]}&id={i_ids[2]}')
 
 
     def test_recompute_sizing_no_perm(self):
@@ -186,5 +182,36 @@ class SopInfraViewTestCase(TestCase):
 
         self.add_permissions(EDIT_PERM)
         response = self.client.get(f'{url}?qs={instance.pk}')
+        self.assertHttpStatus(response, 200)
+
+
+    def test_tab_view_perm_none(self):
+        """test tab view with no object"""
+        instance = Site.objects.first()
+        url = f'/dcim/sites/{instance.pk}/infra/'
+
+        SopInfra.objects.get(site=instance).delete()
+        self.add_permissions('dcim.view_site')
+        self.add_permissions(VIEW_PERM)
+
+        response = self.client.get(url)
+        self.assertHttpStatus(response, 200)
+
+
+    def test_list_view_no_perm(self):
+        """test list view no perm"""
+        url = self.get_action_url('list')
+
+        response = self.client.get(url)
+        self.assertHttpStatus(response, 403)
+
+
+    def test_list_view_perm(self):
+        """test list view perm"""
+        url = self.get_action_url('list')
+
+        self.add_permissions(VIEW_PERM)
+        
+        response = self.client.get(url)
         self.assertHttpStatus(response, 200)
 

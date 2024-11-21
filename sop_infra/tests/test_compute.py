@@ -81,3 +81,22 @@ class SopInfraComputeTestCase(TestCase):
         self.assertEqual(SopInfra.objects.get(site=s2).wan_computed_users, 69)
         self.assertEqual(SopInfra.objects.get(site=s3).wan_computed_users, 0)
 
+
+    def test_recompute_sizing_none(self):
+        """test that recompute sizing with none returns 0"""
+
+        mixin = SopInfraRefreshMixin()
+        s1 = Site.objects.get(slug='site-1')
+        s2 = Site.objects.get(slug='site-2')
+
+        self.infra1.ad_direct_users = None
+        self.infra2.est_cumulative_users = None
+
+        self.infra1.save()
+        self.infra2.save()
+
+        mixin.refresh_infra(SopInfra.objects.filter(pk=self.infra2.pk))
+
+        self.assertEqual(SopInfra.objects.get(site=s1).wan_computed_users, 0)
+        self.assertEqual(SopInfra.objects.get(site=s2).wan_computed_users, 0)
+
