@@ -130,8 +130,9 @@ class SopInfraMerakiForm(NetBoxModelForm):
         help_text=_('When this site is an SDWAN SLAVE, you have to materialize a location on the MASTER site and link it here'),
         required=False
     )
-    master_site = forms.CharField(
+    master_site = DynamicModelChoiceField(
         label=_('MASTER Site'),
+        queryset=Site.objects.all(),
         help_text=_('Or select the MASTER site.'),
         required=False
     )
