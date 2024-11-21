@@ -129,6 +129,24 @@ class SopInfraSlaveModelTestCase(TestCase):
         self.assertEqual(infra.sdwanha, '-NHA-')
 
 
+    def test_slave_delete_recomputes_master(self):
+        """Test that delete slave infra recomputes its master"""
+        infra = SopInfra.objects.get(site=self.site1)
+        infra.master_site=self.site2
+        infra.ad_direct_users = 42
+        infra.full_clean()
+        infra.save()
+
+        infra2 = SopInfra.objects.get(site=self.site2)
+        infra2.ad_direct_users = 69
+        infra2.full_clean()
+        infra2.save()
+
+        self.assertEqual(infra2.wan_computed_users, 111)
+
+        infra.delete()
+        self.assertEqual(SopInfra.objects.get(site=self.site2).wan_computed_users, 69)
+
 
 class SopInfraMasterModelTestCase(TestCase):
 

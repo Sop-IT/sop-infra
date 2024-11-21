@@ -333,3 +333,22 @@ class SopInfra(NetBoxModel):
         # all non-slave related validators
         SopInfraMasterValidator(self)
 
+
+    def delete(self, *args, **kwargs):
+
+        # check if it is a child
+        if self.master_site is not None:
+
+            parent = SopInfra.objects.filter(site=self.master_site)
+            super().delete(*args, **kwargs)
+
+            # if parent exists, recompute its sizing
+            if parent.exists():
+                master = parent.first()
+                master.snapshot()
+                master.full_clean()
+                master.save()
+
+        if self.id is not None:
+            return super().delete(*args, **kwargs)
+
