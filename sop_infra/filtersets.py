@@ -2,17 +2,105 @@ import django_filters
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Site, Region, SiteGroup, Location
+from ipam.models import Prefix
 from dcim.choices import SiteStatusChoices
 from netbox.filtersets import NetBoxModelFilterSet
-from utilities.filters import TreeNodeMultipleChoiceFilter
+from dcim.models import Site, Region, SiteGroup, Location
+from utilities.filters import TreeNodeMultipleChoiceFilter, MultiValueCharFilter
 
-from .models import SopInfra
+from .models import (
+    SopInfra,
+    PrismaEndpoint, PrismaAccessLocation, PrismaComputedAccessLocation
+)
 
 
 __all__ = (
     'SopInfraFilterset',
+    'PrismaEndpointFilterset',
+    'PrismaAccessLocationFilterset',
+    'PrismaComputedAccessLocationFilterset'
 )
+
+
+class PrismaComputedAccessLocationFilterset(NetBoxModelFilterSet):
+
+    class Meta:
+        model = PrismaComputedAccessLocation
+        fields = ('name', 'slug',
+                  'strata_id', 'strata_name',
+                  'bandwidth',)
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.objects.filter(
+            Q(name__icontains=value) |
+            Q(slug__icontains=value) |
+            Q(strata_id__icontains=value) |
+            Q(strata_name__icontains=value) |
+            Q(bandwidth__icontains=value)
+        )
+
+
+
+class PrismaAccessLocationFilterset(NetBoxModelFilterSet):
+
+    time_zone = MultiValueCharFilter()
+    compute_location = django_filters.ModelMultipleChoiceFilter(
+        queryset=PrismaComputedAccessLocation.objects.all(),
+        field_name='compute_location'
+    )
+
+    class Meta:
+        model = PrismaAccessLocation
+        fields = ('name', 'slug',
+                  'physical_address', 'time_zone', 'latitude', 'longitude',
+                  'compute_location')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(name__icontains=value) |
+            Q(slug__icontains=value) |
+            Q(physical_address__icontains=value) |
+            Q(time_zone__icontains=value) |
+            Q(latitude__icontains=value) |
+            Q(longitude__icontains=value) |
+            Q(compute_location__name__icontains=value)
+        )
+
+
+
+class PrismaEndpointFilterset(NetBoxModelFilterSet):
+
+    ip_address = django_filters.ModelMultipleChoiceFilter(
+        queryset=Prefix.objects.all(),
+        field_name='ip_address'
+    )
+    access_location = django_filters.ModelMultipleChoiceFilter(
+        queryset=PrismaAccessLocation.objects.all(),
+        field_name='access_location'
+    )
+
+    class Meta:
+        model = PrismaEndpoint
+        fields = ('id', 'name', 'slug',
+                  'ip_address', 'access_location',)
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(name__icontains=value) |
+            Q(slug__icontains=value) |
+            Q(ip_address__icontains=value) |
+            Q(access_location__name__icontains=value)
+        )
+
+
+#________
+# SopInfra
 
 
 class SopInfraFilterset(NetBoxModelFilterSet):
@@ -49,7 +137,8 @@ class SopInfraFilterset(NetBoxModelFilterSet):
                   'site_mx_model', 'wan_computed_users', 'ad_direct_users',
                   'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
                   'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
-                  'master_site', 'migration_sdwan')
+                  'master_site', 'migration_sdwan',
+                  'endpoint', 'enabled', 'valid')
 
     def search(self, queryset, name, value):
         if not value.strip():
@@ -73,6 +162,9 @@ class SopInfraFilterset(NetBoxModelFilterSet):
             Q(sdwan2_bw__icontains=value) |
             Q(site_sdwan_master_location__name__icontains=value) |
             Q(master_site__name__icontains=value) |
-            Q(migration_sdwan__icontains=value)
+            Q(migration_sdwan__icontains=value) |
+            Q(endpoint__name__icontains=value) |
+            Q(enabled__icontains=value) |
+            Q(valid__icontains=value)
         )
 
