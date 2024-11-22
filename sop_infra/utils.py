@@ -1,4 +1,9 @@
+import requests as py_requests
+from decimal import Decimal
+import json
+
 from django.contrib import messages
+from django.conf import settings
 
 from netbox.context import current_request
 
@@ -8,8 +13,71 @@ from sop_infra.models import SopInfra
 
 __all__ = (
     'SopInfraRefreshMixin',
-    'SopInfraRelatedModelsMixin'
+    'SopInfraRelatedModelsMixin',
+    'PrismaAccessLocationRecomputeMixin'
 )
+
+
+class PrismaAccessLocationRecomputeMixin:
+
+    request = current_request.get()
+
+    def try_parse_configuration(self):
+        infra_config = settings.PLUGINS_CONFIG.get('sop_infra', {})
+        prisma_config = infra_config.get('prisma')
+
+        self.payload = {
+            'grant_type':'client_credentials',
+            'tsg_id':prisma_config.get('tsg_id'),
+            'client_id':prisma_config.get('client_id'),
+            'client_secret':prisma_config.get('client_secret')
+        }
+        self.access_token_url = prisma_config.get('access_token_url')
+        self.payload_url = prisma_config.get('payload_url')
+
+    def try_api_response(self):
+        response = py_requests.post(self.access_token_url, data=self.payload)
+        token = response.json().get('access_token')
+        headers = {
+            'Accept':'application/json',
+            'Authorization':f'Bearer {token}'
+        }
+
+        api_response = py_requests.get(self.payload_url, headers=headers, data={})
+        return json.loads(api_response.text)
+
+    def recompute_access_location(self, response):
+        for item in response:
+            if self.model.objects.filter(slug=item['value']).exists():
+                continue
+            obj = self.model(
+                slug=item['value'],
+                name=item['display'],
+                latitude=Decimal(f"{float(item['latitude']):.6f}"),
+                longitude=Decimal(f"{float(item['longitude']):.6f}")
+            )
+            obj.full_clean()
+            obj.save()
+            obj.snapshot()
+            print('created', obj)
+
+    def try_recompute_access_location(self):
+        try:
+            self.try_parse_configuration()
+        except:
+            messages.error(self.request, "ERROR: invalid parameters in PLUGIN_CONFIG -> script aborted.")
+            return
+
+        try:
+            response = self.try_api_response()
+        except:
+            messages.error(self.request, "ERROR: invalid API response make sure you have the access -> script aborted")
+            return
+
+        #try:
+        self.recompute_access_location(response)
+        #except:
+            #messages.error(self.request, "ERROR: invalid API response cannot recompute Access Location -> script aborted")
 
 
 class SopInfraRefreshMixin:

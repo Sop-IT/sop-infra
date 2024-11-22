@@ -75,6 +75,7 @@ urlpatterns = [
     path('access_location/delete/<int:pk>', PrismaAccessLocationDeleteView.as_view(), name='prismaaccesslocation_delete'),
     path('access_location/journal/<int:pk>', ObjectJournalView.as_view(), name='prismaaccesslocation_journal', kwargs={'model': PrismaAccessLocation}),
     path('access_location/changelog/<int:pk>', ObjectChangeLogView.as_view(), name='prismaaccesslocation_changelog', kwargs={'model': PrismaAccessLocation}),
+    path('access_location/refresh/', PrismaAccessLocationRefreshView.as_view(), name='prismaaccesslocation_refresh'),
 
     #____________________
     # computed access location

@@ -1,5 +1,9 @@
+from django.views import View
+from django.shortcuts import redirect
+
 from netbox.views import generic
-from utilities.views import GetRelatedModelsMixin
+from utilities.permissions import get_permission_for_model
+from utilities.views import GetRelatedModelsMixin, ObjectPermissionRequiredMixin 
 
 from sop_infra.filtersets import (
     PrismaEndpointFilterset,
@@ -16,6 +20,7 @@ from sop_infra.forms import (
 from sop_infra.tables import (
     PrismaEndpointTable, PrismaAccessLocationTable, PrismaComputedAccessLocationTable
 )
+from sop_infra.utils import PrismaAccessLocationRecomputeMixin
 
 
 __all__ = (
@@ -27,10 +32,11 @@ __all__ = (
     'PrismaAccessLocationListView',
     'PrismaAccessLocationDeleteView',
     'PrismaAccessLocationDetailView',
+    'PrismaAccessLocationRefreshView',
     'PrismaComputedAccessLocationEditView',
     'PrismaComputedAccessLocationListView',
     'PrismaComputedAccessLocationDeleteView',
-    'PrismaComputedAccessLocationDetailView'
+    'PrismaComputedAccessLocationDetailView',
 )
 
 
@@ -82,13 +88,19 @@ class PrismaAccessLocationDeleteView(generic.ObjectDeleteView):
 
 
 
-
 class PrismaAccessLocationListView(generic.ObjectListView):
 
+    template_name:str = "sop_infra/tools/tables.html"
     queryset = PrismaAccessLocation.objects.all()
     table = PrismaAccessLocationTable
     filterset = PrismaAccessLocationFilterset
     filterset_form = PrismaAccessLocationFilterForm
+
+    def get_extra_context(self, request) -> dict:
+        '''add title context for recompute button in template'''
+        context = super().get_extra_context(request)
+        context['title'] = "PRISMA Access Locations"
+        return context
 
 
 
@@ -107,6 +119,26 @@ class PrismaAccessLocationDetailView(
             # later SopInfra
         )
         return {'related_models':related_models}
+
+
+
+class PrismaAccessLocationRefreshView(
+    View,
+    PrismaAccessLocationRecomputeMixin,
+    ObjectPermissionRequiredMixin):
+
+    model = PrismaAccessLocation
+    return_url = '/plugins/sop-infra/access_location/'
+
+    def get(self, request, *args, **kwargs):
+
+        # if not perm to change object, raise no permissions
+        if not request.user.has_perm(get_permission_for_model(PrismaAccessLocation, 'view')):
+            return self.handle_no_permission()
+
+        self.try_recompute_access_location()
+        return redirect(self.return_url)
+
 
 #______________
 # ComputedAccessLocation
@@ -149,3 +181,4 @@ class PrismaComputedAccessLocationDetailView(
             # later SopInfra
         )
         return {'related_models':related_models}
+

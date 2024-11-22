@@ -122,6 +122,7 @@ class PrismaAccessLocation(NetBoxModel):
         to=PrismaComputedAccessLocation,
         on_delete=models.CASCADE,
         blank=True,
+        null=True,
         verbose_name=_('Computed location'),
     )
 
