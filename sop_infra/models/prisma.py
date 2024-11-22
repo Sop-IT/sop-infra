@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q, Exists, OuterRef
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -40,6 +41,7 @@ class PrismaComputedAccessLocation(NetBoxModel):
         verbose_name=_('Strata name')
     )
     bandwidth = models.PositiveBigIntegerField(
+        null=True,
         blank=True,
         verbose_name=_('Bandwidth (Mbps)')
     )
@@ -48,17 +50,30 @@ class PrismaComputedAccessLocation(NetBoxModel):
 
         verbose_name = _('PRISMA compute location')
         verbose_name_plural = _('PRISMA compute locations')
+        constraints = [
+            models.CheckConstraint(
+                check=Q(name__isnull=False) & Q(slug__isnull=False) & Q(strata_id__isnull=False),
+                name='%(app_label)s_%(class)s_name_slug_strataid_not_null',
+                violation_error_message=_('Name, slug, and strata ID must all be set.')
+            ),
+            models.CheckConstraint(
+                check=~Q(name='') & ~Q(slug='') & ~Q(strata_id=''),
+                name='%(app_label)s_%(class)s_name_slug_strataid_not_empty',
+                violation_error_message=_('Name, slug, and strata ID cannot be empty strings.')
+            ),
+        ]
 
     def __str__(self) -> str:
         if self.name:
             return f'{self.name}'
         return 'PRISMA Endpoint'
 
+
     def clean(self):
-        return super().clean()
+        super().clean()
 
     def get_absolute_url(self) -> str:
-        return reverse('plugins:sop_infra:prismacomputedaccesslocation', args=[self.pk])
+        return reverse('plugins:sop_infra:prismacomputedaccesslocation_detail', args=[self.pk])
 
 
 
@@ -114,17 +129,32 @@ class PrismaAccessLocation(NetBoxModel):
 
         verbose_name = _('PRISMA access location')
         verbose_name_plural = _('PRISMA access locations')
+        constraints = [
+            models.CheckConstraint(
+                check=~Q(name=None),
+                name='%(app_label)s_%(class)s_name_none',
+                violation_error_message='Name must be set.'
+            ),
+            models.CheckConstraint(
+                check=~Q(slug=None),
+                name='%(app_label)s_%(class)s_slug_none',
+                violation_error_message='Slug must be set.'
+            ),
+        ]
 
     def __str__(self) -> str:
         if self.name:
             return f'{self.name}'
         return 'PRISMA Endpoint'
 
+
     def clean(self):
-        return super().clean()
+        super().clean()
+
 
     def get_absolute_url(self) -> str:
-        return reverse('plugins:sop_infra:prismaaccesslocation', args=[self.pk])
+        return reverse('plugins:sop_infra:prismaaccesslocation_detail', args=[self.pk])
+
 
 
 class PrismaEndpoint(NetBoxModel):
@@ -154,18 +184,34 @@ class PrismaEndpoint(NetBoxModel):
     )
     
     class Meta(NetBoxModel.Meta):
-
         verbose_name = _('PRISMA endpoint')
         verbose_name_plural = _('PRISMA endpoints')
+        constraints = [
+            models.CheckConstraint(
+                check=~Q(name=None),
+                name='%(app_label)s_%(class)s_name_none',
+                violation_error_message='Name must be set.'
+            ),
+            models.CheckConstraint(
+                check=~Q(slug=None),
+                name='%(app_label)s_%(class)s_slug_none',
+                violation_error_message='Slug must be set.'
+            ),
+        ]
 
     def __str__(self) -> str:
         if self.name:
             return f'{self.name}'
         return 'PRISMA Endpoint'
 
+
     def clean(self):
-        return super().clean()
+        super().clean()
+
+        if self.ip_address is not None and not\
+            str(getattr(self.ip_address, 'address')).endswith('/32'):
+            raise ValidationError({'ip_address':'You must enter a /32 IP Address.'})
+
 
     def get_absolute_url(self) -> str:
-        return reverse('plugins:sop_infra:prismaendpoint', args=[self.pk])
-
+        return reverse('plugins:sop_infra:prismaendpoint_detail', args=[self.pk])
