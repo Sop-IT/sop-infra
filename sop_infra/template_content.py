@@ -50,7 +50,7 @@ def create_or_update_sopinfra(sender, instance, created, **kwargs):
 #_________PANELS_CONFIGURATION
 
 
-ALLOWED_PANELS = ['meraki', 'classification', 'sizing']
+ALLOWED_PANELS = ['meraki', 'classification', 'sizing', 'prisma']
 ALLOWED_POSITIONS = ['left_page', 'right_page']
 
 

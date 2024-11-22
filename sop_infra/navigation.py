@@ -59,6 +59,50 @@ INFRA = Menu(
                 ),
             ),
         ),
+        MenuGroup(
+            label=_('PRISMA'),
+            items=(
+                MenuItem(
+                    link=f'plugins:sop_infra:prismaendpoint_list',
+                    link_text=_('Endpoints'),
+                    permissions=['sop_infra.view_prismaendpoint'],
+                    buttons=(
+                        MenuItemButton(
+                            link=f'plugins:sop_infra:prismaendpoint_add',
+                            title='Add',
+                            icon_class='mdi mdi-plus-thick',
+                            permissions=[f'sop_infra.add_prismaendpoint'],
+                        ),
+                    ),
+                ),
+                MenuItem(
+                    link=f'plugins:sop_infra:prismaaccesslocation_list',
+                    link_text=_('Access Locations'),
+                    permissions=['sop_infra.view_prismaaccesslocation'],
+                    buttons=(
+                        MenuItemButton(
+                            link=f'plugins:sop_infra:prismaaccesslocation_add',
+                            title='Add',
+                            icon_class='mdi mdi-plus-thick',
+                            permissions=[f'sop_infra.add_prismaaccesslocation'],
+                        ),
+                    ),
+                ),
+                MenuItem(
+                    link=f'plugins:sop_infra:prismacomputedaccesslocation_list',
+                    link_text=_('Computed Access Locations'),
+                    permissions=['sop_infra.view_computedaccesslocation'],
+                    buttons=(
+                        MenuItemButton(
+                            link=f'plugins:sop_infra:prismacomputedaccesslocation_add',
+                            title='Add',
+                            icon_class='mdi mdi-plus-thick',
+                            permissions=[f'sop_infra.add_prismacomputedaccesslocation'],
+                        ),
+                    ),
+                ),
+            ),
+        ),
     ),
 )
 

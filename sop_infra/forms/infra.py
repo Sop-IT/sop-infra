@@ -13,7 +13,7 @@ from utilities.forms import add_blank_choice
 from dcim.models import Site, Location, Region, SiteGroup
 from dcim.choices import SiteStatusChoices
 
-from .models import *
+from sop_infra.models import *
 
 
 __all__ = (
@@ -26,6 +26,7 @@ __all__ = (
     'SopInfraClassificationForm',
     'SopInfraClassificationFilterForm',
     'SopInfraRefreshForm',
+    'SopInfraPrismaForm'
 )
 
 
@@ -185,11 +186,41 @@ class SopInfraSizingForm(NetBoxModelForm):
             del self.fields['tags']
 
 
+class SopInfraPrismaForm(NetBoxModelForm):
+
+    site = DynamicModelChoiceField(
+        label=_('Site'),
+        queryset=Site.objects.all(),
+        required=True
+    )
+    endpoint = DynamicModelChoiceField(
+        label=_('Endpoint'),
+        queryset=PrismaEndpoint.objects.all(),
+        required=False
+    )
+    enabled = forms.ChoiceField(
+        label=_('Enabled ?'),
+        choices=add_blank_choice(InfraBoolChoices),
+        initial=None,
+        required=False
+    )
+
+    class Meta:
+        model = SopInfra
+        fields = ['site', 'endpoint', 'enabled']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if 'tags' in self.fields:
+            del self.fields['tags']
+
+
 class SopInfraForm(
     SopInfraClassificationForm,
     SopInfraMerakiForm,
-    SopInfraSizingForm
-):
+    SopInfraSizingForm,
+    SopInfraPrismaForm):
 
     site = DynamicModelChoiceField(
         label=_('Site'),
@@ -214,6 +245,10 @@ class SopInfraForm(
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
             'master_site', 'migration_sdwan', 'monitor_in_starting',
             name=_('Meraki SDWAN')
+        ),
+        FieldSet(
+            'endpoint', 'enabled',
+            name=_('PRISMA')
         )
     )
 
@@ -226,6 +261,7 @@ class SopInfraForm(
             'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
             'master_site', 'migration_sdwan', 'monitor_in_starting',
+            'endpoint', 'enabled', 'valid',
         ]
 
     def __init__(self, *args, **kwargs):

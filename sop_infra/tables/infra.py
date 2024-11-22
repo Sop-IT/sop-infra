@@ -7,7 +7,7 @@ from netbox.tables import NetBoxTable, ChoiceFieldColumn
 from dcim.models import Site
 from dcim.choices import SiteStatusChoices
 
-from .models import SopInfra
+from sop_infra.models import SopInfra
 
 
 __all__ = (

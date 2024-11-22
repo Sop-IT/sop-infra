@@ -2,7 +2,7 @@ from django.contrib import messages
 
 from netbox.context import current_request
 
-from sop_infra.validators.model_validators import SopInfraSizingValidator
+from sop_infra.validators import SopInfraSizingValidator
 from sop_infra.models import SopInfra
 
 

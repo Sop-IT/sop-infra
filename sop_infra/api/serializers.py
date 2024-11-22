@@ -1,18 +1,71 @@
 from django.db.models import Prefetch
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from timezone_field.rest_framework import TimeZoneSerializerField
 
 from netbox.api.fields import ChoiceField
 from netbox.api.serializers import NetBoxModelSerializer
 from dcim.api.serializers import SiteSerializer, LocationSerializer
 from dcim.models import Site, Location
 
-from ..models import *
+from sop_infra.models import *
 
 
 __all__ = (
     'SopInfraSerializer',
+    'PrismaEndpointSerializer',
+    'PrismaAccessLocationSerializer',
+    'PrismaComputedAccessLocationSerializer',
 )
+
+
+class PrismaEndpointSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:sop_infra-api:prismaendpoint-detail')
+
+    class Meta:
+        model = PrismaEndpoint
+        fields = (
+            'id', 'url', 'display',
+            'name', 'slug', 'ip_address',
+            'access_location'
+        )
+        brief_fields = (
+            'id', 'url', 'display', 'name', 'slug',
+        )
+
+
+
+class PrismaAccessLocationSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:sop_infra-api:prismaaccesslocation-detail')
+    time_zone = TimeZoneSerializerField(required=False, allow_null=True)
+
+    class Meta:
+        model = PrismaAccessLocation
+        fields = (
+            'id', 'url', 'display',
+            'name', 'slug', 'physical_address',
+            'time_zone', 'latitude', 'longitude',
+            'compute_location',
+        )
+        brief_fields = (
+            'id', 'url', 'display', 'name', 'slug',
+        )
+
+
+
+class PrismaComputedAccessLocationSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:sop_infra-api:prismacomputedaccesslocation-detail')
+
+    class Meta:
+        model = PrismaComputedAccessLocation
+        fields = (
+            'id', 'url', 'display',
+            'name', 'slug', 'strata_id', 'strata_name',
+            'bandwidth'
+        )
+        brief_fields = (
+            'id', 'url', 'display', 'name', 'slug', 'bandwidth',
+        )
 
 
 
@@ -30,6 +83,7 @@ class SopInfraSerializer(NetBoxModelSerializer):
         model = SopInfra
         fields = (
             'id', 'url', 'display', 'site',
+            'endpoint', 'enabled', 'valid',
             'site_infra_sysinfra', 'site_type_indus', 'site_phone_critical',
             'site_type_red', 'site_type_vip', 'site_type_wms', 'criticity_stars',
             'ad_direct_users', 

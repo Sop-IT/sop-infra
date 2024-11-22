@@ -5,71 +5,20 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
-from utilities.choices import ChoiceSet
 from dcim.models import Site, Location
 
-from .validators.model_validators import (
+from sop_infra.validators import (
     DC_status_site_fields,
     SopInfraSlaveValidator,
     SopInfraMasterValidator
 )
+from .prisma import *
+from .choices import *
 
 
 __all__ = (
     'SopInfra',
-    'InfraBoolChoices',
-    'InfraTypeChoices',
-    'InfraTypeIndusChoices',
-    'InfraHubOrderChoices',
-    'InfraSdwanhaChoices'
 )
-
-
-class InfraBoolChoices(ChoiceSet):
-
-    CHOICES = (
-        ('unknown', _('Unknown'), 'gray'),
-        ('true', _('True'), 'green'),
-        ('false', _('False'), 'red'),
-    )
-
-
-class InfraTypeChoices(ChoiceSet):
-
-    CHOICES = (
-        ('box', _('Simple BOX server')),
-        ('superb', _('Super Box')),
-        ('sysclust', _('Full cluster')),
-    )
-
-
-class InfraTypeIndusChoices(ChoiceSet):
-
-    CHOICES = (
-        ('wrk', _('WRK - Workshop')),
-        ('fac', _('FAC - Factory')),
-    )
-
-
-class InfraHubOrderChoices(ChoiceSet):
-
-    CHOICES = (
-        ('N_731271989494311779,L_3689011044769857831,N_731271989494316918,N_731271989494316919', 'EQX-NET-COX-DDC'),
-        ('N_731271989494316918,N_731271989494316919,N_731271989494311779,L_3689011044769857831', 'COX-DDC-EQX-NET'),
-        ('L_3689011044769857831,N_731271989494311779,N_731271989494316918,N_731271989494316919', 'NET-EQX-COX-DDC'),
-        ('N_731271989494316919,N_731271989494316918,N_731271989494311779,L_3689011044769857831', 'DDC-COX-EQX-NET'),
-    )
-
-
-class InfraSdwanhaChoices(ChoiceSet):
-
-    CHOICES = (
-        ('-HA-', _('-HA-')),
-        ('-NHA-', _('-NHA-')),
-        ('-NO NETWORK-', _('-NO NETWORK-')),
-        ('-SLAVE SITE-', _('-SLAVE SITE-')),
-        ('-DC-', _('-DC-')),
-    )
 
 
 class SopInfra(NetBoxModel):
@@ -227,6 +176,28 @@ class SopInfra(NetBoxModel):
         verbose_name=_('Monitor in starting'),
         help_text=_('Centreon > Start monitoring when starting the site')
     )
+    #_______
+    # PRISMA
+    endpoint = models.ForeignKey(
+        to=PrismaEndpoint,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name=_('PRISMA endpoint')
+    )
+    enabled = models.CharField(
+        choices=InfraBoolChoices,
+        null=True,
+        blank=True,
+        verbose_name=_('Enabled ?'),
+    )
+    valid = models.CharField(
+        choices=InfraBoolChoices,
+        null=True,
+        blank=True,
+        verbose_name=_('Valid ?')
+    )
+
 
     def __str__(self):
         return f'{self.site} Infrastructure'

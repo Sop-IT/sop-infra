@@ -9,11 +9,16 @@ from utilities.forms import restrict_form_fields
 from netbox.views import generic
 from dcim.models import Site
 
-from .forms import *
-from .tables import *
-from .models import *
-from .filtersets import SopInfraFilterset
-from .utils import SopInfraRelatedModelsMixin, SopInfraRefreshMixin
+from sop_infra.forms import *
+from sop_infra.tables import (
+    SopInfraTable,
+    SopInfraSizingTable,
+    SopInfraMerakiTable,
+    SopInfraClassificationTable
+)
+from sop_infra.models import *
+from sop_infra.filtersets import SopInfraFilterset
+from sop_infra.utils import SopInfraRelatedModelsMixin, SopInfraRefreshMixin
 
 
 __all__ = (
@@ -30,6 +35,8 @@ __all__ = (
     'SopInfraMerakiAddView',
     'SopInfraMerakiEditView',
     'SopInfraMerakiListView',
+    'SopInfraPrismaAddView',
+    'SopInfraPrismaEditView',
     'SopInfraSizingAddView',
     'SopInfraSizingEditView',
     'SopInfraSizingListView',
@@ -465,6 +472,7 @@ class SopInfraRefreshNoForm(
         self.refresh_infra(SopInfra.objects.filter(site__pk=pk))
         return redirect(self.get_return_url(pk))
 
+
 #____________________________
 # bulk views
 
@@ -484,4 +492,64 @@ class SopInfraBulkDeleteView(generic.BulkDeleteView):
     table = SopInfraTable
     filterset = SopInfraFilterset
     filterset_form = SopInfraFilterForm
+
+
+#____________________________
+# Infra Prisma views
+
+
+class SopInfraPrismaAddView(generic.ObjectEditView):
+
+    template_name:str = 'sop_infra/tools/forms.html'
+    queryset = SopInfra.objects.all()
+    form = SopInfraPrismaForm
+
+    def get_object(self, **kwargs):
+        '''
+        '''
+        if 'pk' in kwargs:
+            site = get_object_or_404(Site, pk=kwargs['pk'])
+            obj = self.queryset.model
+            return obj(site=site)
+        return super().get_object(**kwargs)
+
+    def alter_object(self, obj, request, args, kwargs):
+        '''
+        '''
+        if 'pk' in kwargs:
+            site = get_object_or_404(Site, pk=kwargs['pk'])
+            obj = self.queryset.model
+            return obj(site=site)
+        return super().alter_object(obj, request, args, kwargs)
+
+    def get_return_url(self, request, obj):
+        try:
+            if obj.site:
+                return f'/dcim/sites/{obj.site.id}/infra'
+        except:
+            return f'/plugins/sop_infra/sop_infra/list'
+
+    def get_extra_context(self, request, obj) -> dict:
+        context = super().get_extra_context(request, obj)
+        context['object_type'] = 'Infra PRISMA'
+        return context
+
+
+
+class SopInfraPrismaEditView(generic.ObjectEditView):
+
+    template_name:str = 'sop_infra/tools/forms.html'
+    queryset = SopInfra.objects.all()
+    form = SopInfraPrismaForm
+    
+    def get_return_url(self, request, obj):
+        if obj.site:
+            return f'/dcim/sites/{obj.site.id}/infra'
+
+    def get_extra_context(self, request, obj) -> dict:
+        context = super().get_extra_context(request, obj)
+        context['object_type'] = 'Infra PRISMA'
+        if obj and obj.site:
+            context['site'] = obj.site
+        return context
 

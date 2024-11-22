@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 
 
 __all__ = (
+    'SopInfraSizingValidator',
     'SopInfraMasterValidator',
     'SopInfraSlaveValidator',
     'DC_status_site_fields',
