@@ -1,11 +1,17 @@
 from netbox.views import generic
 from utilities.views import GetRelatedModelsMixin
 
+from sop_infra.filtersets import (
+    PrismaEndpointFilterset,
+    PrismaAccessLocationFilterset,
+    PrismaComputedAccessLocationFilterset
+)
 from sop_infra.models import (
     PrismaEndpoint, PrismaAccessLocation, PrismaComputedAccessLocation
 )
 from sop_infra.forms import (
-    PrismaEndpointForm, PrismaAccessLocationForm, PrismaComputedAccessLocationForm
+    PrismaEndpointForm, PrismaAccessLocationForm, PrismaComputedAccessLocationForm,
+    PrismaEndpointFilterForm, PrismaAccessLocationFilterForm, PrismaComputedAccessLocationFilterForm
 )
 from sop_infra.tables import (
     PrismaEndpointTable, PrismaAccessLocationTable, PrismaComputedAccessLocationTable
@@ -13,7 +19,7 @@ from sop_infra.tables import (
 
 
 __all__ = (
-'PrismaEndpointEditView',
+    'PrismaEndpointEditView',
     'PrismaEndpointListView',
     'PrismaEndpointDeleteView',
     'PrismaEndpointDetailView',
@@ -49,6 +55,9 @@ class PrismaEndpointListView(generic.ObjectListView):
 
     queryset = PrismaEndpoint.objects.all()
     table = PrismaEndpointTable
+    filterset = PrismaEndpointFilterset
+    filterset_form = PrismaEndpointFilterForm
+
 
 
 class PrismaEndpointDetailView(generic.ObjectView):
@@ -78,6 +87,8 @@ class PrismaAccessLocationListView(generic.ObjectListView):
 
     queryset = PrismaAccessLocation.objects.all()
     table = PrismaAccessLocationTable
+    filterset = PrismaAccessLocationFilterset
+    filterset_form = PrismaAccessLocationFilterForm
 
 
 
@@ -117,7 +128,9 @@ class PrismaComputedAccessLocationDeleteView(generic.ObjectDeleteView):
 class PrismaComputedAccessLocationListView(generic.ObjectListView):
 
     queryset = PrismaComputedAccessLocation.objects.all()
-    table=PrismaComputedAccessLocationTable
+    table = PrismaComputedAccessLocationTable
+    filterset = PrismaComputedAccessLocationFilterset
+    filterset_form = PrismaComputedAccessLocationFilterForm
 
 
 

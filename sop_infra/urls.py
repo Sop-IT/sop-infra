@@ -59,7 +59,7 @@ urlpatterns = [
     #____________________
     # endpoint
     path('endpoint/', PrismaEndpointListView.as_view(), name='prismaendpoint_list'),
-    path('endpoint/<int:pk>', PrismaEndpointDetailView.as_view(), name='prismaendpoint'),
+    path('endpoint/<int:pk>', PrismaEndpointDetailView.as_view(), name='prismaendpoint_detail'),
     path('endpoint/add/', PrismaEndpointEditView.as_view(), name='prismaendpoint_add'),
     path('endpoint/edit/<int:pk>', PrismaEndpointEditView.as_view(), name='prismaendpoint_edit'),
     path('endpoint/delete/<int:pk>', PrismaEndpointDeleteView.as_view(), name='prismaendpoint_delete'),
@@ -69,7 +69,7 @@ urlpatterns = [
     #____________________
     # access location
     path('access_location/', PrismaAccessLocationListView.as_view(), name='prismaaccesslocation_list'),
-    path('access_location/<int:pk>', PrismaAccessLocationDetailView.as_view(), name='prismaaccesslocation'),
+    path('access_location/<int:pk>', PrismaAccessLocationDetailView.as_view(), name='prismaaccesslocation_detail'),
     path('access_location/add/', PrismaAccessLocationEditView.as_view(), name='prismaaccesslocation_add'),
     path('access_location/edit/<int:pk>', PrismaAccessLocationEditView.as_view(), name='prismaaccesslocation_edit'),
     path('access_location/delete/<int:pk>', PrismaAccessLocationDeleteView.as_view(), name='prismaaccesslocation_delete'),
@@ -79,7 +79,7 @@ urlpatterns = [
     #____________________
     # computed access location
     path('computed_location/', PrismaComputedAccessLocationListView.as_view(), name='prismacomputedaccesslocation_list'),
-    path('computed_location/<int:pk>', PrismaComputedAccessLocationDetailView.as_view(), name='prismacomputedaccesslocation'),
+    path('computed_location/<int:pk>', PrismaComputedAccessLocationDetailView.as_view(), name='prismacomputedaccesslocation_detail'),
     path('computed_location/add/', PrismaComputedAccessLocationEditView.as_view(), name='prismacomputedaccesslocation_add'),
     path('computed_location/edit/<int:pk>', PrismaComputedAccessLocationEditView.as_view(), name='prismacomputedaccesslocation_edit'),
     path('computed_location/delete/<int:pk>', PrismaComputedAccessLocationDeleteView.as_view(), name='prismacomputedaccesslocation_delete'),
