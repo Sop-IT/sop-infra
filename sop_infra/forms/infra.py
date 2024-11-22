@@ -493,6 +493,10 @@ class SopInfraFilterForm(
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
             'master_site', 'migration_sdwan', 'monitor_in_starting',
             name=_('Meraki SDWAN')
+        ),
+        FieldSet(
+            'endpoint', 'enabled', 'valid',
+            name=_('PRISMA Endpoint')
         )
     )
 
