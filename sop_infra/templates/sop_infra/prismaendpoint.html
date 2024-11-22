@@ -25,6 +25,19 @@
 
 {% block content %}
 <div class="row">
+  <div class="col-md-6">
+    <div class="card">
+      <h5 class="card-header">Endpoint</h5>
+      <table class="table table-hover attr-table">
+
+        {% include "sop_infra/tools/display_detail.html" with name="name" %}
+        {% include "sop_infra/tools/display_detail.html" with name="name" %}
+        {% include "sop_infra/tools/display_detail.html" with name="ip_address" link=1 view="" %}
+        {% include "sop_infra/tools/display_detail.html" with name="access_location" link=1 view="detail" %}
+
+      </table>
+    </div>
+  </div>
 </div>
 {% endblock %}
 

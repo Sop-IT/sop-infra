@@ -54,8 +54,12 @@ ALLOWED_PANELS = ['meraki', 'classification', 'sizing', 'prisma']
 ALLOWED_POSITIONS = ['left_page', 'right_page']
 
 
+# overrides NetBox PluginTemplateExtension method to display
+# the panel according to PLUGINS_CONFIG in configuration.py
 def create_new_panel(self):
 
+    # infra = the instance of SopInfra
+    # what = the name of the panel
     def get_extra_context() -> dict:
 
         qs = SopInfra.objects.filter(site=self.context['object'])
@@ -82,6 +86,7 @@ class SopInfraDashboard:
         return self.template_name.format(panel)
 
 
+    # parse display positions and check if valid
     def get_display_position(self, panel, display):
 
         if exists := display.get(panel):
@@ -136,6 +141,7 @@ class SopInfraDashboard:
         return extensions
 
 
+    # returns the list of template_extensions for NetBox
     def push(self):
         return self.extensions
 
