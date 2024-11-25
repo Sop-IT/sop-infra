@@ -21,6 +21,9 @@ __all__ = (
 
 class PrismaAccessLocationRecomputeMixin:
 
+    ACCESS_TOKEN_URL = "https://auth.apps.paloaltonetworks.com/oauth2/access_token"
+    PAYLOAD_URL = "https://api.sase.paloaltonetworks.com/sse/config/v1/locations"
+
     request = current_request.get()
     session = Session()
     model = None
@@ -37,24 +40,21 @@ class PrismaAccessLocationRecomputeMixin:
             "client_id": prisma_config.get("client_id"),
             "client_secret": prisma_config.get("client_secret"),
         }
-        self.access_token_url = prisma_config.get("access_token_url")
-        self.payload_url = prisma_config.get("payload_url")
 
     def try_api_response(self):
 
         # get token
-        response = self.session.post(self.access_token_url, data=self.payload)
+        response = self.session.post(self.ACCESS_TOKEN_URL, data=self.payload)
         response.raise_for_status()
         token = response.json().get("access_token")
         cache.set("prisma_access_token", token)
 
         # get payload
         headers = {"accept": "application/json", "authorization": f"bearer {token}"}
-        api_response = self.session.get(self.payload_url, headers=headers)
+        api_response = self.session.get(self.PAYLOAD_URL, headers=headers)
         api_response.raise_for_status()
-        payload_data = api_response.json()
 
-        return payload_data
+        return api_response.json()
 
     def _get_computed_location(self, name, slug):
 
@@ -82,6 +82,7 @@ class PrismaAccessLocationRecomputeMixin:
 
         new_objects = []
         updates = []
+
         existing_object = self.model.objects.values(
             "slug", "name", "latitude", "longitude", "compute_location"
         )

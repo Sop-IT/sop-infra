@@ -154,6 +154,8 @@ class PrismaAccessLocationRefreshView(
 ):
 
     model = PrismaAccessLocation
+    parent = PrismaComputedAccessLocation
+
     return_url = "/plugins/sop-infra/access_location/"
 
     def get(self, request):
