@@ -1,0 +1,17 @@
+{% extends 'generic/object_list.html' %}
+
+
+{% block title %}{{title}}{% endblock %}
+
+
+{% block extra_controls %}
+  {% if title == "Sizing" %}
+    {% include 'sop_infra/tools/refresh.html' %}
+  {% elif title == "PRISMA Access Locations" %}
+    <a href="{% url 'plugins:sop_infra:prismaaccesslocation_refresh' %}" type="button" class="btn btn-primary">
+      <i class="mdi mdi-refresh" title="recompute access locations"></i>
+      Recompute Access Locations
+    </a>
+  {% endif %}
+{% endblock extra_controls %}
+

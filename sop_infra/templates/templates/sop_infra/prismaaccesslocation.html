@@ -1,0 +1,115 @@
+{% extends "generic/object.html" %}
+{% load buttons %}
+{% load perms %}
+{% load plugins %}
+{% load helpers %}
+{% load tz %}
+{% load i18n %}
+{% load l10n %}
+
+
+{% block control-buttons %}
+  {% if perms.extras.add_bookmark and object.bookmarks %}
+    {% bookmark_button object %}
+  {% endif %}
+  {% if perms.extras.add_subscription and object.subscriptions %}
+    {% subscribe_button object %}
+  {% endif %}
+  {% if request.user|can_change:object %}
+    {% edit_button object %}
+  {% endif %}
+  {% if request.user|can_delete:object %}
+    {% delete_button object %}
+  {% endif %}
+{% endblock control-buttons %}
+
+
+{% block title %}{{object}}{% endblock %}
+
+
+{% block content %}
+<div class="row">
+  <div class="col-md-6">
+    <div class="card">
+      <h5 class="card-header">Access Location</h5>
+      <table class="table table-hover attr-table">
+
+        {% include 'sop_infra/tools/display_detail.html' with name="name" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="slug" %}
+
+        <tr>
+          <th scope="row">{% trans "Time Zone" %}</th>
+          <td>
+            {% if object.time_zone %}
+              {{ object.time_zone }} ({% trans "UTC" %} {{ object.time_zone|tzoffset }})<br />
+              <small class="text-muted">{% trans "Site time" %}: {% timezone object.time_zone %}{% now 'Y-m-d H:i' %}{% endtimezone %}</small>
+            {% else %}
+              {{ ''|placeholder }}
+            {% endif %}
+          </td>
+        </tr>
+
+        <tr>
+          <th scope="row">{% trans "Physical Address" %}</th>
+          <td class="d-flex justify-content-between align-items-start">
+            {% if object.physical_address %}
+              <span>{{ object.physical_address|linebreaksbr }}</span>
+              {% if config.MAPS_URL %}
+                <a href="{{ config.MAPS_URL }}{{ object.physical_address|urlencode }}" target="_blank" class="btn btn-primary btn-sm d-print-none">
+                  <i class="mdi mdi-map-marker"></i> {% trans "Map" %}
+                </a>
+              {% endif %}
+            {% else %}
+              {{ ''|placeholder }}
+            {% endif %}
+          </td>
+        </tr>
+
+        <tr>
+          <th scope="row">{% trans "GPS Coordinates" %}</th>
+          <td class="position-relative">
+            {% if object.latitude and object.longitude %}
+              {% if config.MAPS_URL %}
+                <div class="position-absolute top-50 end-0 me-2 translate-middle-y d-print-none">
+                  <a href="{{ config.MAPS_URL }}{{ object.latitude|unlocalize }},{{ object.longitude|unlocalize }}" target="_blank" class="btn btn-primary btn-sm">
+                    <i class="mdi mdi-map-marker"></i> {% trans "Map" %}
+                  </a>
+                </div>
+                {% endif %}
+              <span>{{ object.latitude }}, {{ object.longitude }}</span>
+            {% else %}
+              {{ ''|placeholder }}
+            {% endif %}
+          </td>
+        </tr>
+        
+        {% include 'sop_infra/tools/display_detail.html' with name="compute_location" link=1 view="detail" %}
+
+      </table>
+    </div>
+  </div>
+  <div class="col-md-6">
+    {% include "inc/panels/related_objects.html" %}
+  </div>
+
+  {% if endpoint %}
+  <div class="col-md-12">
+    <div class="card">
+
+      <h2 class="card-header">
+        <a href="{% url endpoint|viewname:"list" %}?access_location={{object.pk}}">PRISMA Endpoints</a>
+      </h2>
+
+      <div class="htmx-container table-responsive"
+        hx-get="{% url endpoint|viewname:"list" %}?embedded=True&access_location={{object.pk}}"
+        hx-target="this"
+        hx-trigger="load" hx-select=".htmx-container" hx-swap="outerHTML"
+      ></div>
+
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+

@@ -1,0 +1,38 @@
+{% load infra_custom_tags %}
+{% load helpers %}
+
+{% if object.pk %}
+
+  {% if link and object|field_exists:name %}
+    {% with obj=object|field_value:name %}
+      <a href="{% url object|field_value:name|viewname:view pk=obj.pk %}"
+         class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+    {% endwith %}
+  {% else %}
+    <a href="{% url object|viewname:"detail" pk=object.id %}"
+       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+  {% endif %}
+{% else %}
+  <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+{% endif %}
+
+  <span class="d-flex align-items-center">
+    {{object|field_verbose_name:name}}
+
+    {% if object|field_help_exists:name %}
+      <i class="mdi mdi-information text-primary ms-2"
+         data-bs-toggle="tooltip"|
+         title="{{object|field_help_text:name}}"
+      ></i>
+    {% endif %}
+    
+  </span>
+
+  {% if badge %}
+    {% include "sop_infra/tools/badge.html" with object=object|field_value:name %}
+  {% else %}
+    <span>{{object|field_value:name|placeholder}}</span>
+  {% endif %}
+
+</a>
+

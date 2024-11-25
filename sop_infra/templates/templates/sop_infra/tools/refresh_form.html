@@ -1,0 +1,17 @@
+{% extends 'generic/object_edit.html' %}
+
+
+{% block title %}
+  Recompute Sizing
+{% endblock %}
+
+
+{% block buttons %}
+  <a href="{{ return_url }}" class="btn btn-outline-secondary">Cancel</a>
+  <div class="btn-group" role="group" aria-label="Actions">
+    <button type="submit" name="_create" class="btn btn-primary">
+      <i class="mdi mdi-refresh" title="Refresh infrastructure"></i>
+      Recompute
+    </button>
+  </div>
+{% endblock buttons %}}

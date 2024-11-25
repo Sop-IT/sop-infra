@@ -1,0 +1,16 @@
+{% load helpers %}
+
+{% if object.status and object.status == 'dc' %}
+{% else %}
+
+  {% if object.pk %}
+    <a href="{% url 'plugins:sop_infra:sopinfra_refresh_site' %}?qs={{object.pk}}" type="button" class="btn btn-primary">
+  {% else %}
+    <a href="{% url 'plugins:sop_infra:sopinfra_refresh' %}" type="button" class="btn btn-primary">
+  {% endif %}
+
+    <i class="mdi mdi-refresh" title="Recompute sizing"></i>
+      Recompute Sizing
+  </a>
+{% endif %}
+

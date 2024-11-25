@@ -1,0 +1,22 @@
+{% load helpers %}
+
+{% if object.site %}
+<li class="breadcrumb-item">
+  <a href="{% url 'dcim:site' pk=object.site.id %}">{{ object.site }}</a>
+</li>
+{% endif %}
+{% if object.site.region.parent %}
+<li class="breadcrumb-item">
+  <a href={% url 'dcim:region' pk=object.site.region.parent.id %}>{{ object.site.region.parent }}</a>
+</li>
+{% endif %}
+{% if object.site.region %}
+<li class="breadcrumb-item">
+  <a href="{% url 'dcim:region' pk=object.site.region.id %}">{{ object.site.region }}</a>
+</li>
+{% endif %}
+{% if object.site.id %}
+<li class="breadcrumb-item active">
+  <a href="{% url 'dcim:site' pk=object.site.id %}phone">{{ name }}</a>
+</li>
+{% endif %}

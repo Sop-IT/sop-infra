@@ -1,0 +1,11 @@
+{% load helpers %}
+
+<div class="card">
+  <h5 class="card-header">PRISMA Endpoint</h5>
+  <table class="table table-hover attr-table">
+    {% include 'sop_infra/tools/display_detail.html' with name="endpoint" link=1 view="detail" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="enabled" badge=1 %}
+    {% include 'sop_infra/tools/display_detail.html' with name="valid" badge=1 %}
+  </table>
+</div>
+

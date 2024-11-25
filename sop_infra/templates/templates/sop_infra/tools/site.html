@@ -1,0 +1,41 @@
+{% load helpers %}
+{% load i18n %}
+
+
+<div class="card">
+
+  <h5 class="card-header">{{object.site|meta:"verbose_name"|bettertitle}}</h5>
+  <table class="table table-hover attr-table">
+
+    <tr>
+      <th scope="row">{% trans "Site" %}</th>
+      <td>
+        {{object.site|linkify|placeholder}}
+      </td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "Region" %}</th>
+      <td>
+        {{object.site.region|linkify|placeholder}}
+      </td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "Group" %}</th>
+      <td>
+        {{object.site.group|linkify|placeholder}}
+      </td>
+    </tr>
+
+    <tr>
+      <th scope="row">{% trans "Status" %}</th>
+      <td>
+        {% badge object.site.get_status_display bg_color=object.site.get_status_color %}
+      </td>
+    </tr>
+
+  </table>
+
+</div>
+

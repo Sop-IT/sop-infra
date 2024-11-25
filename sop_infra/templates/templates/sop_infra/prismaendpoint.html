@@ -1,0 +1,67 @@
+{% extends "generic/object.html" %}
+{% load buttons %}
+{% load perms %}
+{% load helpers %}
+{% load plugins %}
+
+
+{% block control-buttons %}
+  {% if perms.extras.add_bookmark and object.bookmarks %}
+    {% bookmark_button object %}
+  {% endif %}
+  {% if perms.extras.add_subscription and object.subscriptions %}
+    {% subscribe_button object %}
+  {% endif %}
+  {% if request.user|can_change:object %}
+    {% edit_button object %}
+  {% endif %}
+  {% if request.user|can_delete:object %}
+    {% delete_button object %}
+  {% endif %}
+{% endblock control-buttons %}
+
+
+{% block title %}{{object}}{% endblock %}
+
+
+{% block content %}
+<div class="row">
+  <div class="col-md-6">
+    <div class="card">
+      <h5 class="card-header">Endpoint</h5>
+      <table class="table table-hover attr-table">
+
+        {% include "sop_infra/tools/display_detail.html" with name="name" %}
+        {% include "sop_infra/tools/display_detail.html" with name="name" %}
+        {% include "sop_infra/tools/display_detail.html" with name="ip_address" link=1 view="" %}
+        {% include "sop_infra/tools/display_detail.html" with name="access_location" link=1 view="detail" %}
+
+      </table>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    {% include "inc/panels/related_objects.html" %}
+  </div>
+
+  {% if infra %}
+  <div class="col-md-12">
+    <div class="card">
+
+      <h2 class="card-header">
+        <a href="{% url infra|viewname:"list" %}?access_location={{object.pk}}">PRISMA Endpoints</a>
+      </h2>
+
+      <div class="htmx-container table-responsive"
+        hx-get="{% url infra|viewname:"list" %}?embedded=True&endpoint={{object.pk}}"
+        hx-target="this"
+        hx-trigger="load" hx-select=".htmx-container" hx-swap="outerHTML"
+      ></div>
+
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+

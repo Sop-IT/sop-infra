@@ -1,0 +1,46 @@
+{% load helpers %}
+{% load perms %}
+{% load i18n %}
+
+
+<div class="card">
+
+  <h2 class="card-header"> {% trans "Meraki SDWAN" %}
+
+    <div class="card-actions">
+      {% if not object.id and request.user|can_add:object %}
+      <a href="{% url 'plugins:sop_infra:meraki_add' pk=site.id %}" class="btn btn-ghost-primary btn-sm">
+        <i class="mdi mdi-plus-thick" aria-hidden="true"></i>Add Meraki SDWAN
+      </a>
+      {% elif object.id and request.user|can_change:object %}
+      <a href="{% url 'plugins:sop_infra:meraki_edit' pk=object.id %}" class="btn btn-ghost-primary btn-sm">
+        <i class="mdi mdi-pencil" aria-hidden="true"></i>Edit Meraki SDWAN
+      </a>
+      {% endif %}
+    </div>
+
+  </h2>
+
+
+  {% if request.user|can_view:object %}
+  <table class="table table-hover attr-table">
+
+    <ul class="list-group list-group-flush">
+
+      {% include 'sop_infra/tools/display.html' with name="sdwanha" %}
+      {% include 'sop_infra/tools/display.html' with name="hub_order_setting" %}
+      {% include 'sop_infra/tools/display.html' with name="hub_default_route_setting" badge=1 %}
+      {% include 'sop_infra/tools/display.html' with name="sdwan1_bw" %}
+      {% include 'sop_infra/tools/display.html' with name="sdwan2_bw" %}
+      {% include 'sop_infra/tools/display.html' with name="site_sdwan_master_location" link=1 view="" %}
+      {% include 'sop_infra/tools/display.html' with name="master_site" link=1 view="" %}
+      {% include 'sop_infra/tools/display.html' with name="migration_sdwan" %}
+      {% include 'sop_infra/tools/display.html' with name="monitor_in_starting" badge=1 %}
+
+    </ul>
+
+  </table>
+  {% endif %}
+
+</div>
+

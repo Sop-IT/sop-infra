@@ -1,0 +1,23 @@
+{% load helpers %}
+{% load i18n %}
+
+
+<div class="card">
+
+  <h5 class="card-header">{% trans "Meraki SDWAN" %}</h5>
+  <table class="table table-hover attr-table">
+
+    {% include 'sop_infra/tools/display_detail.html' with name="sdwanha" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="hub_order_setting" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="hub_default_route_setting" badge=1 %}
+    {% include 'sop_infra/tools/display_detail.html' with name="sdwan1_bw" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="sdwan2_bw" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="site_sdwan_master_location" link=1 view="" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="master_site" link=1 view="" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="migration_sdwan" %}
+    {% include 'sop_infra/tools/display_detail.html' with name="monitor_in_starting" %}
+
+  </table>
+
+</div>
+
