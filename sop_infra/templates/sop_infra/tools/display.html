@@ -5,7 +5,7 @@
 
   {% if link and object|field_exists:name %}
     {% with obj=object|field_value:name %}
-      <a href="{% url object|field_value:name|viewname:"" pk=obj.pk %}"
+      <a href="{% url object|field_value:name|viewname:view pk=obj.pk %}"
          class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
     {% endwith %}
   {% else %}
