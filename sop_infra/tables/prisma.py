@@ -1,3 +1,4 @@
+from collections import defaultdict
 import django_tables2 as tables
 
 from netbox.tables import NetBoxTable
@@ -18,6 +19,9 @@ __all__ = (
 
 class PrismaEndpointTable(NetBoxTable):
 
+    slug = tables.Column(linkify=True)
+    name = tables.Column(linkify=True)
+
     class Meta(NetBoxTable.Meta):
         model = PrismaEndpoint
         fields = (
@@ -31,10 +35,13 @@ class PrismaEndpointTable(NetBoxTable):
             "ip_address",
             "address_location",
         )
+        default_columns = ("actions", "name", "slug", "ip_address", "address_location")
 
 
 class PrismaAccessLocationTable(NetBoxTable):
 
+    slug = tables.Column(linkify=True)
+    name = tables.Column(linkify=True)
     compute_location = tables.Column(linkify=True)
 
     class Meta(NetBoxTable.Meta):
@@ -53,16 +60,22 @@ class PrismaAccessLocationTable(NetBoxTable):
             "longitude",
             "compute_location",
         )
-
-    def render_compute_location(self, record):
-        if not record.compute_location:
-            return None
-
-        value = record.compute_location.name
-        return value.title()
+        default_columns = (
+            "actions",
+            "name",
+            "slug",
+            "physical_address",
+            "time_zone",
+            "latitude",
+            "longitude",
+            "compute_location",
+        )
 
 
 class PrismaComputedAccessLocationTable(NetBoxTable):
+
+    slug = tables.Column(linkify=True)
+    name = tables.Column(linkify=True)
 
     class Meta(NetBoxTable.Meta):
         model = PrismaComputedAccessLocation
@@ -72,6 +85,14 @@ class PrismaComputedAccessLocationTable(NetBoxTable):
             "id",
             "created",
             "last_updated",
+            "name",
+            "slug",
+            "strata_id",
+            "strata_name",
+            "bandwidth",
+        )
+        default_columns = (
+            "actions",
             "name",
             "slug",
             "strata_id",
