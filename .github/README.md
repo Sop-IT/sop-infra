@@ -64,11 +64,9 @@ PLUGINS_CONFIG = {
             'sizing':'right_page'
         },
         'prisma': {
-            'access_token':''
             'client_id':''
             'client_scret':''
             'tsg_id':''
-            'payload_url'''
         },
     }
 }
