@@ -1,7 +1,8 @@
-import requests as py_requests
+import time
+from requests import Session
 from decimal import Decimal
-import json
 
+from django.core.cache import cache
 from django.contrib import messages
 from django.conf import settings
 
@@ -12,78 +13,157 @@ from sop_infra.models import SopInfra
 
 
 __all__ = (
-    'SopInfraRefreshMixin',
-    'SopInfraRelatedModelsMixin',
-    'PrismaAccessLocationRecomputeMixin'
+    "PrismaAccessLocationRecomputeMixin",
+    "SopInfraRelatedModelsMixin",
+    "SopInfraRefreshMixin",
 )
 
 
 class PrismaAccessLocationRecomputeMixin:
 
     request = current_request.get()
+    session = Session()
+    model = None
+    parent = None
 
     def try_parse_configuration(self):
-        infra_config = settings.PLUGINS_CONFIG.get('sop_infra', {})
-        prisma_config = infra_config.get('prisma')
+        # parse all configuration.py informations
+        infra_config = settings.PLUGINS_CONFIG.get("sop_infra", {})
+        prisma_config = infra_config.get("prisma")
 
         self.payload = {
-            'grant_type':'client_credentials',
-            'tsg_id':prisma_config.get('tsg_id'),
-            'client_id':prisma_config.get('client_id'),
-            'client_secret':prisma_config.get('client_secret')
+            "grant_type": "client_credentials",
+            "tsg_id": prisma_config.get("tsg_id"),
+            "client_id": prisma_config.get("client_id"),
+            "client_secret": prisma_config.get("client_secret"),
         }
-        self.access_token_url = prisma_config.get('access_token_url')
-        self.payload_url = prisma_config.get('payload_url')
+        self.access_token_url = prisma_config.get("access_token_url")
+        self.payload_url = prisma_config.get("payload_url")
 
     def try_api_response(self):
-        response = py_requests.post(self.access_token_url, data=self.payload)
-        token = response.json().get('access_token')
-        headers = {
-            'Accept':'application/json',
-            'Authorization':f'Bearer {token}'
-        }
 
-        api_response = py_requests.get(self.payload_url, headers=headers, data={})
-        return json.loads(api_response.text)
+        # get token
+        response = self.session.post(self.access_token_url, data=self.payload)
+        response.raise_for_status()
+        token = response.json().get("access_token")
+        cache.set("prisma_access_token", token)
+
+        # get payload
+        headers = {"accept": "application/json", "authorization": f"bearer {token}"}
+        api_response = self.session.get(self.payload_url, headers=headers)
+        api_response.raise_for_status()
+        payload_data = api_response.json()
+
+        return payload_data
+
+    def _get_computed_location(self, name, slug):
+
+        if name.strip() == "" or slug.strip() == "" or self.parent is None:
+            return None
+
+        target = self.parent.objects.filter(slug=slug)
+        if target.exists():
+            obj = target.first()
+            if obj.name != name:
+                obj.name = name
+                obj.full_clean()
+                obj.save()
+            return obj
+
+        obj = self.parent.objects.create(slug=slug, name=name)
+        obj.full_clean()
+        obj.save()
+        return obj
 
     def recompute_access_location(self, response):
+
+        if self.model is None or self.parent is None:
+            return
+
+        new_objects = []
+        updates = []
+        existing_object = self.model.objects.values(
+            "slug", "name", "latitude", "longitude", "compute_location"
+        )
+
+        existing_data = {
+            obj["slug"]: {
+                "name": obj["name"],
+                "latitude": obj["latitude"],
+                "longitude": obj["longitude"],
+                "location": obj["compute_location"],
+            }
+            for obj in existing_object
+        }
+
         for item in response:
-            if self.model.objects.filter(slug=item['value']).exists():
+            slug = item["value"]
+            name = item["display"]
+            latitude = Decimal(f"{float(item['latitude']):.6f}")
+            longitude = Decimal(f"{float(item['longitude']):.6f}")
+            location_slug = item["region"]
+            location_name = item["aggregate_region"]
+
+            computed = self._get_computed_location(location_name, location_slug)
+            if slug in existing_data:
+                existing = existing_data[slug]
+
+                if (
+                    existing["name"] != name
+                    or existing["latitude"] != latitude
+                    or existing["longitude"] != longitude
+                ):
+                    updates.append(
+                        self.model(
+                            slug=slug,
+                            name=name,
+                            latitude=latitude,
+                            longitude=longitude,
+                            compute_location=computed,
+                        )
+                    )
                 continue
-            obj = self.model(
-                slug=item['value'],
-                name=item['display'],
-                latitude=Decimal(f"{float(item['latitude']):.6f}"),
-                longitude=Decimal(f"{float(item['longitude']):.6f}")
+
+            new_objects.append(
+                self.model(
+                    slug=slug,
+                    name=name,
+                    latitude=latitude,
+                    longitude=longitude,
+                    compute_location=computed,
+                )
             )
-            obj.full_clean()
-            obj.save()
-            obj.snapshot()
-            print('created', obj)
+
+        if new_objects:
+            self.model.objects.bulk_create(new_objects)
+        if updates:
+            self.model.objects.bulk_update(
+                updates, fields=["name", "latitude", "longitude"]
+            )
 
     def try_recompute_access_location(self):
+        start = time.time()
         try:
             self.try_parse_configuration()
         except:
-            messages.error(self.request, "ERROR: invalid parameters in PLUGIN_CONFIG -> script aborted.")
+            messages.error(self.request, f"ERROR: invalid parameters in PLUGIN_CONFIG")
             return
 
         try:
             response = self.try_api_response()
         except:
-            messages.error(self.request, "ERROR: invalid API response make sure you have the access -> script aborted")
+            messages.error(self.request, f"ERROR: invalid API response")
             return
 
-        #try:
         self.recompute_access_location(response)
-        #except:
-            #messages.error(self.request, "ERROR: invalid API response cannot recompute Access Location -> script aborted")
+        stop = time.time()
+        print("time:\t", stop - start)
 
 
 class SopInfraRefreshMixin:
 
     sizing = SopInfraSizingValidator()
-    count:int = 0
+    count: int = 0
 
     def recompute_instance(self, instance):
 
@@ -91,7 +171,6 @@ class SopInfraRefreshMixin:
         instance.full_clean()
         instance.save()
         self.count += 1
-
 
     def recompute_parent_if_needed(self, instance):
 
@@ -103,7 +182,6 @@ class SopInfraRefreshMixin:
         # if wan cumul is != current -> recompute sizing.
         if wan != cumul:
             self.recompute_instance(instance)
-
 
     def recompute_child(self, queryset):
 
@@ -123,7 +201,6 @@ class SopInfraRefreshMixin:
             if parent.exists():
                 self.recompute_parent_if_needed(parent.first())
 
-
     def recompute_maybe_parent(self, queryset):
 
         if not queryset.exists():
@@ -139,12 +216,11 @@ class SopInfraRefreshMixin:
 
             self.recompute_parent_if_needed(instance)
 
-
     def refresh_infra(self, queryset):
-        
+
         if queryset.first() is None:
             return
-    
+
         # get children
         self.recompute_child(queryset.filter(master_site__isnull=False))
         # get maybe_parent
@@ -153,11 +229,11 @@ class SopInfraRefreshMixin:
         try:
             request = current_request.get()
             messages.success(request, f"Successfully recomputed {self.count} sizing.")
-        except:pass
+        except:
+            pass
 
 
 class SopInfraRelatedModelsMixin:
-
 
     def normalize_queryset(self, obj):
 
@@ -165,27 +241,27 @@ class SopInfraRelatedModelsMixin:
         if qs == []:
             return None
 
-        return f'id=' + '&id='.join(qs)
-
+        return f"id=" + "&id=".join(qs)
 
     def get_slave_sites(self, infra):
-        '''
+        """
         look for slaves sites and join their id
-        '''
+        """
         if not infra.exists():
             return None, None
 
         # get every SopInfra instances with master_site = current site
         # and prefetch the only attribute that matters to optimize the request
-        sites = SopInfra.objects.filter(master_site=(infra.first()).site).prefetch_related('site')
+        sites = SopInfra.objects.filter(
+            master_site=(infra.first()).site
+        ).prefetch_related("site")
         count = sites.count()
 
-        target = sites.values_list('site__pk', flat=True)
+        target = sites.values_list("site__pk", flat=True)
         if not target:
             return None, None
-        
-        return self.normalize_queryset(target), count
 
+        return self.normalize_queryset(target), count
 
     def get_slave_infra(self, infra):
 
@@ -195,9 +271,8 @@ class SopInfraRelatedModelsMixin:
         infras = SopInfra.objects.filter(master_site=(infra.first().site))
         count = infras.count()
 
-        target = infras.values_list('id', flat=True)
+        target = infras.values_list("id", flat=True)
         if not target:
             return None, None
 
         return self.normalize_queryset(target), count
-
