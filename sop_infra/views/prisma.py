@@ -76,6 +76,23 @@ class PrismaEndpointDetailView(generic.ObjectView):
 
     queryset = PrismaEndpoint.objects.all()
 
+    def get_related_objects(self, instance):
+        related = []
+
+        infra = SopInfra.objects.filter(endpoint=instance)
+        related.append((infra, "endpoint"))
+
+        return related
+
+    def get_extra_context(self, request, instance) -> dict:
+        """
+        additional context for related models/objects
+        """
+        return {
+            "infra": SopInfra,
+            "related_models": self.get_related_objects(instance),
+        }
+
 
 # ______________
 # AccessLocation
@@ -107,20 +124,29 @@ class PrismaAccessLocationListView(generic.ObjectListView):
         return context
 
 
-class PrismaAccessLocationDetailView(generic.ObjectView, GetRelatedModelsMixin):
+class PrismaAccessLocationDetailView(generic.ObjectView):
 
     queryset = PrismaAccessLocation.objects.all()
+
+    def get_related_objects(self, instance):
+        related = []
+
+        endpoints = PrismaEndpoint.objects.filter(access_location=instance)
+        related.append((endpoints, "access_location"))
+
+        infra = SopInfra.objects.filter(endpoint__in=endpoints)
+        related.append((infra, "endpoint"))
+
+        return related
 
     def get_extra_context(self, request, instance) -> dict:
         """
         additional context for related models/objects
         """
-        related_models = self.get_related_models(
-            request,
-            instance,
-            # later SopInfra
-        )
-        return {"related_models": related_models}
+        return {
+            "endpoint": PrismaEndpoint,
+            "related_models": self.get_related_objects(instance),
+        }
 
 
 class PrismaAccessLocationRefreshView(
@@ -165,22 +191,30 @@ class PrismaComputedAccessLocationListView(generic.ObjectListView):
     filterset_form = PrismaComputedAccessLocationFilterForm
 
 
-class PrismaComputedAccessLocationDetailView(generic.ObjectView, GetRelatedModelsMixin):
+class PrismaComputedAccessLocationDetailView(generic.ObjectView):
 
     queryset = PrismaComputedAccessLocation.objects.all()
+
+    def get_related_objects(self, instance):
+        related = []
+
+        access = PrismaAccessLocation.objects.filter(compute_location=instance)
+        related.append((access, "compute_location"))
+
+        endpoints = PrismaEndpoint.objects.filter(access_location__in=access)
+        related.append((endpoints, "access_location"))
+
+        infra = SopInfra.objects.filter(endpoint__in=endpoints)
+        related.append((infra, "endpoint"))
+
+        return related
 
     def get_extra_context(self, request, instance) -> dict:
         """
         additional context for related models/objects
         """
-        access = PrismaAccessLocation.objects.filter(compute_location=instance)
-        endpoint = PrismaEndpoint.objects.filter(
-            access_location__in=access
-        ).values_list("id", flat=True)
-        extra = [(SopInfra.objects.all(), {"endpoint__in": endpoint})]
 
-        related_models = self.get_related_models(request, instance, extra=extra)
         return {
-            "related_models": related_models,
             "access_location": PrismaAccessLocation,
+            "related_models": self.get_related_objects(instance),
         }
