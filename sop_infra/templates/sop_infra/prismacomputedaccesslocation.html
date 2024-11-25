@@ -2,6 +2,7 @@
 {% load perms %}
 {% load plugins %}
 {% load helpers %}
+{% load helpers %}
 {% load buttons %}
 
 
@@ -40,28 +41,30 @@
       </table>
     </div>
   </div>
+
   <div class="col-md-6">
     {% include "inc/panels/related_objects.html" %}
   </div>
-</div>
 
-{% if access_location %}
-<div class="col col-md-12">
-  <div class="card">
+  {% if access_location %}
+  <div class="col col-md-12">
+    <div class="card">
 
-    <h2 class="card-header">
-      <a href="{% url access_location|viewname:"list" %}?compute_location={{object.pk}}">PRISMA Access Locations</a>
-    </h2>
+      <h2 class="card-header">
+        <a href="{% url access_location|viewname:"list" %}?compute_location={{object.pk}}">PRISMA Access Locations</a>
+      </h2>
 
-    <div class="htmx-container table-responsive"
-      hx-get="{% url access_location|viewname:"list" %}?embedded=True&compute_location={{object.pk}}"
-      hx-target="this"
-      hx-trigger="load" hx-select=".htmx-container" hx-swap="outerHTML"
-    ></div>
+      <div class="htmx-container table-responsive"
+        hx-get="{% url access_location|viewname:"list" %}?embedded=True&compute_location={{object.pk}}"
+        hx-target="this"
+        hx-trigger="load" hx-select=".htmx-container" hx-swap="outerHTML"
+      ></div>
 
+    </div>
   </div>
+  {% endif %}
+
 </div>
-{% endif %}
 
 {% endblock %}
 
