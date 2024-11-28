@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Q, Exists, OuterRef
+from django.db.models import Q
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -8,7 +8,6 @@ from timezone_field import TimeZoneField
 
 from netbox.models import NetBoxModel
 from ipam.models import IPAddress
-from dcim.models import Site
 
 
 __all__ = (
@@ -155,7 +154,7 @@ class PrismaEndpoint(NetBoxModel):
         max_length=100, unique=True, blank=True, verbose_name=_("slug")
     )
     ip_address = models.ForeignKey(
-        to=IPAddress, on_delete=models.CASCADE, blank=True, verbose_name=_("IP address")
+        to=IPAddress, on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("IP address")
     )
     access_location = models.ForeignKey(
         to=PrismaAccessLocation,
@@ -189,10 +188,11 @@ class PrismaEndpoint(NetBoxModel):
     def clean(self):
         super().clean()
 
-        if self.ip_address is not None and not str(
-            getattr(self.ip_address, "address")
-        ).endswith("/32"):
-            raise ValidationError({"ip_address": "You must enter a /32 IP Address."})
+        if self.ip_address and hasattr(self.ip_address, "address"):
+            if not str(getattr(self.ip_address, "address")).endswith("/32"):
+                raise ValidationError(
+                    {"ip_address": "You must enter a /32 IP Address."}
+                )
 
     def get_absolute_url(self) -> str:
         return reverse("plugins:sop_infra:prismaendpoint_detail", args=[self.pk])
