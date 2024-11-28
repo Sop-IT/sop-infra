@@ -142,23 +142,28 @@ class PrismaAccessLocationRecomputeMixin:
                 updates, fields=["name", "latitude", "longitude"]
             )
 
-    def try_recompute_access_location(self):
-        start = time.time()
+    def try_recompute_access_location(self) -> bool:
         try:
             self.try_parse_configuration()
         except:
             messages.error(self.request, f"ERROR: invalid parameters in PLUGIN_CONFIG")
-            return
+            return False
 
         try:
             response = self.try_api_response()
         except:
             messages.error(self.request, f"ERROR: invalid API response")
-            return
+            return False
 
-        self.recompute_access_location(response)
-        stop = time.time()
-        print("time:\t", stop - start)
+        try:
+            self.recompute_access_location(response)
+        except:
+            messages.error(
+                self.request,
+                f"ERROR: invalid API response: cannot recompute Access Location",
+            )
+            return False
+        return True
 
 
 class SopInfraRefreshMixin:
