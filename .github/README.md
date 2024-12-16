@@ -1,41 +1,49 @@
-# SOP-Infra
+<h1 align="center">
+    NetBox - SOP-Infra plugin<br>
+</h1>
+<p align="center">
+    <a href="https://github.com/netbox-community/netbox">NetBox</a> plugin to manage infrastructure informations of each site.
+</p>
 
-[Netbox](https://github.com/netbox-community/netbox) plugin to manage infrastructure informations of each site.
+---
 
-## Compatibility
+## 🚀 Features
 
-NetBox >= 4.1.0
+- [**Sizing**](/docs/features/sizing.md)
+- [**Search**](/docs/features/search.md)
 
-## Installation
+---
 
-Install the plugin as a PyPi package.
+## 📦 Installation
 
-```bash
-echo "sop-infra" >> local_requirements.txt
-```
+### Prerequisites
 
-Add it to you `configuration.py`
+Ensure you have the following requirements:
 
-```bash
-sed -i "/PLUGINS = \[/a\    'sop_infra'," "netbox/netbox/configuration.py"
-```
+- NetBox 4.1.0+
+- Python 3.x
 
-or with Python in netbox/netbox/configuration.py
+### Installation Steps
+
+1. **Add Requirements**
+
+   ```bash
+   # add SOP-Infra plugin
+   echo "sop-infra" >> local_requirements.txt
+   ```
+
+2. **Configure NetBox**
+
+Edit `netbox/netbox/configuration.py` to include the plugin:
 
 ```python
 PLUGINS = [
-    ...
+    # ... other plugins
     'sop-infra',
 ]
 ```
 
-And upgrade NetBox
-
-```bash
-sudo bash upgrade.sh
-```
-
-## Customization
+3. **Customization**
 
 The following options are available:
 
@@ -47,13 +55,11 @@ The following options are available:
   - **Description**: Chose what panel and where it should be displayed on dcim:site
 
 - `prisma`
-  - **access_token**:'string'
   - **client_id**:'string'
   - **client_scret**:'string'
   - **tsg_id**:'string'
-  - **payload_url**:'string'
 
-Plugin config exemple in netbox/netbox/configuration.py
+Plugin config exemple in `netbox/netbox/netbox/configuration.py`
 
 ```python
 PLUGINS_CONFIG = {
@@ -72,21 +78,27 @@ PLUGINS_CONFIG = {
 }
 ```
 
-With this exemple configuration,
-meraki and classification panels will be displayed on the left
-and sizing on the right of the Site detail page.
+With this configuration, `Meraki` and `Classification` panels will be displayed on the `left` and `Sizing` on the `right` of the `Site detail` page.
 
-## Development
+4. **Upgrade NetBox**
 
-The repository will automatically execute unit-tests on every main push.
+   ```bash
+   sudo ./upgrade.sh
+   ```
 
-Tests will be executed on NetBox v4.1.1
-To change this version, edit [`test.yml`](https://github.com/Sop-IT/sop-infra/blob/main/.github/workflows/test.yml)
-`NETBOX_VERSION` variable.
+## 📋 Models
 
-```yml
-env:
-  NETBOX_VERSION: v4.1.1
-```
+The SOP-Infra plugin provides four core models:
 
-Django unit-tests must be in [`tests`](https://github.com/Sop-IT/sop-infra/tree/main/sop_infra/tests) folder.
+- [**Sop Infra**](/docs/models/sop-infra.md)
+- [**Prisma Endpoint**](/docs/models/prisma-endpoint.md)
+- [**Prisma Access Location**](/docs/models/prisma-access-location.md)
+- [**Prisma Computed Access Location**](/docs/models/prisma-computed-access-location.md)
+
+---
+
+## 🛠️ Development
+
+- [**Contribute**](/docs/development/contribute.md)
+- [**Unit-Tests**](/docs/development/unit-test.md)
+- [**Deploy**](/docs/development/deploy.md)
