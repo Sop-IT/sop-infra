@@ -6,20 +6,22 @@ from ipam.models import IPAddress
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 from utilities.forms import add_blank_choice
 from utilities.forms.rendering import FieldSet
-from utilities.forms.fields import SlugField, DynamicModelChoiceField 
+from utilities.forms.fields import SlugField, DynamicModelChoiceField
 
 from sop_infra.models import (
-    PrismaEndpoint, PrismaAccessLocation, PrismaComputedAccessLocation
+    PrismaEndpoint,
+    PrismaAccessLocation,
+    PrismaComputedAccessLocation,
 )
 
 
 __all__ = (
-    'PrismaEndpointForm',
-    'PrismaAccessLocationForm',
-    'PrismaComputedAccessLocationForm',
-    'PrismaEndpointFilterForm',
-    'PrismaAccessLocationFilterForm',
-    'PrismaComputedAccessLocationFilterForm'
+    "PrismaEndpointForm",
+    "PrismaAccessLocationForm",
+    "PrismaComputedAccessLocationForm",
+    "PrismaEndpointFilterForm",
+    "PrismaAccessLocationFilterForm",
+    "PrismaComputedAccessLocationFilterForm",
 )
 
 
@@ -30,39 +32,35 @@ class PrismaEndpointForm(NetBoxModelForm):
     ip_address = forms.ModelChoiceField(
         queryset=IPAddress.objects.filter(address__endswith="/32"),
         required=True,
-        label='IP Address'
+        label="IP Address",
     )
     access_location = DynamicModelChoiceField(
-        PrismaAccessLocation.objects.all(),
-        required=True
+        PrismaAccessLocation.objects.all(), required=True
     )
 
     fieldsets = (
         FieldSet(
-            'name', 'slug',
-            name='Name',
+            "name",
+            "slug",
+            name="Name",
         ),
-        FieldSet(
-            'ip_address', 'access_location',
-            name='IP Address'
-        )
+        FieldSet("ip_address", "access_location", name="IP Address"),
     )
 
-    FieldSet
     class Meta:
         model = PrismaEndpoint
         fields = [
-            'name', 'slug', 'ip_address', 'access_location',
+            "name",
+            "slug",
+            "ip_address",
+            "access_location",
         ]
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if 'tags' in self.fields:
-            del self.fields['tags']
-
-
+        if "tags" in self.fields:
+            del self.fields["tags"]
 
 
 class PrismaAccessLocationForm(NetBoxModelForm):
@@ -70,42 +68,47 @@ class PrismaAccessLocationForm(NetBoxModelForm):
     name = forms.CharField(required=True)
     slug = SlugField()
     time_zone = TimeZoneFormField(
-        label='Time zone',
+        label="Time zone",
         choices=add_blank_choice(TimeZoneFormField().choices),
-        required=False
+        required=False,
     )
     compute_location = DynamicModelChoiceField(
-        PrismaComputedAccessLocation.objects.all(),
-        required=True
+        PrismaComputedAccessLocation.objects.all(), required=True
     )
 
     fieldsets = (
         FieldSet(
-            'name', 'slug',
-            name='Name',
+            "name",
+            "slug",
+            name="Name",
         ),
         FieldSet(
-            'physical_address', 'time_zone',
-            'latitude', 'longitude', 'compute_location',
-            name='Location',
-        )
+            "physical_address",
+            "time_zone",
+            "latitude",
+            "longitude",
+            "compute_location",
+            name="Location",
+        ),
     )
 
     class Meta:
         model = PrismaAccessLocation
         fields = [
-            'name', 'slug', 'physical_address',
-            'time_zone', 'latitude', 'longitude', 'compute_location',
+            "name",
+            "slug",
+            "physical_address",
+            "time_zone",
+            "latitude",
+            "longitude",
+            "compute_location",
         ]
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if 'tags' in self.fields:
-            del self.fields['tags']
-
-
+        if "tags" in self.fields:
+            del self.fields["tags"]
 
 
 class PrismaComputedAccessLocationForm(NetBoxModelForm):
@@ -115,29 +118,33 @@ class PrismaComputedAccessLocationForm(NetBoxModelForm):
 
     fieldsets = (
         FieldSet(
-            'name', 'slug',
-            name='Name',
+            "name",
+            "slug",
+            name="Name",
         ),
         FieldSet(
-            'strata_id', 'strata_name', 'bandwidth',
-            name='Strata',
+            "strata_id",
+            "strata_name",
+            "bandwidth",
+            name="Strata",
         ),
     )
 
     class Meta:
         model = PrismaComputedAccessLocation
         fields = [
-            'name', 'slug', 'strata_id', 'strata_name',
-            'bandwidth',
+            "name",
+            "slug",
+            "strata_id",
+            "strata_name",
+            "bandwidth",
         ]
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if 'tags' in self.fields:
-            del self.fields['tags']
-
+        if "tags" in self.fields:
+            del self.fields["tags"]
 
 
 class PrismaEndpointFilterForm(NetBoxModelFilterSetForm):
@@ -147,25 +154,20 @@ class PrismaEndpointFilterForm(NetBoxModelFilterSetForm):
     name = forms.CharField(required=False)
     slug = forms.CharField(required=False)
     ip_address = forms.ModelChoiceField(
-        IPAddress.objects.filter(address__endswith='/32'),
-        required=False
+        IPAddress.objects.filter(address__endswith="/32"), required=False
     )
     access_location = DynamicModelChoiceField(
-        queryset=PrismaAccessLocation.objects.all(),
-        required=False
+        queryset=PrismaAccessLocation.objects.all(), required=False
     )
 
     fieldsets = (
         FieldSet(
-            'name', 'slug',
-            name='Name',
+            "name",
+            "slug",
+            name="Name",
         ),
-        FieldSet(
-            'ip_address', 'access_location',
-            name='IP Address'
-        )
+        FieldSet("ip_address", "access_location", name="IP Address"),
     )
-
 
 
 class PrismaAccessLocationFilterForm(NetBoxModelFilterSetForm):
@@ -178,28 +180,31 @@ class PrismaAccessLocationFilterForm(NetBoxModelFilterSetForm):
     time_zone = TimeZoneFormField(
         choices=add_blank_choice(TimeZoneFormField().choices),
         required=False,
-        label='Time zone'
+        label="Time zone",
     )
     latitude = forms.IntegerField(required=False)
     longitude = forms.IntegerField(required=False)
     compute_location = DynamicModelChoiceField(
         queryset=PrismaComputedAccessLocation.objects.all(),
         required=False,
-        label='Computed access location'
+        label="Computed access location",
     )
 
     fieldsets = (
         FieldSet(
-            'name', 'slug',
-            name='Name',
+            "name",
+            "slug",
+            name="Name",
         ),
         FieldSet(
-            'physical_address', 'time_zone',
-            'latitude', 'longitude', 'compute_location',
-            name='Location',
-        )
+            "physical_address",
+            "time_zone",
+            "latitude",
+            "longitude",
+            "compute_location",
+            name="Location",
+        ),
     )
-
 
 
 class PrismaComputedAccessLocationFilterForm(NetBoxModelFilterSetForm):
@@ -208,27 +213,20 @@ class PrismaComputedAccessLocationFilterForm(NetBoxModelFilterSetForm):
 
     name = forms.CharField(required=False)
     slug = forms.CharField(required=False)
-    strata_id = forms.CharField(
-        required=False,
-        label='Strata ID'
-    )
-    strata_name = forms.CharField(
-        required=False,
-        label='Strata name'
-    )
-    bandwidth = forms.IntegerField(
-        required=False,
-        label='Bandwidth (Mbps)'
-    )
+    strata_id = forms.CharField(required=False, label="Strata ID")
+    strata_name = forms.CharField(required=False, label="Strata name")
+    bandwidth = forms.IntegerField(required=False, label="Bandwidth (Mbps)")
 
     fieldsets = (
         FieldSet(
-            'name', 'slug',
-            name='Name',
+            "name",
+            "slug",
+            name="Name",
         ),
         FieldSet(
-            'strata_id', 'strata_name', 'bandwidth',
-            name='Strata',
+            "strata_id",
+            "strata_name",
+            "bandwidth",
+            name="Strata",
         ),
     )
-
