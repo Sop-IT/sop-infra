@@ -13,10 +13,10 @@ SOP-Infra plugin is deployed as a PyPi package.
 1. **Private Key**
 
 In order to deploy a new version of the SOP-Infra plugin, you will need a `PyPi account` and SOP-Infra plugin `API key`.<br>
-Export it in your shell and **never** push your these privates informations.
+Export it in your shell and **never** push your these privates informations.<br>
+According to [**documentation**](https://pypi.org/help/#apitoken), You now have to set your username as "`__token__`" to use an API token.
 
 ```bash
-export pypi_name="Your_PyPi_Username"
 export infra_api="pypi-PRIVATE-API-KEY"
 ```
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export TWINE_USERNAME="$pypi_name"
+export TWINE_USERNAME="__token__"
 export TWINE_PASSWORD="$infra_api"
 
 source venv/bin/activate

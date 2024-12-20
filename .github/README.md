@@ -44,22 +44,24 @@ PLUGINS = [
 ```
 
 3. **Customization**
-
-The following options are available:
+   The following options are available:
 
 - `display`
 
   - **Type**: dict {panel:position}
   - **Panels choices**: ['meraki', 'classification', 'sizing']
   - **Positions choices**: ['left_page', 'right_page']
-  - **Description**: Chose what panel and where it should be displayed on dcim:site
+  - **Description**: Chose what panel and where it should be displayed on the Site.
+
+> [!NOTE]
+> Panels will be displayed on the site detail page..
 
 - `prisma`
   - **client_id**:'string'
   - **client_scret**:'string'
   - **tsg_id**:'string'
 
-Plugin config exemple in `netbox/netbox/netbox/configuration.py`
+Plugin config example in `netbox/netbox/netbox/configuration.py`
 
 ```python
 PLUGINS_CONFIG = {
