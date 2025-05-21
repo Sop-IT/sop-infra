@@ -39,7 +39,7 @@ Edit `netbox/netbox/configuration.py` to include the plugin:
 ```python
 PLUGINS = [
     # ... other plugins
-    'sop-infra',
+    'sop_infra',
 ]
 ```
 
