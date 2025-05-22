@@ -145,9 +145,8 @@ class SopInfraMerakiForm(NetBoxModelForm):
         help_text=_("SDWAN > Site migration date to SDWAN"),
         required=False,
     )
-    monitor_in_starting = forms.ChoiceField(
+    monitor_in_starting = forms.BooleanField(
         label=_("Monitor in starting"),
-        choices=add_blank_choice(InfraBoolChoices),
         help_text=_("Centreon > Start monitoring when starting the site"),
         required=False,
     )
@@ -344,9 +343,8 @@ class SopInfraMerakiFilterForm(SopInfraBaseFilterForm):
     migration_sdwan = forms.DateField(
         label=_("Migration SDWAN"), widget=DatePicker(), required=False
     )
-    monitor_in_starting = forms.ChoiceField(
+    monitor_in_starting = forms.BooleanField(
         label=_("Monitor in starting"),
-        choices=add_blank_choice(InfraBoolChoices),
         required=False,
     )
 

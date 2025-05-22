@@ -153,14 +153,13 @@ class SopInfra(NetBoxModel):
         verbose_name=_("MASTER Site"),
         help_text=_("Or select the MASTER site."),
     )
-    migration_sdwan = models.CharField(
+    migration_sdwan = models.DateField(
         null=True,
         blank=True,
         verbose_name=_("Migration date"),
         help_text=_("SDWAN > Site migration date to SDWAN"),
     )
-    monitor_in_starting = models.CharField(
-        choices=InfraBoolChoices,
+    monitor_in_starting = models.BooleanField(
         null=True,
         blank=True,
         verbose_name=_("Monitor in starting"),
@@ -209,7 +208,11 @@ class SopInfra(NetBoxModel):
         return InfraBoolChoices.colors.get(self.hub_default_route_setting)
 
     def get_monitor_in_starting_color(self) -> str:
-        return InfraBoolChoices.colors.get(self.hub_default_route_setting)
+        if self.monitor_in_starting is None:
+            return "gray"
+        elif  self.monitor_in_starting:
+            return "green"
+        return "red"
 
     def get_criticity_stars(self) -> str | None:
 

@@ -162,7 +162,6 @@ class SopInfraFilterset(NetBoxModelFilterSet):
             Q(sdwan2_bw__icontains=value) |
             Q(site_sdwan_master_location__name__icontains=value) |
             Q(master_site__name__icontains=value) |
-            Q(migration_sdwan__icontains=value) |
             Q(endpoint__name__icontains=value) |
             Q(enabled__icontains=value) |
             Q(valid__icontains=value)

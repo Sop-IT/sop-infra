@@ -184,18 +184,16 @@ The `SopInfra` model represents an infrastructure associated with a site. It ens
 ### Migration SDWAN
 
 - **Field:** `migration_sdwan`
-- **Type:** `CharField` with date
+- **Type:** `DateField` 
 - **Details:**
   - SDWAN > Site migration date to SDWAN
 
 ### Monitor in starting
 
 - **Field:** `monitor_in_starting`
-- **Type:** `CharField` with booleans
+- **Type:** `BooleanField` 
 - **Details:**
-  - True
-  - False
-  - Unknown
+  - Should centreon monitor this site when its status is "starting"
 
 ### Endpoint
 
