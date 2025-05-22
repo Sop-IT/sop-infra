@@ -10,3 +10,4 @@ dist/
 !deploy.sh
 !remove_old.sh
 venv/
+.vscode/
