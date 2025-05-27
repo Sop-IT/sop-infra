@@ -1,9 +1,9 @@
 {% load helpers %}
 {% load mptt %}
 
-{% if object == "False" %}
+{% if object == "False" or object == False %}
   <i class="mdi mdi-close-thick text-danger" title="False"></i>
-{% elif object == "True" %}
+{% elif object == "True" or object == True %}
     <i class="mdi mdi-check-bold text-success" title="True"></i>
 {% else %}
     <span>&mdash;</span>
