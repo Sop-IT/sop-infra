@@ -14,6 +14,9 @@ __all__ = (
     "PrismaEndpointSerializer",
     "PrismaAccessLocationSerializer",
     "PrismaComputedAccessLocationSerializer",
+    "SopMerakiDashSerializer",
+    "SopMerakiOrgSerializer",
+    "SopMerakiNetSerializer",
 )
 
 
@@ -204,3 +207,38 @@ class SopInfraSerializer(NetBoxModelSerializer):
         return PrismaEndpointSerializer(
             obj.endpoint, nested=True, many=False, context=self.context
         ).data
+
+
+class SopMerakiDashSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:sop_infra-api:merakidash-detail'
+    )
+    orgs_count = serializers.IntegerField(read_only=True)
+    class Meta:
+        model = SopMerakiDash
+        fields = (
+            'id', 'display', 'nom', 'description', 'api_url', 'tags', 'custom_fields', 'created',
+            'last_updated', 'orgs_count', 
+        )
+
+
+class SopMerakiOrgSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:sop_infra-api:merakiorg-detail'
+    )
+    nets_count = serializers.IntegerField(read_only=True)
+    class Meta:
+        model = SopMerakiOrg
+        fields = (
+            'id', 'display', 'nom', 'description', 'dash', 'tags', 'custom_fields', 'created',
+            'last_updated', 'nets_count', 
+        )
+
+class SopMerakiNetSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:sop_infra-api:merakinet-detail')
+    class Meta:
+        model = SopMerakiNet
+        fields = (
+            'id', 'display', 'nom', 'site', 'org', 'tags', 'custom_fields', 'created',
+            'last_updated',  
+        )

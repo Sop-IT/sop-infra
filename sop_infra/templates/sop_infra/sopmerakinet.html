@@ -1,0 +1,70 @@
+{% extends 'generic/object.html' %}
+
+{% block content %}
+  <div class="row mb-3">
+    <div class="col col-md-6">
+      <div class="card">
+        <h5 class="card-header">Meraki Network</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Name</th>
+              <td>{{ object.nom }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Description</th>
+              <td>{{ object.description }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Organization</th>
+              <td>
+                {% if object.org %}
+                <a href="{{ object.org.get_absolute_url }}">{{ object.org }}</a>
+                {% else %}
+                - 
+                {% endif %}
+              </td>
+            </tr>   
+            <tr>
+              <th scope="row">Site</th>
+              <td>
+                {% if object.site %}
+                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
+                {% else %}
+                - 
+                {% endif %}
+              </td>
+            </tr> 
+            <tr>
+              <th scope="row">Bound to template</th>
+              <td>{{ object.bound_to_template }}</td>
+            </tr>           
+            <tr>
+              <th scope="row">Meraki OrgID</th>
+              <td>{{ object.meraki_id }}</td>
+            </tr>           
+            <tr>
+              <th scope="row">Meraki URL</th>
+              <td>
+                {% if object.meraki_url %}
+                <a href="{{ object.meraki_url }}">{{ object.meraki_url }}</a>
+                {% else %}
+                - 
+                {% endif %}
+              </td>
+            </tr>           
+            <tr>
+              <th scope="row">Meraki Notes</th>
+              <td>{{ object.meraki_notes }}</td>
+            </tr>           
+          </table>
+        </div>
+      </div>
+      {% include 'inc/panels/custom_fields.html' %}
+    </div>
+    <div class="col col-md-6">
+      {% include 'inc/panels/tags.html' %}
+      {% include 'inc/panels/comments.html' %}
+    </div>
+  </div>
+{% endblock content %}

@@ -8,14 +8,37 @@ from django.conf import settings
 from netbox.context import current_request
 
 from sop_infra.validators import SopInfraSizingValidator
-from sop_infra.models import SopInfra
+from sop_infra.models import SopInfra, SopMerakiDash, SopMerakiOrg, SopMerakiNet
 
+import re
 
 __all__ = (
     "PrismaAccessLocationRecomputeMixin",
     "SopInfraRelatedModelsMixin",
     "SopInfraRefreshMixin",
+    "SopRegExps",
 )
+
+
+
+
+class SopRegExps():
+    date_str=r'20[0-2][0-9]-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])'
+    # TODO: trouver une lib pour récupérer la "vraie" liste de codes ISO3166 !
+    iso3166a2_str=r'[A-Z][A-Z]'
+    iso3166a2_re=re.compile(iso3166a2_str)
+    meraki_sitename_str=r'^.*--(?:(STOCK-.*|[^ -]+)(|[ -]+[oO][lL][dD].*|[ -].*))$'
+    meraki_sitename_re=re.compile(meraki_sitename_str)
+    ip4_octet_str = r'(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])'
+    ip4_str = r'%s(?:\.%s){3}' % (ip4_octet_str, ip4_octet_str)
+    ip4_re = re.compile(ip4_str)
+    one_ip4_str= r'^('+ip4_str+r')$'
+    mac_octet_str=r'(?:[0-9a-fA-F]{2})'
+    mac_str = r'(?:%s:){5}%s' % (mac_octet_str, mac_octet_str)
+    mac_re = re.compile(mac_str)
+    one_mac_str = r'^('+mac_str+r')$'
+    one_mac_re = re.compile(one_mac_str)
+
 
 
 class PrismaAccessLocationRecomputeMixin:

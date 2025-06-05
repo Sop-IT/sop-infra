@@ -1,3 +1,5 @@
+from django.db.models import Count
+
 from netbox.api.viewsets import NetBoxModelViewSet
 from netbox.api.metadata import ContentTypeMetadata
 
@@ -11,6 +13,9 @@ __all__ = (
     'PrismaEndpointViewSet',
     'PrismaAccessLocationViewSet',
     'PrismaComputedAccessLocationViewSet',
+    'SopMerakiDashViewSet',
+    'SopMerakiOrgViewSet',
+    'SopMerakiNetViewSet',
 )
 
 
@@ -41,3 +46,21 @@ class SopInfraViewSet(NetBoxModelViewSet):
     serializer_class = SopInfraSerializer
     filterset_class = SopInfraFilterset
 
+
+class SopMerakiDashViewSet(NetBoxModelViewSet):
+    queryset = SopMerakiDash.objects.prefetch_related('tags').annotate(
+        orgs_count=Count('orgs')
+    )
+    serializer_class = SopMerakiDashSerializer
+
+
+class SopMerakiOrgViewSet(NetBoxModelViewSet):
+    queryset = SopMerakiOrg.objects.prefetch_related('tags').annotate(
+        nets_count=Count('nets')
+    )
+    serializer_class = SopMerakiOrgSerializer
+
+
+class SopMerakiNetViewSet(NetBoxModelViewSet):
+    queryset = SopMerakiNet.objects.all()
+    serializer_class = SopMerakiNetSerializer

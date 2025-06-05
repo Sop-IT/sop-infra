@@ -87,5 +87,34 @@ urlpatterns = [
     path('computed_location/journal/<int:pk>', ObjectJournalView.as_view(), name='prismacomputedaccesslocation_journal', kwargs={'model': PrismaComputedAccessLocation}),
     path('computed_location/changelog/<int:pk>', ObjectChangeLogView.as_view(), name='prismacomputedaccesslocation_changelog', kwargs={'model': PrismaComputedAccessLocation}),
 
+
+    #____________________
+    # sopmeraki dash
+    path('sopmerakidash/', SopMerakiDashListView.as_view(), name='sopmerakidash_list'),
+    path('sopmerakidash/add/', SopMerakiDashEditView.as_view(), name='sopmerakidash_add'),
+    path('sopmerakidash/<int:pk>/', SopMerakiDashView.as_view(), name='sopmerakidash_detail'),
+    path('sopmerakidash/<int:pk>/edit/', SopMerakiDashEditView.as_view(), name='sopmerakidash_edit'),
+    path('sopmerakidash/<int:pk>/delete/', SopMerakiDashDeleteView.as_view(), name='sopmerakidash_delete'),
+    path('sopmerakidash/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakidash_changelog', kwargs={'model': SopMerakiDash}),
+    path('sopmerakidash/refresh/', SopMerakiRefreshDashboardsView.as_view(), name='sopmerakidash_refresh'),
+
+    #____________________
+    # meraki org
+    path('sopmerakiorg/', SopMerakiOrgListView.as_view(), name='sopmerakiorg_list'),
+    path('sopmerakiorg/add/', SopMerakiOrgEditView.as_view(), name='sopmerakiorg_add'),
+    path('sopmerakiorg/<int:pk>/', SopMerakiOrgView.as_view(), name='sopmerakiorg_detail'),
+    path('sopmerakiorg/<int:pk>/edit/', SopMerakiOrgEditView.as_view(), name='sopmerakiorg_edit'),
+    path('sopmerakiorg/<int:pk>/delete/', SopMerakiOrgDeleteView.as_view(), name='sopmerakiorg_delete'),
+    path('sopmerakiorg/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakiorg_changelog', kwargs={'model': SopMerakiOrg}),
+
+    #____________________
+    # meraki net
+    path('sopmerakinet/', SopMerakiNetListView.as_view(), name='sopmerakinet_list'),
+    path('sopmerakinet/add/', SopMerakiNetEditView.as_view(), name='sopmerakinet_add'),
+    path('sopmerakinet/<int:pk>/', SopMerakiNetView.as_view(), name='sopmerakinet_detail'),
+    path('sopmerakinet/<int:pk>/edit/', SopMerakiNetEditView.as_view(), name='sopmerakinet_edit'),
+    path('sopmerakinet/<int:pk>/delete/', SopMerakiNetDeleteView.as_view(), name='sopmerakinet_delete'),
+    path('sopmerakinet/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakinet_changelog', kwargs={'model': SopMerakiNet}),
+
 ]
 

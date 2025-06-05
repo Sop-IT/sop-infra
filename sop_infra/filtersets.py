@@ -10,7 +10,8 @@ from utilities.filters import TreeNodeMultipleChoiceFilter, MultiValueCharFilter
 
 from .models import (
     SopInfra,
-    PrismaEndpoint, PrismaAccessLocation, PrismaComputedAccessLocation
+    PrismaEndpoint, PrismaAccessLocation, PrismaComputedAccessLocation,
+    SopMerakiOrg, SopMerakiDash, SopMerakiNet,
 )
 
 
@@ -18,8 +19,63 @@ __all__ = (
     'SopInfraFilterset',
     'PrismaEndpointFilterset',
     'PrismaAccessLocationFilterset',
-    'PrismaComputedAccessLocationFilterset'
+    'PrismaComputedAccessLocationFilterset',
+    'SopMerakiNetFilterSet',
+    'SopMerakiOrgFilterSet',
+    'SopMerakiDashFilterSet',
+    
 )
+
+
+class SopMerakiDashFilterSet(NetBoxModelFilterSet):
+
+    class Meta:
+        model = SopMerakiDash
+        fields = ('id', 'api_url', 'description', 'nom', 
+        )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(nom__icontains=value) |
+            Q(description__icontains=value)
+        )
+    
+
+class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
+
+    class Meta:
+        model = SopMerakiOrg
+        fields = ('id', 'dash', 'dash_id', 'description', 'nom', 
+            'meraki_id', 
+        )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(nom__icontains=value) |
+            Q(description__icontains=value)|
+            Q(meraki_id__icontains=value)
+        )
+
+
+class SopMerakiNetFilterSet(NetBoxModelFilterSet):
+
+    class Meta:
+        model = SopMerakiNet
+        fields = ('id', 'site', 'site_id', 'org', 'org_id', 'nom', 'meraki_id', 
+            'bound_to_template', 'meraki_url', 'meraki_notes'
+        )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(nom__icontains=value) |
+            Q(meraki_id__icontains=value)
+        )
 
 
 class PrismaComputedAccessLocationFilterset(NetBoxModelFilterSet):
