@@ -8,56 +8,6 @@ menu = PluginMenu(
     icon_class="mdi mdi-router-network-wireless",
     groups=(
         (
-            "Meraki",
-            (
-                PluginMenuItem(
-                    link="plugins:sop_infra:sopmerakidash_list",
-                    link_text="Dashboards",
-                    #permissions=["sop_infra.view_merakidashs"],
-                    buttons=(
-                        PluginMenuButton(
-                            link=f"plugins:sop_infra:sopmerakidash_refresh",
-                            title="Recompute",
-                            icon_class="mdi mdi-refresh",
-                            #permissions=[f"sop_infra.change_sop_infra"],
-                        ),
-                        PluginMenuButton(
-                            link="plugins:sop_infra:sopmerakidash_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            #permissions=["sop_infra.add_merakidashs"],
-                        ),
-                    ),
-                ),
-                PluginMenuItem(
-                    link="plugins:sop_infra:sopmerakiorg_list",
-                    link_text="Organizations",
-                    #permissions=["sop_infra.view_merakiorgs"],
-                    buttons=(
-                        PluginMenuButton(
-                            link="plugins:sop_infra:sopmerakiorg_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            #permissions=["sop_infra.add_merakiorgs"],
-                        ),
-                    ),
-                ),
-                PluginMenuItem(
-                    link="plugins:sop_infra:sopmerakinet_list",
-                    link_text="Networks",
-                    #permissions=["sop_infra.view_merakinets"],
-                    buttons=(
-                        PluginMenuButton(
-                            link="plugins:sop_infra:sopmerakinet_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            #permissions=["sop_infra.add_merakinets"],
-                        ),
-                    ),
-                ),
-            ),
-        ),
-        (
             _("Infrastructure"),
             (
                 PluginMenuItem(
