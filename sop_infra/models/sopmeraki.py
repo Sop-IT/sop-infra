@@ -9,6 +9,8 @@ from dcim.models import Site, Location
 
 
 import meraki
+from logging import Logger
+
 
 
 __all__ = ("SopMerakiDash", "SopMerakiOrg", "SopMerakiNet","SopMerakiUtils",)
@@ -65,10 +67,14 @@ class SopMerakiUtils:
         return meraki.DashboardAPI(api_key=api_key, base_url=api_url, suppress_logging=True, simulate=simulate)
     
     @classmethod
-    def refresh_dashboards(cls):
+    def refresh_dashboards(cls, log:Logger=None):
         for smd in SopMerakiDash.objects.all():
+            if log : 
+                log.info(f"Try to connect to {smd.nom} via url {smd.api_url}...")
             conn=cls.connect(smd.nom, smd.api_url)
-            smd.refresh_from_meraki(conn)
+            if log : 
+                log.info(f"Try to refresh {smd.nom}")
+            smd.refresh_from_meraki(conn, log)
 
     @staticmethod
     def extractSiteName(name):
@@ -105,7 +111,7 @@ class SopMerakiDash(NetBoxModel):
         verbose_name = "Meraki dashboard"
         verbose_name_plural = "Meraki dashboards"
 
-    def refresh_from_meraki(self, conn:meraki.DashboardAPI):
+    def refresh_from_meraki(self, conn:meraki.DashboardAPI, log:Logger=None):
         save=self.pk is None
 
         if save:
@@ -114,9 +120,13 @@ class SopMerakiDash(NetBoxModel):
 
         org_ids=[]
         smo:SopMerakiOrg
+        if log: 
+            log.info(f"Looping on {self.nom} organizations...")
         for org in conn.organizations.getOrganizations():
             org_ids.append(org['id'])
             if not SopMerakiOrg.objects.filter(meraki_id=org['id']).exists():
+                if log: 
+                    log.info(f"Creating Org on {org['name']}...")
                 smo=SopMerakiOrg()
             else:
                 smo=SopMerakiOrg.objects.get(meraki_id=org['id'])
@@ -136,7 +146,7 @@ class SopMerakiOrg(NetBoxModel):
 
     dash=models.ForeignKey(
         to=SopMerakiDash,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         null=False,
         blank=False,
         verbose_name="Dashboard",
@@ -224,7 +234,7 @@ class SopMerakiNet(NetBoxModel):
 
     org=models.ForeignKey(
         to=SopMerakiOrg,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         null=False,
         blank=False,
         verbose_name="Organization",
