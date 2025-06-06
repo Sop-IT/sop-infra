@@ -1,7 +1,9 @@
-from netbox.jobs import JobRunner, Job
+from core.choices import JobIntervalChoices
+from netbox.jobs import JobRunner, Job, system_job
 from sop_infra.models import SopMerakiUtils
 import logging
 
+@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY)
 class SopMerakiDashRefreshJob(JobRunner):
 
     class Meta:

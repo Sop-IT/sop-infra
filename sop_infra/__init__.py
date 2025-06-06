@@ -11,5 +11,8 @@ class SopInfraConfig(PluginConfig):
     base_url = "sop-infra"
     min_version = "4.2.0"
 
+    def ready(self):
+        super().ready()
+        from .jobs import SopMerakiDashRefreshJob
 
 config = SopInfraConfig
