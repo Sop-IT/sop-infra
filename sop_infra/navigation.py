@@ -4,7 +4,7 @@ from netbox.plugins import PluginMenu, PluginMenuButton, PluginMenuItem
 
 
 menu = PluginMenu(
-    label=_("Infrastructure"),
+    label="SOP Infrastructure",
     icon_class="mdi mdi-router-network-wireless",
     groups=(
         (
@@ -17,7 +17,7 @@ menu = PluginMenu(
                     buttons=(
                         PluginMenuButton(
                             link=f"plugins:sop_infra:sopmerakidash_refresh",
-                            title="Recompute",
+                            title="Refetch dashboards from Meraki",
                             icon_class="mdi mdi-refresh",
                             #permissions=[f"sop_infra.change_sop_infra"],
                         ),
