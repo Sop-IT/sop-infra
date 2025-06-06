@@ -47,7 +47,7 @@ class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = SopMerakiOrg
-        fields = ('id', 'dash', 'dash_id', 'description', 'nom', 
+        fields = ('id', 'dash', 'dash_id', 'nom', 
             'meraki_id', 
         )
 
@@ -56,7 +56,7 @@ class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
             return queryset
         return queryset.filter(
             Q(nom__icontains=value) |
-            Q(description__icontains=value)|
+            Q(meraki_notes__icontains=value)|
             Q(meraki_id__icontains=value)
         )
 

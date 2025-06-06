@@ -24,8 +24,7 @@ class SopMerakiOrgTable(NetBoxTable):
 
     nom = tables.Column(linkify=True)
     dash = tables.Column(linkify=True)
-    meraki_url = tables.Column(linkify=True)
-
+    
     class Meta(NetBoxTable.Meta):
         model = SopMerakiOrg
         fields = ('pk', 'id', 'nom', 'dash', 'description', 'meraki_id', 'meraki_url', 'nets_count')
@@ -37,12 +36,12 @@ class SopMerakiNetTable(NetBoxTable):
     nom = tables.Column(linkify=True)
     org = tables.Column(linkify=True)
     site = tables.Column(linkify=True)
-    meraki_url = tables.Column(linkify=True)
-
+    bound_to_template=tables.Column(verbose_name="Bound")
+    
     class Meta(NetBoxTable.Meta):
         model = SopMerakiNet
-        fields = ('pk', 'id', 'nom', 'org', 'site', 'description', 'meraki_id', 'meraki_url', 'meraki_notes', 'bound_to_template')
-        default_columns = ('nom', 'description',  'meraki_url',  'site', 'org', 'bound_to_template')
+        fields = ('pk', 'id', 'nom', 'org', 'site',  'meraki_id', 'meraki_url', 'meraki_notes', 'bound_to_template')
+        default_columns = ('nom',  'meraki_url',  'site', 'org', 'bound_to_template', 'meraki_notes')
 
 
 

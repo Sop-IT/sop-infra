@@ -71,7 +71,7 @@ class SopMerakiUtils:
         for smd in SopMerakiDash.objects.all():
             if log : 
                 log.info(f"Try to connect to {smd.nom} via url {smd.api_url}...")
-            conn=cls.connect(smd.nom, smd.api_url)
+            conn=cls.connect(smd.nom, smd.api_url, True)
             if log : 
                 log.info(f"Try to refresh {smd.nom}")
             smd.refresh_from_meraki(conn, log)
@@ -151,10 +151,6 @@ class SopMerakiOrg(NetBoxModel):
         blank=False,
         verbose_name="Dashboard",
         related_name="orgs",
-    )
-    
-    description=models.CharField(
-        max_length=250, null=True, blank=True, unique=False, verbose_name="Description"
     )
 
     meraki_id = models.CharField(
