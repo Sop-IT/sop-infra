@@ -26,6 +26,7 @@ def create_or_update_sopinfra(sender, instance, created, **kwargs):
     target = SopInfra.objects.filter(site=instance)
 
     # create
+    infra:SopInfra
     if created and not target.exists():
         infra = SopInfra.objects.create(site=instance)
         infra.full_clean()
@@ -63,7 +64,7 @@ def create_new_panel(self):
     def get_extra_context() -> dict:
 
         qs = SopInfra.objects.filter(site=self.context['object'])
-        infra = qs.first() if qs.exists() else SopInfra
+        infra = qs.first() if qs.exists() else SopInfra()
 
         return {'infra': infra, 'what': self.what}
 
@@ -78,7 +79,6 @@ class SopInfraDashboard:
 
     def __init__(self):
         self.settings = settings.PLUGINS_CONFIG.get('sop_infra', {})
-        self.extensions = self.get_display_extensions()
 
 
     def get_html_panel(self, panel):
@@ -99,19 +99,19 @@ class SopInfraDashboard:
         return None
 
 
-    def get_display_extensions(self):
+    def get_display_extensions(self) -> list[PluginTemplateExtension]:
 
         extensions = []
         _display = self.settings.get('display')
 
         # no configuration
         if _display is None:
-            return
+            return []
 
         # error handling
         if not isinstance(_display, dict):
             logging.error(f'Invalid syntax "{_display}", must be a dict.')
-            return
+            return []
 
         for panel in _display:
 
@@ -141,11 +141,16 @@ class SopInfraDashboard:
         return extensions
 
 
-    # returns the list of template_extensions for NetBox
-    def push(self):
-        return self.extensions
 
 
 
-template_extensions = SopInfraDashboard().push()
+class TrigramSearch(PluginTemplateExtension):
+    def navbar(self):
+        return self.render('sop_infra/inc/trisearch.html', extra_context={
+        })
+
+
+# TODO unfold + simplify further
+template_extensions = SopInfraDashboard().get_display_extensions()
+template_extensions.append(TrigramSearch) # type: ignore
 

@@ -1,0 +1,10 @@
+        <div class="collapse navbar-collapse" id="tri-search">
+          <form action="{% url 'plugins:sop_infra:trisearch' %}" method="get" autocomplete="off" novalidate>
+            <div class="input-icon">
+              <span class="input-icon-addon">
+                <i class="mdi mdi-magnify"></i>
+              </span>
+              <input type="text" name="q" value="" class="form-control" placeholder="Search site TRIGRAM" aria-label="Search site TRIGRAM">
+            </div>
+          </form>
+        </div>

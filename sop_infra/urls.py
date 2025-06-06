@@ -11,6 +11,9 @@ app_name = 'sop_infra'
 
 urlpatterns = [
 
+    path('trisearch', SopMerakiTriSearchView.as_view(), name='trisearch'),
+
+
     path('<int:pk>/', SopInfraDetailView.as_view(), name='sopinfra_detail'),
     path('add/', SopInfraAddView.as_view(), name='sopinfra_add'),
     path('add/<int:pk>/', SopInfraAddView.as_view(), name='sopinfra_add'),
