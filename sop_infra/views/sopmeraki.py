@@ -61,7 +61,7 @@ class SopMerakiTriSearchView(View):
 class SopMerakiDashView(generic.ObjectView):
     queryset = SopMerakiDash.objects.all()
     def get_extra_context(self, request, instance):
-        table = SopMerakiOrgTable(instance.orgs.all())
+        table = SopMerakiOrgTable(instance.orgs.annotate(nets_count=Count('nets')))
         table.configure(request)
         return {
             'orgs_table': table,

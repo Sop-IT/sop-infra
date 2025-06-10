@@ -1,6 +1,6 @@
 import django_tables2 as tables
 
-from netbox.tables import NetBoxTable
+from netbox.tables import NetBoxTable, columns
 from sop_infra.models import SopMerakiOrg, SopMerakiDash, SopMerakiNet
 
 __all__ = (
@@ -13,6 +13,7 @@ __all__ = (
 class SopMerakiDashTable(NetBoxTable):
 
     nom = tables.Column(linkify=True)
+    orgs_count = tables.Column()
 
     class Meta(NetBoxTable.Meta):
         model = SopMerakiDash
@@ -24,6 +25,11 @@ class SopMerakiOrgTable(NetBoxTable):
 
     nom = tables.Column(linkify=True)
     dash = tables.Column(linkify=True)
+    nets_count = columns.LinkedCountColumn(
+        viewname='plugins:sop_infra:sopmerakinet_list',
+        url_params={'org_id': 'pk'},
+        verbose_name='Nets count'
+    )
     
     class Meta(NetBoxTable.Meta):
         model = SopMerakiOrg
