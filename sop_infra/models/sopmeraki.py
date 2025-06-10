@@ -86,7 +86,6 @@ class SopMerakiUtils:
 
 
 
-
 class SopMerakiDash(NetBoxModel):
 
     nom=models.CharField(
@@ -137,6 +136,8 @@ class SopMerakiDash(NetBoxModel):
                 smo.delete()
 
         return save
+
+
 
 class SopMerakiOrg(NetBoxModel):
 
