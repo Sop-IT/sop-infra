@@ -1,26 +1,26 @@
+import re, logging
+
 from requests import Session
 from decimal import Decimal
 
 from django.core.cache import cache
 from django.contrib import messages
 from django.conf import settings
+from django.utils import timezone
 
 from netbox.context import current_request
+from extras.choices import LogLevelChoices
 
 from sop_infra.validators import SopInfraSizingValidator
-from sop_infra.models import SopInfra, SopMerakiDash, SopMerakiOrg, SopMerakiNet
-
-import re
+from sop_infra.models import SopInfra
 
 __all__ = (
     "PrismaAccessLocationRecomputeMixin",
     "SopInfraRelatedModelsMixin",
     "SopInfraRefreshMixin",
     "SopRegExps",
+    "JobRunnerLogMixin",
 )
-
-
-
 
 class SopRegExps():
     date_str=r'20[0-2][0-9]-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])'
@@ -39,6 +39,73 @@ class SopRegExps():
     one_mac_str = r'^('+mac_str+r')$'
     one_mac_re = re.compile(one_mac_str)
 
+
+#
+# Job Handling
+#
+
+class JobRunnerLogMixin():
+    """
+    Stripped down reimplementation from Netbox Script logging
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)    
+
+        # init log storage
+        self.messages = []  # Primary script log
+        self.failed = False
+
+        # Initiate the log
+        self.logger = logging.getLogger(f"{__name__}")
+
+    #
+    # Logging
+    #
+    def _log(self, message, obj=None, level=LogLevelChoices.LOG_INFO):
+        """
+        Log a message. Do not call this method directly; use one of the log_* wrappers below.
+        """
+        if level not in LogLevelChoices.values():
+            raise ValueError(f"Invalid logging level: {level}")
+
+        if message:
+            # Record to the script's log
+            self.messages.append({
+                'time': timezone.now().isoformat(),
+                'status': level,
+                'message': str(message),
+                'obj': str(obj) if obj else None,
+                'url': obj.get_absolute_url() if hasattr(obj, 'get_absolute_url') else None, # type: ignore
+            })
+            # Record to the system log
+            if obj:
+                message = f"{obj}: {message}"
+            self.logger.log(LogLevelChoices.SYSTEM_LEVELS[level], message)
+
+    def debug(self, message=None, obj=None):
+        self._log(message, obj, level=LogLevelChoices.LOG_DEBUG)
+
+    def success(self, message=None, obj=None):
+        self._log(message, obj, level=LogLevelChoices.LOG_SUCCESS)
+
+    def info(self, message=None, obj=None):
+        self._log(message, obj, level=LogLevelChoices.LOG_INFO)
+
+    def warning(self, message=None, obj=None):
+        self._log(message, obj, level=LogLevelChoices.LOG_WARNING)
+
+    def failure(self, message=None, obj=None):
+        self._log(message, obj, level=LogLevelChoices.LOG_FAILURE)
+        self.failed = True
+
+    def get_job_data(self):
+        """
+        Return a dictionary of data to attach to the script's Job.
+        """
+        return {
+            'log': self.messages,
+        }
 
 
 class PrismaAccessLocationRecomputeMixin:
