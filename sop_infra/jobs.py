@@ -16,4 +16,4 @@ class SopMerakiDashRefreshJob(JobRunner):
 
     @staticmethod
     def launch_async()->Job:
-        return SopMerakiDashRefreshJob.enqueue_once()
+        return SopMerakiDashRefreshJob.enqueue()
