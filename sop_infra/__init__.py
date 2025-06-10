@@ -5,9 +5,9 @@ class SopInfraConfig(PluginConfig):
     name = "sop_infra"
     verbose_name = "SOP Infra"
     description = "Manage infrastructure informations of each site"
-    version = "0.4.16"
-    author = "Leorevoir"
-    author_email = "leo.quinzler@epitech.eu"
+    version = "0.4.17"
+    author = "Soprema NOC team"
+    author_email = "noc@soprema.com"
     base_url = "sop-infra"
     min_version = "4.2.0"
 
