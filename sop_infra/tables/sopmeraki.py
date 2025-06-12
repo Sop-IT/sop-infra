@@ -46,7 +46,7 @@ class SopMerakiNetTable(NetBoxTable):
     
     class Meta(NetBoxTable.Meta):
         model = SopMerakiNet
-        fields = ('pk', 'id', 'nom', 'org', 'site',  'meraki_id', 'meraki_url', 'meraki_notes', 'bound_to_template')
+        fields = ('pk', 'id', 'nom', 'org', 'site',  'meraki_id', 'meraki_url', 'meraki_notes', 'bound_to_template', 'ptypes', 'meraki_tags')
         default_columns = ('nom',  'meraki_url',  'site', 'org', 'bound_to_template', 'meraki_notes')
 
 

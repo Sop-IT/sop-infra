@@ -11,7 +11,7 @@ from dcim.models import Site, Location
 import meraki
 from logging import Logger
 
-from sop_infra.utils import JobRunnerLogMixin
+from sop_infra.utils import ArrayUtils, JobRunnerLogMixin
 
 
 
@@ -89,6 +89,9 @@ class SopMerakiUtils:
 
 
 class SopMerakiDash(NetBoxModel):
+    """
+    Represents a Meraki dashboard
+    """
 
     nom=models.CharField(
         max_length=50, null=False, blank=False, unique=True, verbose_name="Name"
@@ -147,7 +150,9 @@ class SopMerakiDash(NetBoxModel):
 
 
 class SopMerakiOrg(NetBoxModel):
-
+    """
+    Represents a Meraki Organisation, child of a Meraki dashboard
+    """
     nom=models.CharField(
         max_length=50, null=False, blank=False, verbose_name="Name"
     )
@@ -211,7 +216,7 @@ class SopMerakiOrg(NetBoxModel):
             net_ids.append(net['id'])
             if not SopMerakiNet.objects.filter(meraki_id=net['id']).exists():
                 if log: 
-                    log.info(f"Creating new NET for '{net[id]}' on ORG '{org['name']}'...")
+                    log.info(f"Creating new NET for '{net['id']}' on ORG '{self.nom}'...")
                 smn=SopMerakiNet()
             else:
                 smn=SopMerakiNet.objects.get(meraki_id=net['id'])
@@ -230,20 +235,20 @@ class SopMerakiOrg(NetBoxModel):
 
 
 class SopMerakiNet(NetBoxModel):
-
+    """
+    Represents a Meraki Network on the dashboard
+    """
     nom=models.CharField(
         max_length=150, null=False, blank=False, verbose_name="Name"
     )
-
     site = models.ForeignKey(
         to=Site,
-        related_name="site",
+        related_name="meraki_nets",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name="Site",
     )
-
     org=models.ForeignKey(
         to=SopMerakiOrg,
         on_delete=models.CASCADE,
@@ -252,11 +257,15 @@ class SopMerakiNet(NetBoxModel):
         verbose_name="Organization",
         related_name="nets",
     )
-    
     meraki_id = models.CharField(
         max_length=100, null=False, blank=False, unique=True, verbose_name="Meraki OrgID"
     )
-
+    ptypes = models.JSONField(
+        verbose_name='Product Types', default=list, blank=True, null=True,
+    )
+    meraki_tags = models.JSONField(
+        verbose_name='Tags', default=list, blank=True, null=True,
+    )
     bound_to_template = models.BooleanField(default=False, null=True, blank=True)
     meraki_url=models.URLField(null=True, blank=True)
     meraki_notes=models.CharField(max_length=500, null=True, blank=True)
@@ -302,7 +311,12 @@ class SopMerakiNet(NetBoxModel):
         if self.meraki_notes != net['notes'] :
             self.meraki_notes = net['notes']
             save = True
-       
+        if not ArrayUtils.equal_sets(self.meraki_tags, net['tags']):
+            self.meraki_tags = net['tags']
+            save = True
+        if not ArrayUtils.equal_sets(self.ptypes, net['productTypes']):
+            self.ptypes = net['productTypes']
+            save = True
         slug = SopMerakiUtils.extractSiteName(self.nom)
         if slug is None : 
             val = None
@@ -318,3 +332,4 @@ class SopMerakiNet(NetBoxModel):
             self.save()
 
         return save
+

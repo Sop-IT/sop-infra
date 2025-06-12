@@ -44,15 +44,31 @@ class SopRegExps():
 class ArrayUtils():
 
     @staticmethod
-    def equal_arrays(arr1, arr2):
+    def equal_arrays(arr1:list, arr2:list):
         if bool(arr1 is None) ^ bool(arr2 is None):
             return False
         if arr1 is None:
             return True
         if len(arr1) != len(arr2) :
             return False
-        return (arr1==arr2).all()
-    
+        for i in range(len(arr1)):
+            # TODO : meilleure comparaison
+            if not(arr1[i]==arr2[i]):
+                return False
+        return True
+
+    @staticmethod
+    def equal_sets(arr1:list, arr2:list):
+        if bool(arr1 is None) ^ bool(arr2 is None):
+            return False
+        if arr1 is None:
+            return True
+        if len(arr1) != len(arr2) :
+            return False
+        set1=set(arr1)
+        set2=set(arr2)
+        return set1==set2
+
 
 
 #
