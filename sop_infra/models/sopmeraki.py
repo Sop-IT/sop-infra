@@ -352,7 +352,7 @@ class SopMerakiNet(NetBoxModel):
         if self.meraki_notes != net['notes'] :
             self.meraki_notes = net['notes']
             save = True
-        if self.timezone != net['timeZone'] :
+        if f"{self.timezone}" != f"{net['timeZone']}" :
             self.timezone = net['timeZone']
             save = True
         if not ArrayUtils.equal_sets(self.meraki_tags, net['tags']):
@@ -371,9 +371,12 @@ class SopMerakiNet(NetBoxModel):
         if self.site_id is None or self.site != val :
             self.site = val
 
+
+        # Prepare Meraki site update
+        update_meraki:dict={}
+
         # If we have a site , we setup (or fix) certain things
         if self.site is not None:
-            update_meraki:dict={}
             # handle tags
             current_tags:list[str]=SopMerakiUtils.only_non_netbox_tags(self.meraki_tags)
             netbox_tags:list[str]=SopMerakiUtils.calc_site_netbox_tags(self.site)
@@ -390,16 +393,19 @@ class SopMerakiNet(NetBoxModel):
                 self.timezone=site_tz
                 save=True
                 update_meraki["timeZone"]=f"{self.timezone}"
-            # push 
-            if len(update_meraki.keys()):
-                try:
-                    conn.networks.updateNetwork(self.meraki_id, **update_meraki)
-                except Exception:
-                    log.failure(f"Exception when updating Meraki Network '{self.nom}' ({self.meraki_id}) with dict {update_meraki}")
-                    raise
-                log.success(f"Update Meraki Network '{self.nom}' ({self.meraki_id}) : {update_meraki}")
+
+        # push if needed
+        if len(update_meraki.keys()):
+            try:
+                conn.networks.updateNetwork(self.meraki_id, **update_meraki)
+            except Exception:
+                log.failure(f"Exception when updating Meraki Network '{self.nom}' ({self.meraki_id}) with dict {update_meraki}")
+                raise
+            log.success(f"Updating Meraki Network '[{self.nom}]({self.meraki_url})' : {update_meraki}")
+
         # only save if something changed
         if save: 
+            log.success(f"Saving SopMerakiNetwork '[{self.nom}]({self.get_absolute_url()})'.")
             self.full_clean()
             self.save()
 
