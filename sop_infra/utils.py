@@ -40,6 +40,21 @@ class SopRegExps():
     one_mac_re = re.compile(one_mac_str)
 
 
+
+class ArrayUtils():
+
+    @staticmethod
+    def equal_arrays(arr1, arr2):
+        if bool(arr1 is None) ^ bool(arr2 is None):
+            return False
+        if arr1 is None:
+            return True
+        if len(arr1) != len(arr2) :
+            return False
+        return (arr1==arr2).all()
+    
+
+
 #
 # Job Handling
 #
