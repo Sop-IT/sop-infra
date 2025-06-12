@@ -1,3 +1,4 @@
+from zoneinfo import ZoneInfo
 from django.db import models
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -5,8 +6,9 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
-from dcim.models import Site, Location
-
+from dcim.models import Site, SiteGroup, Region
+from tenancy.models import Tenant, TenantGroup
+from timezone_field import TimeZoneField
 
 import meraki
 from logging import Logger
@@ -69,11 +71,11 @@ class SopMerakiUtils:
         return meraki.DashboardAPI(api_key=api_key, base_url=api_url, suppress_logging=True, simulate=simulate)
     
     @classmethod
-    def refresh_dashboards(cls, log:JobRunnerLogMixin=None):
+    def refresh_dashboards(cls, log:JobRunnerLogMixin):
         for smd in SopMerakiDash.objects.all():
             if log : 
                 log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
-            conn=cls.connect(smd.nom, smd.api_url, True)
+            conn=cls.connect(smd.nom, smd.api_url, False)
             if log : 
                 log.info(f"Trying to refresh '{smd.nom}'")
             smd.refresh_from_meraki(conn, log)
@@ -86,7 +88,45 @@ class SopMerakiUtils:
             return None
         return m.group(1).lower()
 
+    @staticmethod
+    def calc_site_netbox_tags(site:Site) -> list[str]:
+        ret:list[str]=[]
+        for st in site.tags.all():
+            ret.append(f"NETBOX_ST_{st.slug}")
+        t:Tenant=site.tenant # type: ignore
+        ret.append(f"NETBOX_TENANT_{t.slug}")
+        tg:TenantGroup=t.group # type: ignore
+        while tg is not None:
+            ret.append(f"NETBOX_TG_{tg.slug}")
+            tg=tg.parent # type: ignore
+        sg:SiteGroup=site.group
+        while sg is not None:
+            ret.append(f"NETBOX_SG_{sg.slug}")
+            sg=sg.parent
+        r:Region=site.region
+        while r is not None:
+            ret.append(f"NETBOX_RG_{r.slug}")
+            r=r.parent
+        ret.sort()
+        return ret
 
+    @staticmethod
+    def only_netbox_tags(tags:list[str]) -> list[str]:
+        ret:list[str]=[]
+        for x in tags:
+            if x.startswith("NETBOX_"):
+                ret.append(x)
+        ret.sort()
+        return ret
+    
+    @staticmethod
+    def only_non_netbox_tags(tags:list[str]) -> list[str]:
+        ret:list[str]=[]
+        for x in tags:
+            if not(x.startswith("NETBOX_")):
+                ret.append(x)
+        ret.sort()
+        return ret
 
 class SopMerakiDash(NetBoxModel):
     """
@@ -269,6 +309,7 @@ class SopMerakiNet(NetBoxModel):
     bound_to_template = models.BooleanField(default=False, null=True, blank=True)
     meraki_url=models.URLField(null=True, blank=True)
     meraki_notes=models.CharField(max_length=500, null=True, blank=True)
+    timezone=TimeZoneField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.nom}"
@@ -311,6 +352,9 @@ class SopMerakiNet(NetBoxModel):
         if self.meraki_notes != net['notes'] :
             self.meraki_notes = net['notes']
             save = True
+        if self.timezone != net['timeZone'] :
+            self.timezone = net['timeZone']
+            save = True
         if not ArrayUtils.equal_sets(self.meraki_tags, net['tags']):
             self.meraki_tags = net['tags']
             save = True
@@ -326,10 +370,41 @@ class SopMerakiNet(NetBoxModel):
             val = Site.objects.get(slug=slug)
         if self.site_id is None or self.site != val :
             self.site = val
+
+        # If we have a site , we setup (or fix) certain things
+        if self.site is not None:
+            update_meraki:dict={}
+            # handle tags
+            current_tags:list[str]=SopMerakiUtils.only_non_netbox_tags(self.meraki_tags)
+            netbox_tags:list[str]=SopMerakiUtils.calc_site_netbox_tags(self.site)
+            current_tags.extend(netbox_tags)
+            if not ArrayUtils.equal_sets(self.meraki_tags, current_tags):
+                self.meraki_tags=current_tags
+                save=True
+                update_meraki["tags"]=self.meraki_tags
+            # handle TZ
+            site_tz=self.site.time_zone
+            if site_tz is None:
+                site_tz=ZoneInfo("UTC")
+            if site_tz!=self.timezone:
+                self.timezone=site_tz
+                save=True
+                update_meraki["timeZone"]=f"{self.timezone}"
+            # push 
+            if len(update_meraki.keys()):
+                try:
+                    conn.networks.updateNetwork(self.meraki_id, **update_meraki)
+                except Exception:
+                    log.failure(f"Exception when updating Meraki Network '{self.nom}' ({self.meraki_id}) with dict {update_meraki}")
+                    raise
+                log.success(f"Update Meraki Network '{self.nom}' ({self.meraki_id}) : {update_meraki.keys()}")
+
         
         if save: 
             self.full_clean()
             self.save()
 
         return save
+
+  
 
