@@ -27,15 +27,8 @@ class SopMerakiRefreshDashboardsView(View):
 
         j:Job=SopMerakiDashRefreshJob.launch_async()
         return redirect(reverse("extras:script_result", args=[j.pk]))
-    
+   
 
-        SopMerakiUtils.refresh_dashboards()
-
-        return render(
-            request,
-            self.template_name
-        )
-    
 
 
 class SopMerakiTriSearchView(View):
