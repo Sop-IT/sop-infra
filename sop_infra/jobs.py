@@ -17,10 +17,13 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
         try:
             SopMerakiUtils.refresh_dashboards(self)
         except Exception:
-            self.job.error = traceback.format_exc()
+            text=traceback.format_exc()
+            self.failure(text)
+            self.job.error = text
             raise
         finally:
             self.job.data = self.get_job_data()       
+
 
     @staticmethod
     def launch_async()->Job:
