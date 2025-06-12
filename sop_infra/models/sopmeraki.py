@@ -397,9 +397,8 @@ class SopMerakiNet(NetBoxModel):
                 except Exception:
                     log.failure(f"Exception when updating Meraki Network '{self.nom}' ({self.meraki_id}) with dict {update_meraki}")
                     raise
-                log.success(f"Update Meraki Network '{self.nom}' ({self.meraki_id}) : {update_meraki.keys()}")
-
-        
+                log.success(f"Update Meraki Network '{self.nom}' ({self.meraki_id}) : {update_meraki}")
+        # only save if something changed
         if save: 
             self.full_clean()
             self.save()
