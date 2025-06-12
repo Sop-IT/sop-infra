@@ -1,3 +1,4 @@
+import traceback
 from core.choices import JobIntervalChoices
 from netbox.jobs import JobRunner, Job, system_job
 from sop_infra.models import SopMerakiUtils
@@ -15,6 +16,9 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
         obj = job.object
         try:
             SopMerakiUtils.refresh_dashboards(self)
+        except Exception:
+            self.job.error = traceback.format_exc()
+            raise
         finally:
             self.job.data = self.get_job_data()       
 
