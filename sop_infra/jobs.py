@@ -5,7 +5,7 @@ from sop_infra.models import SopMerakiUtils
 from sop_infra.utils import JobRunnerLogMixin
 import logging
 
-@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY)
+@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY*2)
 class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
     class Meta:
