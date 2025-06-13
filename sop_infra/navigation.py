@@ -55,6 +55,19 @@ menu = PluginMenu(
                         ),
                     ),
                 ),
+                PluginMenuItem(
+                    link="plugins:sop_infra:sopmerakidevice_list",
+                    link_text="Devices",
+                    #permissions=["sop_infra.view_merakinets"],
+                    buttons=(
+                        PluginMenuButton(
+                            link="plugins:sop_infra:sopmerakidevice_add",
+                            title="Add",
+                            icon_class="mdi mdi-plus-thick",
+                            #permissions=["sop_infra.add_merakinets"],
+                        ),
+                    ),
+                ),
             ),
         ),
         (

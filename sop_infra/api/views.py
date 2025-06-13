@@ -16,6 +16,7 @@ __all__ = (
     'SopMerakiDashViewSet',
     'SopMerakiOrgViewSet',
     'SopMerakiNetViewSet',
+    'SopMerakiDeviceViewSet',
 )
 
 
@@ -55,12 +56,17 @@ class SopMerakiDashViewSet(NetBoxModelViewSet):
 
 
 class SopMerakiOrgViewSet(NetBoxModelViewSet):
-    queryset = SopMerakiOrg.objects.prefetch_related('tags').annotate(
-        nets_count=Count('nets')
-    )
+    queryset = SopMerakiOrg.objects\
+        .annotate(nets_count=Count('nets', distinct=True))\
+        .annotate(devices_count=Count('devices', distinct=True))
     serializer_class = SopMerakiOrgSerializer
 
 
 class SopMerakiNetViewSet(NetBoxModelViewSet):
     queryset = SopMerakiNet.objects.all()
     serializer_class = SopMerakiNetSerializer
+
+
+class SopMerakiDeviceViewSet(NetBoxModelViewSet):
+    queryset = SopMerakiDevice.objects.all()
+    serializer_class = SopMerakiDeviceSerializer

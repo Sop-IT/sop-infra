@@ -3,7 +3,7 @@ from utilities.forms.fields import DynamicModelChoiceField
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 
 from dcim.models import Site
-from sop_infra.models import SopMerakiDash, SopMerakiOrg, SopMerakiNet
+from sop_infra.models import SopMerakiDash, SopMerakiOrg, SopMerakiNet, SopMerakiDevice
 
 
 class SopMerakiDashForm(NetBoxModelForm):
@@ -25,6 +25,13 @@ class SopMerakiNetForm(NetBoxModelForm):
     class Meta:
         model = SopMerakiNet
         fields = ('nom', 'site', 'org', 'meraki_id', 'bound_to_template', 'meraki_url')
+
+
+class SopMerakiDeviceForm(NetBoxModelForm):
+
+    class Meta:
+        model = SopMerakiDevice
+        fields = ('nom', 'serial', 'site', 'org', 'meraki_network')
 
 
 ##############  FILTER FORMS ################################
@@ -63,6 +70,7 @@ class SopMerakiOrgFilterForm(NetBoxModelFilterSetForm):
         required=False
     )
 
+
 class SopMerakiNetFilterForm(NetBoxModelFilterSetForm):
     model=SopMerakiNet
     nom=forms.CharField(
@@ -86,5 +94,12 @@ class SopMerakiNetFilterForm(NetBoxModelFilterSetForm):
         required=False
     )
     meraki_id=forms.CharField(
+        required=False
+    )
+
+
+class SopMerakiDeviceFilterForm(NetBoxModelFilterSetForm):
+    model=SopMerakiDevice
+    nom=forms.CharField(
         required=False
     )

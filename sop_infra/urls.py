@@ -119,5 +119,14 @@ urlpatterns = [
     path('sopmerakinet/<int:pk>/delete/', SopMerakiNetDeleteView.as_view(), name='sopmerakinet_delete'),
     path('sopmerakinet/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakinet_changelog', kwargs={'model': SopMerakiNet}),
 
+    #____________________
+    # meraki dev
+    path('sopmerakidevice/', SopMerakiDeviceListView.as_view(), name='sopmerakidevice_list'),
+    path('sopmerakidevice/add/', SopMerakiDeviceEditView.as_view(), name='sopmerakidevice_add'),
+    path('sopmerakidevice/<int:pk>/', SopMerakiDeviceView.as_view(), name='sopmerakidevice_detail'),
+    path('sopmerakidevice/<int:pk>/edit/', SopMerakiDeviceEditView.as_view(), name='sopmerakidevice_edit'),
+    path('sopmerakidevice/<int:pk>/delete/', SopMerakiDeviceDeleteView.as_view(), name='sopmerakidevice_delete'),
+    path('sopmerakidevice/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakidevice_changelog', kwargs={'model': SopMerakiDevice}),
+
 ]
 

@@ -17,7 +17,7 @@ from sop_infra.utils import ArrayUtils, JobRunnerLogMixin
 
 
 
-__all__ = ("SopMerakiDash", "SopMerakiOrg", "SopMerakiNet","SopMerakiUtils",)
+__all__ = ("SopMerakiDash", "SopMerakiOrg", "SopMerakiNet","SopMerakiUtils","SopMerakiDevice",)
 
 
 
@@ -128,6 +128,7 @@ class SopMerakiUtils:
         ret.sort()
         return ret
 
+
 class SopMerakiDash(NetBoxModel):
     """
     Represents a Meraki dashboard
@@ -186,7 +187,6 @@ class SopMerakiDash(NetBoxModel):
             log.info(f"Done cleaning up '{self.nom}' !")
 
         return save
-
 
 
 class SopMerakiOrg(NetBoxModel):
@@ -248,6 +248,7 @@ class SopMerakiOrg(NetBoxModel):
             self.full_clean()
             self.save()
 
+        # refresh nets
         net_ids=[]
         smn:SopMerakiNet
         if log: 
@@ -261,13 +262,34 @@ class SopMerakiOrg(NetBoxModel):
             else:
                 smn=SopMerakiNet.objects.get(meraki_id=net['id'])
             smn.refresh_from_meraki(conn, net, self, log)
-        
         if log: 
             log.info(f"Done looping on '{self.nom}' networks, starting cleanup...")
         for smn in self.nets.all():
             if smn.meraki_id not in net_ids:
                 log.info(f"Deleting '{smn.nom}'...")
                 smn.delete()
+
+        # refresh devices
+        serials=[]
+        smd:SopMerakiDevice
+        if log: 
+            log.info(f"Looping on '{self.nom}' devices...")
+        for dev in conn.organizations.getOrganizationDevices(org['id'], total_pages=-1) :
+            serials.append(dev['serial'])
+            if not SopMerakiDevice.objects.filter(serial=dev['serial']).exists():
+                if log: 
+                    log.info(f"Creating new DEVICE for '{dev['serial']}' on ORG '{self.nom}'...")
+                smd=SopMerakiDevice()
+            else:
+                smd=SopMerakiDevice.objects.get(serial=dev['serial'])
+            smd.refresh_from_meraki(conn, dev, self, log)
+        if log: 
+            log.info(f"Done looping on '{self.nom}' devices, starting cleanup...")
+        for smd in self.devices.all():
+            if smd.serial not in serials:
+                log.info(f"Deleting '{smd.nom}'/'{smd.serial}'...")
+                smd.delete()
+
         if log: 
             log.info(f"Done cleaning up '{self.nom}'...")
 
@@ -298,7 +320,7 @@ class SopMerakiNet(NetBoxModel):
         related_name="nets",
     )
     meraki_id = models.CharField(
-        max_length=100, null=False, blank=False, unique=True, verbose_name="Meraki OrgID"
+        max_length=100, null=False, blank=False, unique=True, verbose_name="Meraki Network ID"
     )
     ptypes = models.JSONField(
         verbose_name='Product Types', default=list, blank=True, null=True,
@@ -405,11 +427,150 @@ class SopMerakiNet(NetBoxModel):
 
         # only save if something changed
         if save: 
-            log.success(f"Saving SopMerakiNetwork '[{self.nom}]({self.get_absolute_url()})'.")
+            log.success(f"Saving SopMerakiNetwork '[{self.nom}]'.")
             self.full_clean()
             self.save()
 
         return save
 
   
+class SopMerakiDevice(NetBoxModel):
+
+    nom=models.CharField(
+        max_length=150, null=False, blank=False, verbose_name="Name"
+    )
+    serial=models.CharField(
+        max_length=16, null=False, blank=False, unique=True, verbose_name="Serial"
+        #"Q234-ABCD-5678",
+    )
+    model=models.CharField(
+        max_length=16, null=False, blank=False, verbose_name="Model"
+        #"Q234-ABCD-5678",
+    )
+    mac=models.CharField(
+        max_length=20, null=True, blank=True, verbose_name="MAC"
+        #"Q234-ABCD-5678",
+    )
+    meraki_netid=models.CharField(
+        max_length=150, null=False, blank=False, verbose_name="Meraki Network ID"
+    )
+    meraki_network=models.ForeignKey(
+        to=SopMerakiNet,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Network",
+        related_name="devices",
+    )
+    meraki_notes=models.CharField(max_length=500, null=True, blank=True)
+    ptype = models.CharField(
+        max_length=50, null=False, blank=False, verbose_name="Product type"
+    )
+    meraki_tags = models.JSONField(
+        verbose_name='Tags', default=list, blank=True, null=True,
+    )
+    meraki_details = models.JSONField(
+        verbose_name='Details', default=list, blank=True, null=True,
+    )    
+    firmware=models.CharField(
+        max_length=50, null=True, blank=True, verbose_name="Firmware"
+        #"Q234-ABCD-5678",
+    )
+    site = models.ForeignKey(
+        to=Site,
+        related_name="meraki_devices",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Site",
+    )
+    org=models.ForeignKey(
+        to=SopMerakiOrg,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        verbose_name="Organization",
+        related_name="devices",
+    )
+
+    def __str__(self):
+        return f"{self.nom}"
+
+    def get_absolute_url(self) -> str:
+        return reverse("plugins:sop_infra:sopmerakidevice_detail", args=[self.pk])
+
+    class Meta(NetBoxModel.Meta):
+        verbose_name = "Meraki Device"
+        verbose_name_plural = "Meraki Devices"
+
+    def refresh_from_meraki(self, conn:meraki.DashboardAPI, dev, org:SopMerakiOrg, log:JobRunnerLogMixin):
+        # cf https://developer.cisco.com/meraki/api-v1/get-organization-devices/
+        if log: 
+            log.info(f"Refreshing '{self.nom}'...")
+        save=self.pk is None
+        if self.org_id is None or self.org != org :
+            self.org = org 
+            save = True
+        nameval=dev.get('name', None)
+        if nameval is None or nameval.strip()=="":
+            nameval=dev.get('mac', None)
+        if self.nom != nameval:
+            self.nom = nameval
+            save = True
+        if self.serial != dev.get('serial', None) :
+            self.serial = dev.get('serial', None)
+            save = True
+        if self.model != dev.get('model', None) :
+            self.model = dev.get('model', None)
+            save = True
+        if self.mac != dev.get('mac', None) :
+            self.mac = dev.get('mac', None)
+            save = True
+        if self.meraki_netid != dev.get('networkId', None) :
+            self.meraki_netid = dev.get('networkId', None) 
+            self.meraki_network = SopMerakiNet.objects.get(meraki_id=self.meraki_netid)
+            self.site=self.meraki_network.site
+            save = True
+        if self.meraki_notes != dev.get('notes', None) :
+            self.meraki_notes = dev.get('notes', None)
+            save = True
+        if self.ptype != dev.get('productType', None) :
+            self.ptype = dev.get('productType', None)
+            save = True
+        if self.ptype != dev.get('productType', None) :
+            self.ptype = dev.get('productType', None)
+            save = True
+        if self.firmware != dev.get('firmware', None) :
+            self.firmware = dev.get('firmware', None)
+            save = True
+        if not ArrayUtils.equal_sets(self.meraki_tags, dev.get('firmware', list())):
+            self.meraki_tags =  dev.get('firmware', list())
+            save = True
+        # TODO : deepequals json
+        #if not ArrayUtils.equal_sets(self.meraki_details, dev.get('details', list())):
+        #    self.meraki_details = dev.get('details', list())
+        #    save = True
+
+
+        # Prepare Meraki site update
+        update_meraki:dict={}
+
+
+        # push if needed
+        if len(update_meraki.keys()):
+            try:
+                pass
+            except Exception:
+                log.failure(f"Exception when updating Meraki Device '{self.nom}' ({self.serial}) with dict {update_meraki}")
+                raise
+            log.success(f"Updating Meraki Device '[{self.nom}]({self.serial})' : {update_meraki}")
+
+        # only save if something changed
+        if save: 
+            log.success(f"Saving SopDevice '[{self.nom}]'.")
+            self.full_clean()
+            self.save()
+
+        return save
+
 

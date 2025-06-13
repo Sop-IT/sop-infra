@@ -17,6 +17,7 @@ __all__ = (
     "SopMerakiDashSerializer",
     "SopMerakiOrgSerializer",
     "SopMerakiNetSerializer",
+    "SopMerakiDeviceSerializer",
 )
 
 
@@ -227,11 +228,12 @@ class SopMerakiOrgSerializer(NetBoxModelSerializer):
         view_name='plugins-api:sop_infra-api:merakiorg-detail'
     )
     nets_count = serializers.IntegerField(read_only=True)
+    devices_count = serializers.IntegerField(read_only=True)
     class Meta:
         model = SopMerakiOrg
         fields = (
             'id', 'display', 'nom', 'description', 'dash', 'tags', 'custom_fields', 'created',
-            'last_updated', 'nets_count', 
+            'last_updated', 'nets_count', 'devices_count', 
         )
 
 class SopMerakiNetSerializer(NetBoxModelSerializer):
@@ -240,5 +242,16 @@ class SopMerakiNetSerializer(NetBoxModelSerializer):
         model = SopMerakiNet
         fields = (
             'id', 'display', 'nom', 'site', 'org', 'tags', 'custom_fields', 'created',
+            'last_updated',  
+        )
+
+
+class SopMerakiDeviceSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:sop_infra-api:merakidevice-detail')
+    class Meta:
+        model = SopMerakiDevice
+        fields = (
+            'id', 'display', 'serial', 'org', 'org_id', 'model', 'meraki_netid', 
+            'firmware', 'meraki_details', 'meraki_notes', 'ptype', 'meraki_tags', 'site', 'tags', 'custom_fields', 'created',
             'last_updated',  
         )

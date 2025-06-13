@@ -29,8 +29,6 @@ class SopMerakiRefreshDashboardsView(View):
         return redirect(reverse("extras:script_result", args=[j.pk]))
    
 
-
-
 class SopMerakiTriSearchView(View):
     """
     Send to the site or to the filtered site search page
@@ -54,7 +52,11 @@ class SopMerakiTriSearchView(View):
 class SopMerakiDashView(generic.ObjectView):
     queryset = SopMerakiDash.objects.all()
     def get_extra_context(self, request, instance):
-        table = SopMerakiOrgTable(instance.orgs.annotate(nets_count=Count('nets')))
+        table = SopMerakiOrgTable(
+            instance.orgs\
+            .annotate(nets_count=Count('nets', distinct=True))\
+            .annotate(devices_count=Count('devices', distinct=True))\
+        )
         table.configure(request)
         return {
             'orgs_table': table,
@@ -79,16 +81,19 @@ class SopMerakiDashDeleteView(generic.ObjectDeleteView):
 class SopMerakiOrgView(generic.ObjectView):
     queryset = SopMerakiOrg.objects.all()
     def get_extra_context(self, request, instance):
-        table = SopMerakiNetTable(instance.nets.all())
-        table.configure(request)
+        nets_table = SopMerakiNetTable(instance.nets.all())
+        nets_table.configure(request)
+        devices_table = SopMerakiNetTable(instance.devices.all())
+        devices_table.configure(request)
         return {
-            'nets_table': table,
+            'nets_table': nets_table,
+            'devices_table': devices_table
         }
     
 class SopMerakiOrgListView(generic.ObjectListView):
-    queryset = SopMerakiOrg.objects.annotate(
-        nets_count=Count('nets')
-    )
+    queryset = SopMerakiOrg.objects\
+        .annotate(nets_count=Count('nets', distinct=True))\
+        .annotate(devices_count=Count('devices', distinct=True))
     table =  SopMerakiOrgTable
     filterset = SopMerakiOrgFilterSet
     filterset_form = SopMerakiOrgFilterForm
@@ -116,3 +121,20 @@ class SopMerakiNetEditView(generic.ObjectEditView):
 
 class SopMerakiNetDeleteView(generic.ObjectDeleteView):
     queryset = SopMerakiNet.objects.all()
+
+
+class SopMerakiDeviceView(generic.ObjectView):
+    queryset = SopMerakiDevice.objects.all()
+
+class SopMerakiDeviceListView(generic.ObjectListView):
+    queryset = SopMerakiDevice.objects.all()
+    table =  SopMerakiDeviceTable
+    filterset = SopMerakiDeviceFilterSet
+    filterset_form = SopMerakiDeviceFilterForm
+
+class SopMerakiDeviceEditView(generic.ObjectEditView):
+    queryset = SopMerakiDevice.objects.all()
+    form = SopMerakiDeviceForm
+
+class SopMerakiDeviceDeleteView(generic.ObjectDeleteView):
+    queryset = SopMerakiDevice.objects.all()

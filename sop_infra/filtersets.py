@@ -1,4 +1,5 @@
 import django_filters
+from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -11,7 +12,7 @@ from utilities.filters import TreeNodeMultipleChoiceFilter, MultiValueCharFilter
 from .models import (
     SopInfra,
     PrismaEndpoint, PrismaAccessLocation, PrismaComputedAccessLocation,
-    SopMerakiOrg, SopMerakiDash, SopMerakiNet,
+    SopMerakiOrg, SopMerakiDash, SopMerakiNet,SopMerakiDevice,
 )
 
 
@@ -23,7 +24,7 @@ __all__ = (
     'SopMerakiNetFilterSet',
     'SopMerakiOrgFilterSet',
     'SopMerakiDashFilterSet',
-    
+    'SopMerakiDeviceFilterSet',
 )
 
 
@@ -66,15 +67,52 @@ class SopMerakiNetFilterSet(NetBoxModelFilterSet):
     class Meta:
         model = SopMerakiNet
         fields = ('id', 'site', 'site_id', 'org', 'org_id', 'nom', 'meraki_id', 
-            'bound_to_template', 'meraki_url', 'meraki_notes'
+            'bound_to_template', 'meraki_url', 'meraki_notes', 'ptypes', 'meraki_tags'
         )
+        filter_overrides = {
+            models.JSONField: {
+                'filter_class': django_filters.CharFilter,
+                'extra': lambda f: {
+                    'lookup_expr': 'icontains',
+                },
+            }
+        }
+
 
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
         return queryset.filter(
             Q(nom__icontains=value) |
-            Q(meraki_id__icontains=value)
+            Q(meraki_id__icontains=value)|
+            Q(meraki_tags__icontains=value)
+        )
+
+
+class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
+
+    class Meta:
+        model = SopMerakiDevice
+        fields = ('id', 'nom', 'serial', 'org', 'org_id', 'model', 'meraki_netid', 
+            'firmware', 'meraki_details', 'meraki_notes', 'ptype', 'meraki_tags', 'site', 'site_id'
+        )
+        filter_overrides = {
+            models.JSONField: {
+                'filter_class': django_filters.CharFilter,
+                'extra': lambda f: {
+                    'lookup_expr': 'icontains',
+                },
+            }
+        }
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(nom__icontains=value) |
+            Q(serial__icontains=value)|
+            Q(firmware__icontains=value)|
+            Q(meraki_notes__icontains=value)
         )
 
 

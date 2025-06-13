@@ -1,12 +1,13 @@
 import django_tables2 as tables
 
 from netbox.tables import NetBoxTable, columns
-from sop_infra.models import SopMerakiOrg, SopMerakiDash, SopMerakiNet
+from sop_infra.models import SopMerakiOrg, SopMerakiDash, SopMerakiNet, SopMerakiDevice
 
 __all__ = (
     'SopMerakiDashTable',
     'SopMerakiOrgTable',
     'SopMerakiNetTable',
+    'SopMerakiDeviceTable',
 )
 
 
@@ -30,11 +31,16 @@ class SopMerakiOrgTable(NetBoxTable):
         url_params={'org_id': 'pk'},
         verbose_name='Nets count'
     )
+    devices_count = columns.LinkedCountColumn(
+        viewname='plugins:sop_infra:sopmerakidevice_list',
+        url_params={'org_id': 'pk'},
+        verbose_name='Devices count'
+    )
     
     class Meta(NetBoxTable.Meta):
         model = SopMerakiOrg
-        fields = ('pk', 'id', 'nom', 'dash', 'description', 'meraki_id', 'meraki_url', 'nets_count')
-        default_columns = ('dash', 'nom', 'description',  'meraki_url', 'nets_count' )
+        fields = ('pk', 'id', 'nom', 'dash', 'description', 'meraki_id', 'meraki_url', 'nets_count', 'devices_count')
+        default_columns = ('dash', 'nom', 'description',  'meraki_url', 'nets_count', 'devices_count' )
 
 
 class SopMerakiNetTable(NetBoxTable):
@@ -48,6 +54,20 @@ class SopMerakiNetTable(NetBoxTable):
         model = SopMerakiNet
         fields = ('pk', 'id', 'nom', 'org', 'site',  'meraki_id', 'meraki_url', 'meraki_notes', 'bound_to_template', 'ptypes', 'meraki_tags', 'timezone')
         default_columns = ('nom',  'meraki_url',  'site', 'org', 'bound_to_template', 'meraki_notes')
+
+
+class SopMerakiDeviceTable(NetBoxTable):
+
+    nom = tables.Column(linkify=True)
+    org = tables.Column(linkify=True)
+    site = tables.Column(linkify=True)
+    bound_to_template=tables.Column(verbose_name="Bound")
+    
+    class Meta(NetBoxTable.Meta):
+        model = SopMerakiDevice
+        fields = ('pk', 'id', 'nom', 'org', 'site',  'serial', 'meraki_netid', 'meraki_notes', 'meraki_network', 'ptype', 'meraki_tags', 'meraki_details', 'firmware')
+        default_columns = ('nom',  'serial',  'site', 'org', 'meraki_network', 'meraki_notes')
+
 
 
 
