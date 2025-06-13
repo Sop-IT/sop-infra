@@ -22,7 +22,7 @@
             </tr>            
             <tr>
               <th scope="row">Organizations</th>
-              <td>{{ object.orgs.count }}</td>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakiorg_list' %}?dash={{object.pk}}">{{ object.orgs.count }}</a></td>
             </tr>
           </table>
         </div>
