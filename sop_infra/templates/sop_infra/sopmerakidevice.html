@@ -12,37 +12,37 @@
               <td>{{ object.nom }}</td>
             </tr>
             <tr>
-              <th scope="row">Organization</th>
-              <td>
-                {% if object.org %}
-                <a href="{{ object.org.get_absolute_url }}">{{ object.org }}</a>
-                {% else %}
-                - 
-                {% endif %}
-              </td>
-            </tr>   
+              <th scope="row">Serial</th>
+              <td>{{ object.serial }}</td>
+            </tr>           
             <tr>
-              <th scope="row">Site</th>
+              <th scope="row">Netbox Device</th>
               <td>
-                {% if object.site %}
-                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
+                {% if object. %}
+                <a href="{{ object.netbox_device.get_absolute_url }}">{{ object.netbox_device }}</a>
                 {% else %}
                 - 
                 {% endif %}
               </td>
             </tr> 
             <tr>
-              <th scope="row">Serial</th>
-              <td>{{ object.serial }}</td>
-            </tr>           
-            <tr>
-              <th scope="row">Meraki Network ID</th>
-              <td>{{ object.meraki_netid }}</td>
-            </tr>           
-            <tr>
               <th scope="row">Model</th>
               <td>{{ object.model }}</td>
             </tr>           
+            <tr>
+              <th scope="row">Netbox Device Type</th>
+              <td>
+                {% if object. %}
+                <a href="{{ object.netbox_dev_type.get_absolute_url }}">{{ object.netbox_dev_type }}</a>
+                {% else %}
+                - 
+                {% endif %}
+              </td>
+            </tr> 
+            <tr>
+              <th scope="row">MAC Address</th>
+              <td>{{ object.mac }}</td>
+            </tr>    
             <tr>
               <th scope="row">Meraki Notes</th>
               <td>{{ object.meraki_notes }}</td>
@@ -63,6 +63,40 @@
               <th scope="row">meraki_details</th>
               <td>{{ object.meraki_details }}</td>
             </tr>    
+            <tr>
+              <th scope="row">Meraki Organization</th>
+              <td>
+                {% if object.org %}
+                <a href="{{ object.org.get_absolute_url }}">{{ object.org }}</a>
+                {% else %}
+                - 
+                {% endif %}
+              </td>
+            </tr>   
+            <tr>
+              <th scope="row">Meraki Network ID</th>
+              <td>{{ object.meraki_netid }}</td>
+            </tr>           
+            <tr>
+              <th scope="row">Meraki Network</th>
+              <td>
+                {% if object.meraki_network %}
+                <a href="{{ object.meraki_network.get_absolute_url }}">{{ object.meraki_network }}</a>
+                {% else %}
+                - 
+                {% endif %}
+              </td>
+            </tr> 
+            <tr>
+              <th scope="row">Site</th>
+              <td>
+                {% if object.site %}
+                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
+                {% else %}
+                - 
+                {% endif %}
+              </td>
+            </tr> 
           </table>
         </div>
       </div>

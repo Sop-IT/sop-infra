@@ -18,11 +18,11 @@
             </tr>         
             <tr>
               <th scope="row">Networks</th>
-              <td>{{ object.nets.count }}</td>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakinet_list' %}?org={{object.pk}}">{{ object.nets.count }}</a></td>
             </tr>
             <tr>
               <th scope="row">Devices</th>
-              <td>{{ object.devices.count }}</td>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakidevice_list' %}?org={{object.pk}}">{{ object.devices.count }}</a></td>
             </tr>
             <tr>
               <th scope="row">Meraki OrgID</th>
@@ -32,7 +32,7 @@
               <th scope="row">Meraki URL</th>
               <td>
                 {% if object.meraki_url %}
-                <a href="{{ object.meraki_url }}">{{ object.meraki_url }}</a>
+                <a href="{{ object.meraki_url }}" target="blank">{{ object.meraki_url }}</a>
                 {% else %}
                 - 
                 {% endif %}
