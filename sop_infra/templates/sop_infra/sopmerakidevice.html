@@ -18,7 +18,7 @@
             <tr>
               <th scope="row">Netbox Device</th>
               <td>
-                {% if object. %}
+                {% if object.netbox_device %}
                 <a href="{{ object.netbox_device.get_absolute_url }}">{{ object.netbox_device }}</a>
                 {% else %}
                 - 
@@ -32,7 +32,7 @@
             <tr>
               <th scope="row">Netbox Device Type</th>
               <td>
-                {% if object. %}
+                {% if object.netbox_dev_type %}
                 <a href="{{ object.netbox_dev_type.get_absolute_url }}">{{ object.netbox_dev_type }}</a>
                 {% else %}
                 - 
