@@ -65,7 +65,10 @@ class SopMerakiDeviceTable(NetBoxTable):
     
     class Meta(NetBoxTable.Meta):
         model = SopMerakiDevice
-        fields = ('pk', 'id', 'nom', 'org', 'site',  'serial', 'meraki_netid', 'meraki_notes', 'meraki_network', 'ptype', 'meraki_tags', 'meraki_details', 'firmware')
+        fields = ('pk', 'id', 'nom', 'org', 'site',  'serial', \
+            'meraki_netid', 'meraki_notes', 'meraki_network', 'ptype', \
+            'meraki_tags', 'meraki_details', 'firmware', 'netbox_device', \
+            'netbox_dev_type')
         default_columns = ('nom',  'serial',  'site', 'org', 'meraki_network', 'meraki_notes')
 
 

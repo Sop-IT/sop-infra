@@ -1,3 +1,4 @@
+from core.choices import JobIntervalChoices
 from zoneinfo import ZoneInfo
 from django.db import models
 from django.urls import reverse
@@ -6,14 +7,14 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
-from dcim.models import Site, SiteGroup, Region
+from dcim.models import Site, SiteGroup, Region, DeviceType, Device
 from tenancy.models import Tenant, TenantGroup
 from timezone_field import TimeZoneField
 
 import meraki
 from logging import Logger
 
-from sop_infra.utils import ArrayUtils, JobRunnerLogMixin
+from sop_infra.utils import ArrayUtils, JobRunnerLogMixin, SopUtils
 
 
 
@@ -25,6 +26,7 @@ class SopMerakiUtils:
     
     __parsed : bool = False
     __meraki_api_keys : dict[str,str] = {}
+    __no_auto_sched : bool = False
 
     @classmethod
     def try_parse_configuration(cls):
@@ -32,15 +34,16 @@ class SopMerakiUtils:
         from django.conf import settings
         infra_config = settings.PLUGINS_CONFIG.get("sop_infra")
         if infra_config is None :
-            raise Exception("No sop_infra plugin config !")
+            raise Exception("No sop_infra in .PLUGINS_CONFIG !")
         sopmeraki_config = infra_config.get("sopmeraki")
         if sopmeraki_config is None :
-            raise Exception("No sopmeraki plugin config key !")
+            raise Exception("No sopmeraki in sop_infra PLUGINS_CONFIG key !")
         cls.__meraki_api_keys=sopmeraki_config.get("api_keys")
         if cls.__meraki_api_keys is None :
             raise Exception("No sopmeraki/api_keys plugin config key !")
+        cls.__no_auto_sched = infra_config.get("no_auto_sched", False)
         cls.__parsed=True
-
+    
     @classmethod
     def get_ro_api_key_for_dash_name(cls, name:str) -> str :
         return cls.get_api_key_for_dash_name(name, "RO")
@@ -49,6 +52,12 @@ class SopMerakiUtils:
     def get_rw_api_key_for_dash_name(cls, name:str) -> str :
         return cls.get_api_key_for_dash_name(name, "RW")
     
+    @classmethod
+    def get_no_auto_sched(cls) -> bool :
+        if not cls.__parsed:
+            cls.try_parse_configuration()
+        return cls.__no_auto_sched
+        
     @classmethod
     def get_api_key_for_dash_name(cls, name:str, type:str) -> str :
         if type not in ("RO", "RW") : 
@@ -274,7 +283,7 @@ class SopMerakiOrg(NetBoxModel):
         smd:SopMerakiDevice
         if log: 
             log.info(f"Looping on '{self.nom}' devices...")
-        for dev in conn.organizations.getOrganizationDevices(org['id'], total_pages=-1) :
+        for dev in conn.organizations.getOrganizationInventoryDevices(org['id'], total_pages=-1) :
             serials.append(dev['serial'])
             if not SopMerakiDevice.objects.filter(serial=dev['serial']).exists():
                 if log: 
@@ -285,10 +294,10 @@ class SopMerakiOrg(NetBoxModel):
             smd.refresh_from_meraki(conn, dev, self, log)
         if log: 
             log.info(f"Done looping on '{self.nom}' devices, starting cleanup...")
-        for smd in self.devices.all():
+        for smd in self.devices.filter(org__meraki_id=org['id']):
             if smd.serial not in serials:
-                log.info(f"Deleting '{smd.nom}'/'{smd.serial}'...")
-                smd.delete()
+                log.info(f"Orphaning '{smd.nom}'/'{smd.serial}'...")
+                smd.orphan_device()
 
         if log: 
             log.info(f"Done cleaning up '{self.nom}'...")
@@ -452,7 +461,7 @@ class SopMerakiDevice(NetBoxModel):
         #"Q234-ABCD-5678",
     )
     meraki_netid=models.CharField(
-        max_length=150, null=False, blank=False, verbose_name="Meraki Network ID"
+        max_length=150, null=True, blank=True, verbose_name="Meraki Network ID"
     )
     meraki_network=models.ForeignKey(
         to=SopMerakiNet,
@@ -486,11 +495,27 @@ class SopMerakiDevice(NetBoxModel):
     )
     org=models.ForeignKey(
         to=SopMerakiOrg,
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         verbose_name="Organization",
         related_name="devices",
+    )
+    netbox_dev_type=models.ForeignKey(
+        to=DeviceType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Device Type",
+        related_name="meraki_devices",
+    )
+    netbox_device=models.ForeignKey(
+        to=Device,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Device",
+        related_name="meraki_devices",
     )
 
     def __str__(self):
@@ -516,20 +541,18 @@ class SopMerakiDevice(NetBoxModel):
             nameval=dev.get('mac', None)
         if self.nom != nameval:
             self.nom = nameval
-            save = True
-        if self.serial != dev.get('serial', None) :
-            self.serial = dev.get('serial', None)
-            save = True
+            save = True          
         if self.model != dev.get('model', None) :
             self.model = dev.get('model', None)
             save = True
+        if self.serial != dev.get('serial', None) :
+            self.serial = dev.get('serial', None)
+            save = True  
         if self.mac != dev.get('mac', None) :
             self.mac = dev.get('mac', None)
             save = True
         if self.meraki_netid != dev.get('networkId', None) :
             self.meraki_netid = dev.get('networkId', None) 
-            self.meraki_network = SopMerakiNet.objects.get(meraki_id=self.meraki_netid)
-            self.site=self.meraki_network.site
             save = True
         if self.meraki_notes != dev.get('notes', None) :
             self.meraki_notes = dev.get('notes', None)
@@ -537,19 +560,73 @@ class SopMerakiDevice(NetBoxModel):
         if self.ptype != dev.get('productType', None) :
             self.ptype = dev.get('productType', None)
             save = True
-        if self.ptype != dev.get('productType', None) :
-            self.ptype = dev.get('productType', None)
-            save = True
         if self.firmware != dev.get('firmware', None) :
             self.firmware = dev.get('firmware', None)
             save = True
+
         if not ArrayUtils.equal_sets(self.meraki_tags, dev.get('firmware', list())):
-            self.meraki_tags =  dev.get('firmware', list())
+            self.meraki_tags =  dev.get('meraki_tags', list())
             save = True
-        # TODO : deepequals json
-        #if not ArrayUtils.equal_sets(self.meraki_details, dev.get('details', list())):
-        #    self.meraki_details = dev.get('details', list())
-        #    save = True
+        if not SopUtils.deep_equals_json_ic(self.meraki_details, dev.get('details', dict())):
+            self.meraki_details = dev.get('details', dict())
+            save = True
+
+
+        #-----------------------------------------------
+        # Rattachement/maintenance d'objets dépendants
+
+        # Model <-> device type
+        if self.model is not None:
+            dts=DeviceType.objects.filter(manufacturer__slug__exact='cisco').filter(slug=self.model.lower())
+            dt=None
+            if dts.exists():
+                dt=dts[0]
+            if self.netbox_dev_type != dt:
+                self.netbox_dev_type=dt
+                save=True
+        else:
+            if self.netbox_dev_type is not None:
+                self.netbox_dev_type=None   
+                save=True
+
+        # Serial <-> device
+        if self.serial is not None:
+            ds= Device.objects.filter(device_type__manufacturer__slug__exact='cisco').filter(serial__exact=self.serial)
+            d=None
+            if ds.exists():
+                d=ds[0]
+            if self.netbox_device != d:
+                self.netbox_device=d
+                save=True
+        else: 
+            if self.netbox_device is not None:
+                self.netbox_device = None
+                save=True
+
+        # Net ID <-> Sopmeraki net
+        if self.meraki_netid is not None:
+            mnets= SopMerakiNet.objects.filter(meraki_id=self.meraki_netid)
+            mnet=None
+            if mnets.exists():
+                mnet=mnets[0]
+            if self.meraki_network != mnet:
+                self.meraki_network=mnet
+                save=True
+        else:
+            if self.meraki_network is not None:
+                self.meraki_network =None
+                save = True
+
+        # Sopmeraki net <-> netbox site
+        if self.meraki_network is not None:
+            st=self.meraki_network.site
+            if self.site!=st:
+                self.site=st
+                save=True
+        else : 
+            if self.site is not None:
+                self.site=None
+                save=True
 
 
         # Prepare Meraki site update
@@ -574,3 +651,10 @@ class SopMerakiDevice(NetBoxModel):
         return save
 
 
+    def orphan_device(self):
+        self.meraki_netid=None
+        self.meraki_network=None
+        self.org=None
+        self.site=None
+        self.full_clean()
+        self.save()
