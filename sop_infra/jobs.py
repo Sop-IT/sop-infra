@@ -5,7 +5,7 @@ from sop_infra.models import SopMerakiUtils
 from sop_infra.utils import JobRunnerLogMixin
 import logging
 
-@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY*2)
+
 class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
     class Meta:
@@ -26,5 +26,11 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
 
     @staticmethod
-    def launch_async()->Job:
+    def launch_manual()->Job:
+        if SopMerakiUtils.get_no_auto_sched():
+            return SopMerakiDashRefreshJob.enqueue(immediate=True)
         return SopMerakiDashRefreshJob.enqueue()
+
+
+if not(SopMerakiUtils.get_no_auto_sched()):
+    SopMerakiDashRefreshJob.enqueue(interval=JobIntervalChoices.INTERVAL_MINUTELY*2)

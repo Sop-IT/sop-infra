@@ -25,7 +25,7 @@ class SopMerakiRefreshDashboardsView(View):
 
         #restrict_form_fields(self.form(), request.user)
 
-        j:Job=SopMerakiDashRefreshJob.launch_async()
+        j:Job=SopMerakiDashRefreshJob.launch_manual()
         return redirect(reverse("extras:script_result", args=[j.pk]))
    
 
