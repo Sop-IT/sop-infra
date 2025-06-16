@@ -1,4 +1,4 @@
-import re, logging
+import re, logging, json
 
 from requests import Session
 from decimal import Decimal
@@ -69,7 +69,24 @@ class ArrayUtils():
         set2=set(arr2)
         return set1==set2
 
-
+class SopUtils():
+    @staticmethod
+    def deep_equals_json(o1, o2, ignore_case:bool=False)->bool:
+        if bool(o1 is None) ^ bool(o2 is None):
+            return False
+        if o1 is None:
+            return True
+        if o1==o2:
+            return True
+        deep1=json.dumps(o1, sort_keys=True, indent=2)
+        deep2=json.dumps(o2, sort_keys=True, indent=2)
+        if ignore_case:
+            return deep1.lower()==deep2.lower()
+        return deep1==deep2
+    
+    @staticmethod
+    def deep_equals_json_ic(o1, o2)->bool:
+        return SopUtils.deep_equals_json(o1, o2, True)
 
 #
 # Job Handling
