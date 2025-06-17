@@ -33,4 +33,4 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
 
 if not(SopMerakiUtils.get_no_auto_sched()):
-    SopMerakiDashRefreshJob.enqueue(interval=JobIntervalChoices.INTERVAL_MINUTELY*2)
+    SopMerakiDashRefreshJob.enqueue_once(interval=JobIntervalChoices.INTERVAL_MINUTELY*2)
