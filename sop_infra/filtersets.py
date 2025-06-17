@@ -94,7 +94,8 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
     class Meta:
         model = SopMerakiDevice
         fields = ('id', 'nom', 'serial', 'org', 'org_id', 'model', 'meraki_netid', 
-            'firmware', 'meraki_details', 'meraki_notes', 'ptype', 'meraki_tags', 'site', 'site_id'
+            'firmware', 'meraki_details', 'meraki_notes', 'ptype', 'meraki_tags', 
+            'site', 'site_id', 'netbox_dev_type', 'netbox_dev_type_id',
         )
         filter_overrides = {
             models.JSONField: {
