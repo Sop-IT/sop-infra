@@ -16,10 +16,7 @@ from logging import Logger
 
 from sop_infra.utils import ArrayUtils, JobRunnerLogMixin, SopUtils
 
-
-
 __all__ = ("SopMerakiDash", "SopMerakiOrg", "SopMerakiNet","SopMerakiUtils","SopMerakiDevice",)
-
 
 
 class SopMerakiUtils:
@@ -348,7 +345,6 @@ class SopMerakiNet(NetBoxModel):
     def get_absolute_url(self) -> str:
         return reverse("plugins:sop_infra:sopmerakinet_detail", args=[self.pk])
 
-    
     class Meta(NetBoxModel.Meta):
         verbose_name = "Meraki Network"
         verbose_name_plural = "Meraki Networks"
@@ -359,7 +355,7 @@ class SopMerakiNet(NetBoxModel):
                 violation_error_message=_("This org already has an net with this name."),
             ),
         ]
-    
+
     def refresh_from_meraki(self, conn:meraki.DashboardAPI, net, org:SopMerakiOrg, log:JobRunnerLogMixin=None):
         # cf https://developer.cisco.com/meraki/api-v1/get-organization-networks/
         if log: 
@@ -442,7 +438,49 @@ class SopMerakiNet(NetBoxModel):
 
         return save
 
-  
+    @staticmethod
+    def get_appliance_networks(site:Site)->list:
+        ret:list[SopMerakiNet]=list()
+        smns:list[SopMerakiNet]=site.meraki_nets
+        # loop on the site networks
+        for smn in smns:
+            # skip bound networks
+            if smn.bound_to_template:
+                continue
+            # skip non appliance networks
+            if 'appliance' not in smn.ptypes:
+                continue
+            # add to tentative list
+            ret.append(smn)
+        # return the list
+        return ret
+
+    @staticmethod
+    def get_all_networks(site:Site)->list:
+        ret:list[SopMerakiNet]=list()
+        smns:list[SopMerakiNet]=site.meraki_nets
+        # loop on the site networks
+        for smn in smns:
+            # add to tentative list
+            ret.append(smn)
+        # return the list
+        return ret
+
+    @staticmethod
+    def get_bound_networks(site:Site)->list:
+        ret:list[SopMerakiNet]=list()
+        smns:list[SopMerakiNet]=site.meraki_nets
+        # loop on the site networks
+        for smn in smns:
+            # skip not bound networks
+            if not smn.bound_to_template:
+                continue
+            # add to tentative list
+            ret.append(smn)
+        # return the list
+        return ret
+
+
 class SopMerakiDevice(NetBoxModel):
 
     nom=models.CharField(
