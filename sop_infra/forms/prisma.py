@@ -1,5 +1,6 @@
 from django import forms
 
+
 from timezone_field import TimeZoneFormField
 
 from ipam.models import IPAddress
@@ -31,29 +32,34 @@ class PrismaEndpointForm(NetBoxModelForm):
     slug = SlugField()
     ip_address = forms.ModelChoiceField(
         queryset=IPAddress.objects.filter(address__endswith="/32"),
-        required=True,
+        required=False,
         label="IP Address",
     )
     access_location = DynamicModelChoiceField(
-        PrismaAccessLocation.objects.all(), required=True
+        PrismaAccessLocation.objects.all(), required=False
     )
+    prisma_org_id = forms.CharField(required=False)
+    psk = forms.CharField(required=False)
+    local_id = forms.CharField(required=False)
+    remote_id = forms.CharField(required=False)
+    peer_ip = forms.CharField(required=False)
 
     fieldsets = (
         FieldSet(
             "name",
             "slug",
-            name="Name",
+            name="Tunnel EP ID",
         ),
-        FieldSet("ip_address", "access_location", name="IP Address"),
+        FieldSet("prisma_org_id", name="Prisma Access Info"),
+        FieldSet("psk", "local_id", "remote_id", "peer_ip", name="IPSec Info"),
     )
 
     class Meta:
         model = PrismaEndpoint
         fields = [
-            "name",
-            "slug",
-            "ip_address",
-            "access_location",
+            "name", "slug",
+            "prisma_org_id", 
+            "psk", "local_id", "remote_id", "peer_ip", 
         ]
 
     def __init__(self, *args, **kwargs):
@@ -159,6 +165,11 @@ class PrismaEndpointFilterForm(NetBoxModelFilterSetForm):
     access_location = DynamicModelChoiceField(
         queryset=PrismaAccessLocation.objects.all(), required=False
     )
+    prisma_org_id = forms.CharField(required=False)
+    psk = forms.CharField(required=False)
+    local_id = forms.CharField(required=False)
+    remote_id = forms.CharField(required=False)
+    peer_ip = forms.CharField(required=False)
 
     fieldsets = (
         FieldSet(
@@ -230,3 +241,4 @@ class PrismaComputedAccessLocationFilterForm(NetBoxModelFilterSetForm):
             name="Strata",
         ),
     )
+

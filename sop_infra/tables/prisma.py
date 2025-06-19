@@ -32,10 +32,9 @@ class PrismaEndpointTable(NetBoxTable):
             "last_updated",
             "name",
             "slug",
-            "ip_address",
-            "address_location",
+            'prisma_org_id', 'psk', 'local_id', 'remote_id', 'peer_ip',
         )
-        default_columns = ("actions", "name", "slug", "ip_address", "address_location")
+        default_columns = ("actions", "name", "prisma_org_id", "peer_ip")
 
 
 class PrismaAccessLocationTable(NetBoxTable):
@@ -99,3 +98,4 @@ class PrismaComputedAccessLocationTable(NetBoxTable):
             "strata_name",
             "bandwidth",
         )
+

@@ -32,9 +32,11 @@
       <table class="table table-hover attr-table">
 
         {% include "sop_infra/tools/display_detail.html" with name="name" %}
-        {% include "sop_infra/tools/display_detail.html" with name="name" %}
-        {% include "sop_infra/tools/display_detail.html" with name="ip_address" link=1 view="" %}
-        {% include "sop_infra/tools/display_detail.html" with name="access_location" link=1 view="detail" %}
+        {% include "sop_infra/tools/display_detail.html" with name="slug" %}
+        {% include "sop_infra/tools/display_detail.html" with name="prisma_org_id" %}
+        {% include "sop_infra/tools/display_detail.html" with name="local_id" %}
+        {% include "sop_infra/tools/display_detail.html" with name="remote_id" %}
+        {% include "sop_infra/tools/display_detail.html" with name="peer_ip" %}
 
       </table>
     </div>
@@ -44,12 +46,12 @@
     {% include "inc/panels/related_objects.html" %}
   </div>
 
-  {% if infra %}
+  {% if false %}
   <div class="col-md-12">
     <div class="card">
 
       <h2 class="card-header">
-        <a href="{% url infra|viewname:"list" %}?access_location={{object.pk}}">PRISMA Endpoints</a>
+        <a href="{% url infra|viewname:"list" %}?access_location={{object.pk}}">Prisma Locations</a>
       </h2>
 
       <div class="htmx-container table-responsive"

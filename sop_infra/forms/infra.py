@@ -454,7 +454,7 @@ class SopInfraFilterForm(
     endpoint = forms.ModelChoiceField(
         queryset=PrismaEndpoint.objects.all(),
         required=False,
-        label=_("PRISMA Endpoint"),
+        label=_("Prisma Access Tunnel EP"),
     )
     enabled = forms.ChoiceField(
         choices=add_blank_choice(InfraBoolChoices), required=False, label=_("Enabled ?")
@@ -495,7 +495,7 @@ class SopInfraFilterForm(
             "monitor_in_starting",
             name=_("Meraki SDWAN"),
         ),
-        FieldSet("endpoint", "enabled", "valid", name=_("PRISMA Endpoint")),
+        FieldSet("endpoint", "enabled", "valid", name=_("Prisma Access Tunnel EP")),
     )
 
 

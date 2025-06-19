@@ -136,9 +136,7 @@ class PrismaAccessLocation(NetBoxModel):
         ]
 
     def __str__(self) -> str:
-        if self.name:
-            return f"{self.name}"
-        return "PRISMA Endpoint"
+        return f"{self.name}"
 
     def clean(self):
         super().clean()
@@ -149,12 +147,13 @@ class PrismaAccessLocation(NetBoxModel):
 
 class PrismaEndpoint(NetBoxModel):
 
-    name = models.CharField(unique=True, verbose_name=_("Name"))
+    name = models.CharField(unique=True, verbose_name=_("Tunnel Name"))
     slug = models.SlugField(
         max_length=100, unique=True, blank=True, verbose_name=_("slug")
     )
     ip_address = models.ForeignKey(
-        to=IPAddress, on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("IP address")
+        to=IPAddress, on_delete=models.CASCADE, blank=True, null=True, 
+        verbose_name=_("IP address")
     )
     access_location = models.ForeignKey(
         to=PrismaAccessLocation,
@@ -163,36 +162,28 @@ class PrismaEndpoint(NetBoxModel):
         null=True,
         verbose_name=_("Access location"),
     )
+    prisma_org_id = models.CharField(
+        max_length=150, null=True, blank=True, verbose_name="Prisma Org ID"
+    )
+    psk = models.CharField(
+        max_length=150, null=True, blank=True, verbose_name="PSK"
+    )
+    local_id = models.CharField(
+        max_length=150, null=True, blank=True, verbose_name="Local ID"
+    ) 
+    remote_id = models.CharField(
+        max_length=150, null=True, blank=True, verbose_name="Remote ID"
+    ) 
+    peer_ip = models.CharField(
+        max_length=150, null=True, blank=True, verbose_name="Peer IP"
+    )
 
     class Meta(NetBoxModel.Meta):
-        verbose_name = _("PRISMA endpoint")
-        verbose_name_plural = _("PRISMA endpoints")
-        constraints = [
-            models.CheckConstraint(
-                check=~Q(name=None),
-                name="%(app_label)s_%(class)s_name_none",
-                violation_error_message="Name must be set.",
-            ),
-            models.CheckConstraint(
-                check=~Q(slug=None),
-                name="%(app_label)s_%(class)s_slug_none",
-                violation_error_message="Slug must be set.",
-            ),
-        ]
+        verbose_name = "Prisma Access Tunnel EP"
+        verbose_name_plural = "Prisma Access Tunnel EP"
 
     def __str__(self) -> str:
-        if self.name:
-            return f"{self.name}"
-        return "PRISMA Endpoint"
-
-    def clean(self):
-        super().clean()
-
-        if self.ip_address and hasattr(self.ip_address, "address"):
-            if not str(getattr(self.ip_address, "address")).endswith("/32"):
-                raise ValidationError(
-                    {"ip_address": "You must enter a /32 IP Address."}
-                )
+        return f"{self.name}"
 
     def get_absolute_url(self) -> str:
         return reverse("plugins:sop_infra:prismaendpoint_detail", args=[self.pk])

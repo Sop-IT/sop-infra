@@ -53,7 +53,7 @@ class SopInfraTabView(View, ObjectPermissionRequiredMixin, SopInfraRelatedModels
     """
 
     tab = ViewTab(
-        label=_("Infrastructure"), permission=get_permission_for_model(SopInfra, "view")
+        label="SOP Infra", permission=get_permission_for_model(SopInfra, "view")
     )
     template_name: str = "sop_infra/tab/tab.html"
     queryset = SopInfra.objects.all()

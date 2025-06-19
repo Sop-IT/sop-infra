@@ -25,7 +25,7 @@ class PrismaEndpointSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:sop_infra-api:prismaendpoint-detail"
     )
-    access_location = serializers.SerializerMethodField()
+    # access_location = serializers.SerializerMethodField()
 
     class Meta:
         model = PrismaEndpoint
@@ -35,8 +35,7 @@ class PrismaEndpointSerializer(NetBoxModelSerializer):
             "display",
             "name",
             "slug",
-            "ip_address",
-            "access_location",
+            'prisma_org_id', 'psk', 'local_id', 'remote_id', 'peer_ip',
         )
         brief_fields = (
             "id",
@@ -44,16 +43,15 @@ class PrismaEndpointSerializer(NetBoxModelSerializer):
             "display",
             "name",
             "slug",
-            "ip_address",
-            "access_location",
+            'prisma_org_id', 'psk', 'local_id', 'remote_id', 'peer_ip',
         )
 
-    def get_access_location(self, obj):
-        if obj.access_location is None:
-            return None
-        return PrismaAccessLocationSerializer(
-            obj.access_location, nested=True, many=False, context=self.context
-        ).data
+    # def get_access_location(self, obj):
+    #     if obj.access_location is None:
+    #         return None
+    #     return PrismaAccessLocationSerializer(
+    #         obj.access_location, nested=True, many=False, context=self.context
+    #     ).data
 
 
 class PrismaAccessLocationSerializer(NetBoxModelSerializer):

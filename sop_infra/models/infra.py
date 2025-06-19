@@ -169,10 +169,10 @@ class SopInfra(NetBoxModel):
     # PRISMA
     endpoint = models.ForeignKey(
         to=PrismaEndpoint,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_("PRISMA endpoint"),
+        verbose_name=_("Prisma Access Tunnel EP"),
     )
     enabled = models.CharField(
         choices=InfraBoolChoices,
@@ -185,7 +185,7 @@ class SopInfra(NetBoxModel):
     )
 
     def __str__(self):
-        return f"{self.site} Infrastructure"
+        return f"{self.site} SOP Infra"
 
     def get_absolute_url(self) -> str:
         return reverse("plugins:sop_infra:sopinfra_detail", args=[self.pk])
@@ -226,13 +226,13 @@ class SopInfra(NetBoxModel):
         return mark_safe("".join(html))
 
     class Meta(NetBoxModel.Meta):
-        verbose_name = _("Infrastructure")
-        verbose_name_plural = _("Infrastructures")
+        verbose_name = "SOP Infra"
+        verbose_name_plural = "SOP Infras"
         constraints = [
             models.UniqueConstraint(
                 fields=["site"],
                 name="%(app_label)s_%(class)s_unique_site",
-                violation_error_message=_("This site has already an Infrastrcture."),
+                violation_error_message=_("This site has already a 'SOP Infra'."),
             ),
             # PostgreSQL doesnt provide database-level constraints with related fields
             # That is why i cannot check if site == master_location__site on db level, only with clean()

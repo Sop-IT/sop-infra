@@ -71,7 +71,7 @@ menu = PluginMenu(
             ),
         ),
         (
-            _("Infrastructure"),
+            "Classification & sizing",
             (
                 PluginMenuItem(
                     link=f"plugins:sop_infra:class_list",
@@ -121,7 +121,7 @@ menu = PluginMenu(
             ),
         ),
         (
-            _("PRISMA"),
+            "Prisma",
             (
                 PluginMenuItem(
                     link=f"plugins:sop_infra:prismaendpoint_list",
@@ -136,32 +136,32 @@ menu = PluginMenu(
                         ),
                     ),
                 ),
-                PluginMenuItem(
-                    link=f"plugins:sop_infra:prismaaccesslocation_list",
-                    link_text=_("Access Locations"),
-                    permissions=["sop_infra.view_prismaaccesslocation"],
-                    buttons=(
-                        PluginMenuButton(
-                            link=f"plugins:sop_infra:prismaaccesslocation_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            permissions=[f"sop_infra.add_prismaaccesslocation"],
-                        ),
-                    ),
-                ),
-                PluginMenuItem(
-                    link=f"plugins:sop_infra:prismacomputedaccesslocation_list",
-                    link_text=_("Computed Access Locations"),
-                    permissions=["sop_infra.view_computedaccesslocation"],
-                    buttons=(
-                        PluginMenuButton(
-                            link=f"plugins:sop_infra:prismacomputedaccesslocation_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            permissions=[f"sop_infra.add_prismacomputedaccesslocation"],
-                        ),
-                    ),
-                ),
+                # PluginMenuItem(
+                #     link=f"plugins:sop_infra:prismaaccesslocation_list",
+                #     link_text=_("Access Locations"),
+                #     permissions=["sop_infra.view_prismaaccesslocation"],
+                #     buttons=(
+                #         PluginMenuButton(
+                #             link=f"plugins:sop_infra:prismaaccesslocation_add",
+                #             title="Add",
+                #             icon_class="mdi mdi-plus-thick",
+                #             permissions=[f"sop_infra.add_prismaaccesslocation"],
+                #         ),
+                #     ),
+                # ),
+                # PluginMenuItem(
+                #     link=f"plugins:sop_infra:prismacomputedaccesslocation_list",
+                #     link_text=_("Computed Access Locations"),
+                #     permissions=["sop_infra.view_computedaccesslocation"],
+                #     buttons=(
+                #         PluginMenuButton(
+                #             link=f"plugins:sop_infra:prismacomputedaccesslocation_add",
+                #             title="Add",
+                #             icon_class="mdi mdi-plus-thick",
+                #             permissions=[f"sop_infra.add_prismacomputedaccesslocation"],
+                #         ),
+                #     ),
+                # ),
             ),
         ),
     ),

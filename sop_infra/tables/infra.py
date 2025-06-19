@@ -149,14 +149,14 @@ class SopInfraTable(
             'site_infra_sysinfra', 'site_type_indus', 'site_phone_critical',
             'site_type_red', 'site_type_vip', 'site_type_wms',
             'est_cumulative_users', 'wan_computed_users', 'wan_reco_bw',
-            'ad_direct_users', 'site_mx_model',
+            'ad_direct_users', 'site_mx_model', 'criticity_stars',
             'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
             'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
-            'master_site', 'migration_sdwan', 'monitor_in_starting'
+            'master_site', 'migration_sdwan', 'monitor_in_starting', 'tunnel'
         )
         default_columns = (
-            'site', 'status',
-            'sdwanha', 'ad_direct_users', 'wan_computed_users'
+            'site', 'status', 'criticity_stars', 
+            'sdwanha', 'wan_computed_users', 'tunnel'
         )
 
         order_by = ('site',)

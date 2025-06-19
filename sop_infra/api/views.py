@@ -4,7 +4,7 @@ from netbox.api.viewsets import NetBoxModelViewSet
 from netbox.api.metadata import ContentTypeMetadata
 
 from sop_infra.models import *
-from sop_infra.filtersets import SopInfraFilterset
+from sop_infra.filtersets import SopInfraFilterset, PrismaEndpointFilterset
 from sop_infra.api.serializers import *
 
 
@@ -24,7 +24,7 @@ class PrismaEndpointViewSet(NetBoxModelViewSet):
     metadata_class = ContentTypeMetadata
     queryset = PrismaEndpoint.objects.all()
     serializer_class = PrismaEndpointSerializer
-
+    filterset_class = PrismaEndpointFilterset
 
 
 class PrismaAccessLocationViewSet(NetBoxModelViewSet):

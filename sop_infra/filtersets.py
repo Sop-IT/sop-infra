@@ -137,7 +137,6 @@ class PrismaComputedAccessLocationFilterset(NetBoxModelFilterSet):
         )
 
 
-
 class PrismaAccessLocationFilterset(NetBoxModelFilterSet):
 
     time_zone = MultiValueCharFilter()
@@ -166,7 +165,6 @@ class PrismaAccessLocationFilterset(NetBoxModelFilterSet):
         )
 
 
-
 class PrismaEndpointFilterset(NetBoxModelFilterSet):
 
     ip_address = django_filters.ModelMultipleChoiceFilter(
@@ -181,7 +179,10 @@ class PrismaEndpointFilterset(NetBoxModelFilterSet):
     class Meta:
         model = PrismaEndpoint
         fields = ('id', 'name', 'slug',
-                  'ip_address', 'access_location',)
+                  'ip_address', 'access_location',
+                  'prisma_org_id', 'psk', 
+                  'local_id', 'remote_id', 'peer_ip',
+                  )
 
     def search(self, queryset, name, value):
         if not value.strip():
@@ -189,8 +190,9 @@ class PrismaEndpointFilterset(NetBoxModelFilterSet):
         return queryset.filter(
             Q(name__icontains=value) |
             Q(slug__icontains=value) |
-            Q(ip_address__icontains=value) |
-            Q(access_location__name__icontains=value)
+            Q(local_id__icontains=value) |
+            Q(remote_id__icontains=value) |
+            Q(peer_ip__icontains=value) 
         )
 
 
