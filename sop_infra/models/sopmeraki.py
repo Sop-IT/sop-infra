@@ -77,11 +77,11 @@ class SopMerakiUtils:
         return meraki.DashboardAPI(api_key=api_key, base_url=api_url, suppress_logging=True, simulate=simulate)
     
     @classmethod
-    def refresh_dashboards(cls, log:JobRunnerLogMixin):
+    def refresh_dashboards(cls, log:JobRunnerLogMixin, simulate:bool):
         for smd in SopMerakiDash.objects.all():
             if log : 
                 log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
-            conn=cls.connect(smd.nom, smd.api_url, False)
+            conn=cls.connect(smd.nom, smd.api_url, simulate)
             if log : 
                 log.info(f"Trying to refresh '{smd.nom}'")
             smd.refresh_from_meraki(conn, log)
