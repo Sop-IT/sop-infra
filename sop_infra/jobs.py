@@ -1,11 +1,12 @@
 import traceback
+from django.conf import settings
 from core.choices import JobIntervalChoices
 from netbox.jobs import JobRunner, Job, system_job
 from sop_infra.models import SopMerakiUtils
 from sop_infra.utils import JobRunnerLogMixin
-import logging
 
 
+@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY*10)
 class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
     class Meta:
@@ -15,7 +16,7 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
         job:Job=self.job
         obj = job.object
         try:
-            SopMerakiUtils.refresh_dashboards(self)
+            SopMerakiUtils.refresh_dashboards(self, settings.DEBUG)
         except Exception:
             text=traceback.format_exc()
             self.failure(text)
@@ -27,10 +28,7 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
     @staticmethod
     def launch_manual()->Job:
-        if SopMerakiUtils.get_no_auto_sched():
+        if settings.DEBUG:
             return SopMerakiDashRefreshJob.enqueue(immediate=True)
         return SopMerakiDashRefreshJob.enqueue()
 
-
-if not(SopMerakiUtils.get_no_auto_sched()):
-    SopMerakiDashRefreshJob.enqueue_once(interval=JobIntervalChoices.INTERVAL_MINUTELY*15)
