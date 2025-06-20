@@ -71,7 +71,7 @@ class SopInfraJsonExportsAdSites(View):
             d:dict[str,str]=dict()
             d['trigram']=pf.scope.slug
             d['vlan_id']=pf.vlan.vid
-            d['vlan_name']=pf.vlan.name
+            d['prefix']=f"{pf.prefix}"
             d['vlan_role']=pf.vlan.role.slug
             d['tenant_group']=pf.scope.tenant.group.slug
             exp.append(d)
