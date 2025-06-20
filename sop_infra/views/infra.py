@@ -1,13 +1,18 @@
+import json
+from django.http import HttpRequest, JsonResponse
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.urls import reverse
+from django.db.models import Q
+from django.contrib.contenttypes.models import ContentType
 
 from utilities.views import register_model_view, ViewTab, ObjectPermissionRequiredMixin
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
 from netbox.views import generic
 from dcim.models import Site
+from ipam.models import Prefix
 
 from sop_infra.forms import *
 from sop_infra.tables import (
@@ -43,7 +48,34 @@ __all__ = (
     "SopInfraClassificationAddView",
     "SopInfraClassificationEditView",
     "SopInfraClassificationListView",
+    "SopInfraJsonExportsAdSites",
 )
+
+
+class SopInfraJsonExportsAdSites(View):
+
+    def get(self, request:HttpRequest, *args, **kwargs):
+
+        # TODO : permettre de passer le status et le slug du role en arguments
+        status:Q=Q(Q(status='active')|Q(status='noncompliant')|Q(status='decommissionning'))
+        role:Q=Q(role__slug='usr')
+        vrf:Q=Q(vrf_id=None)
+        vlan:Q=~Q(vlan_id=None)
+        visible:Q=Q(custom_field_data__meraki_visible=True)
+        scope_type:Q=Q(scope_type_id=ContentType.objects.get_by_natural_key('dcim', 'site').pk)
+        vlan_role:Q=Q(vlan__role__slug='usr')
+        pfs=Prefix.objects.filter(status, role, vlan, vrf, visible, scope_type, vlan_role)
+
+        exp:list[dict[str,str]]=[]
+        for pf in pfs:
+            d:dict[str,str]=dict()
+            d['trigram']=pf.scope.slug
+            d['vlan_id']=pf.vlan.vid
+            d['vlan_name']=pf.vlan.name
+            d['vlan_role']=pf.vlan.role.slug
+            d['tenant_group']=pf.scope.tenant.group.slug
+            exp.append(d)
+        return JsonResponse(exp, safe=False)
 
 
 @register_model_view(Site, name="infra")

@@ -13,6 +13,7 @@ urlpatterns = [
 
     path('trisearch', SopMerakiTriSearchView.as_view(), name='trisearch'),
 
+    path('jsonexports/adsites', SopInfraJsonExportsAdSites.as_view(), name='jsonexports_adsites'),
 
     path('<int:pk>/', SopInfraDetailView.as_view(), name='sopinfra_detail'),
     path('add/', SopInfraAddView.as_view(), name='sopinfra_add'),
