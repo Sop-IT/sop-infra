@@ -11,6 +11,19 @@ from sop_infra.jobs import SopMerakiDashRefreshJob
 from netbox.jobs import Job
 from django.urls import reverse
 
+
+
+
+# class SopMerakiCreateNetworksView(View):
+#     def get(self, request, pk, *args, **kwargs):
+#         # TODO 
+#         # ret=SopMerakiUtils.create_meraki_networks(site)
+#         # TODO renvoi vers la page source avec un message erreur/OK
+#         return redirect(reverse("extras:script_result", args=[j.pk]))
+   
+   
+
+
 class SopMerakiRefreshDashboardsView(View):
     """
     refresh the dashboards

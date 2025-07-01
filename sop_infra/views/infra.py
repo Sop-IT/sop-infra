@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.urls import reverse
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.contrib.contenttypes.models import ContentType
 
 from utilities.views import register_model_view, ViewTab, ObjectPermissionRequiredMixin
@@ -13,6 +13,7 @@ from utilities.forms import restrict_form_fields
 from netbox.views import generic
 from dcim.models import Site
 from ipam.models import Prefix
+from tenancy.models import Contact
 
 from sop_infra.forms import *
 from sop_infra.tables import (
@@ -49,7 +50,36 @@ __all__ = (
     "SopInfraClassificationEditView",
     "SopInfraClassificationListView",
     "SopInfraJsonExportsAdSites",
+    "SopInfraJsonExportsAdUsers", 
 )
+
+
+
+class SopInfraJsonExportsAdUsers(View):
+
+    def get(self, request:HttpRequest, *args, **kwargs):
+
+        contsdict:dict[int,dict[str,int]]=dict()
+        conts=Contact.objects.filter(custom_field_data__ad_acct_disabled=False)\
+            .filter(custom_field_data__ad_site_id__gt=1)\
+            .values("custom_field_data__ad_site_id",  "custom_field_data__ad_site_name", "custom_field_data__ad_extAtt7")\
+            .annotate(dcount=Count('custom_field_data__ad_site_id'))\
+            .order_by()
+        dc:dict[str,int]
+        for v in conts.all(): 
+            k=v.get('custom_field_data__ad_site_id')
+            if k in contsdict.keys():
+                dc=contsdict.get(k)
+            else:
+                dc=dict()
+            collar=v.get("custom_field_data__ad_extAtt7")
+            if collar in ['0','1']:
+                dc[collar]=v.get("dcount")
+                contsdict[k]=dc
+
+        return JsonResponse(contsdict, safe=False)
+    
+
 
 
 class SopInfraJsonExportsAdSites(View):

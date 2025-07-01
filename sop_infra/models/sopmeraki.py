@@ -133,6 +133,15 @@ class SopMerakiUtils:
                 ret.append(x)
         ret.sort()
         return ret
+    
+    @staticmethod
+    def create_meraki_networks(site:Site):
+        # TODO : get claim org from region hierarchy
+        # TODO : get con from dash from org 
+        # TODO : look up if sop meraki networks exists in claim org
+        # TODO : create missing ones 
+        pass 
+
 
 
 class SopMerakiDash(NetBoxModel):

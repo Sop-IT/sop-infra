@@ -12,7 +12,9 @@ app_name = 'sop_infra'
 urlpatterns = [
 
     path('trisearch', SopMerakiTriSearchView.as_view(), name='trisearch'),
+#    path('create_meraki_network/<int:pk>/', SopMerakiCreateNetworksView.as_view(), name='create_meraki_network'),
 
+    path('jsonexports/adusers', SopInfraJsonExportsAdUsers.as_view(), name='jsonexports_adusers'),
     path('jsonexports/adsites', SopInfraJsonExportsAdSites.as_view(), name='jsonexports_adsites'),
 
     path('<int:pk>/', SopInfraDetailView.as_view(), name='sopinfra_detail'),
