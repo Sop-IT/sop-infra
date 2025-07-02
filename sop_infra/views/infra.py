@@ -76,10 +76,7 @@ class SopInfraJsonExportsAdUsers(View):
             if collar in ['0','1']:
                 dc[collar]=v.get("dcount")
                 contsdict[k]=dc
-        ret:list[dict]=list()
-        for v in contsdict.values():
-            ret.append(v)
-        return JsonResponse(ret, safe=False)
+        return JsonResponse(contsdict, safe=False)
     
 
 
@@ -89,7 +86,7 @@ class SopInfraJsonExportsAdSites(View):
     def get(self, request:HttpRequest, *args, **kwargs):
 
         # TODO : permettre de passer le status et le slug du role en arguments
-        status:Q=Q(Q(status='active')|Q(status='noncompliant')|Q(status='decommissionning'))
+        status:Q=Q(Q(status='active')|Q(status='noncompliant')|Q(status='decommissioning'))
         role:Q=Q(role__slug='usr')
         vrf:Q=Q(vrf_id=None)
         vlan:Q=~Q(vlan_id=None)
