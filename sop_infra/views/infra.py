@@ -76,8 +76,10 @@ class SopInfraJsonExportsAdUsers(View):
             if collar in ['0','1']:
                 dc[collar]=v.get("dcount")
                 contsdict[k]=dc
-
-        return JsonResponse(contsdict, safe=False)
+        ret:list[dict]=list()
+        for v in contsdict.values():
+            ret.append(v)
+        return JsonResponse(ret, safe=False)
     
 
 
