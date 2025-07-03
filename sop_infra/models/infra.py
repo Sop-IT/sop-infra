@@ -8,9 +8,7 @@ from netbox.models import NetBoxModel
 from dcim.models import Site, Location
 
 from sop_infra.validators import (
-    DC_status_site_fields,
     SopInfraSlaveValidator,
-    SopInfraMasterValidator,
 )
 from .prisma import *
 from .choices import *
@@ -18,6 +16,37 @@ from .choices import *
 
 __all__ = ("SopInfra",)
 
+
+class SopInfraUtils():
+
+    @staticmethod
+    def get_mx_and_user_slice(wan:int) -> tuple[str,str]:
+        if wan < 10 :
+            return '<10', 'MX67'
+        elif wan < 20 :
+            return '10<20', 'MX67'
+        elif wan < 50 :
+            return '20<50', 'MX68'
+        elif wan < 100 :
+            return '50<100', 'MX85'
+        elif wan < 200 :
+            return '100<200', 'MX95'
+        elif wan < 500 :
+            return '200<500', 'MX95'
+        return '>500', 'MX250'
+
+    @staticmethod
+    def get_recommended_bandwidth(wan:int) -> int:
+        if wan > 100:
+            return round(wan * 2.5)
+        elif wan > 50:
+            return round(wan * 3)
+        elif wan > 10:
+            return round(wan * 4)
+        else:
+            return round(wan * 5)
+
+        
 
 class SopInfra(NetBoxModel):
     site = models.OneToOneField(
@@ -71,7 +100,10 @@ class SopInfra(NetBoxModel):
     # _______
     # Sizing
     est_cumulative_users = models.PositiveBigIntegerField(
-        null=True, blank=True, verbose_name=_("Est. cumul. users")
+        null=True, blank=True, verbose_name=_("Est. cumul. users (WC)")
+    )
+    est_cumulative_users_bc = models.PositiveBigIntegerField(
+        null=True, blank=True, verbose_name=_("Est. cumul. users (BC)")
     )
     site_user_count = models.CharField(
         null=True, blank=True, help_text=_("Site user count")
@@ -91,11 +123,20 @@ class SopInfra(NetBoxModel):
     wan_computed_users = models.PositiveBigIntegerField(
         null=True,
         blank=True,
-        verbose_name=_("WAN users"),
-        help_text=_("Total computed wan users."),
+        verbose_name=_("WAN users (WC)"),
+        help_text=_("Total computed wan users. (WC)"),
+    )
+    wan_computed_users_bc = models.PositiveBigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("WAN users (BC)"),
+        help_text=_("Total computed wan users. (BC)"),
     )
     ad_direct_users = models.PositiveBigIntegerField(
-        null=True, blank=True, verbose_name=_("AD direct. users")
+        null=True, blank=True, verbose_name=_("AD direct. users (WC)")
+    )
+    ad_direct_users_bc = models.PositiveBigIntegerField(
+        null=True, blank=True, verbose_name=_("AD direct. users (BC)")
     )
     # _______
     # Meraki
@@ -243,69 +284,185 @@ class SopInfra(NetBoxModel):
             ),
         ]
 
-    def compute_wan_cumulative_users(self, instance) -> int:
 
-        base: int | None = instance.wan_computed_users
-
-        # assume base is never None
-        if base is None:
-            base = 0
-
-        # check if this is a master site
-        targets = SopInfra.objects.filter(master_site=instance.site)
-
-        if targets.exists():
-            # if it is, ad slave's wan computed user to master site
-            for target in targets:
-
-                # only add if isinstance integer and not None
-                if target.wan_computed_users is not None and isinstance(
-                    target.wan_computed_users, int
-                ):
-
-                    base += target.wan_computed_users
-
-        return base
+    # =================================================
+    # DJANGO OVERRIDES
 
     def clean(self):
-        """
-        plenty of validators and auto-compute methods in this clean()
-
-        to keep the code readable, cleaning methods are
-        separated in class in validators.py file.
-        """
-
-        super().clean()
-
+        
         # just to be sure, should never happens
         if self.site is None:
             raise ValidationError({"site": "Infrastructure must be set on a site."})
-
+        
         # dc site__status related validators
         if self.site.status == "dc":
-            DC_status_site_fields(self)
+            self.enforce_dc_fields()
             return
+        
+        if self.is_slave():
+            # Enforce master site
+            if self.site_sdwan_master_location is not None :
+                self.master_site = self.site_sdwan_master_location.site
+            # Enforce slave fields
+            self.enforce_slave_fields()
+            # all slave related validators
+            SopInfraSlaveValidator(self)
+        else :
+            # Normal site, maybe master
+            self.compute_sdwanha()
 
-        # all slave related validators
-        SopInfraSlaveValidator(self)
+        # recompute user counts and propagate
+        self.calc_cumul_and_propagate()
 
-        # all non-slave related validators
-        SopInfraMasterValidator(self)
+        return super().clean()
+
 
     def delete(self, *args, **kwargs):
+        # RAZ values for recompute propagation
+        self.ad_direct_users=0
+        self.ad_direct_users_bc=0
+        self.est_cumulative_users=0
+        self.est_cumulative_users_bc=0
+        # recompute and propagate
+        self.calc_cumul_and_propagate()
+        # delete
+        return super().delete(*args, **kwargs)
 
-        # check if it is a child
-        if self.master_site is not None:
 
-            parent = SopInfra.objects.filter(site=self.master_site)
-            super().delete(*args, **kwargs)
+    # ===================================================
+    # MASTER / SLAVE UTILS
 
-            # if parent exists, recompute its sizing
-            if parent.exists():
-                master = parent.first()
-                master.snapshot()
-                master.full_clean()
-                master.save()
+    def is_slave(self) -> bool:
+        return self.master_site is not None \
+            or self.site_sdwan_master_location is not None
 
-        if self.id is not None:
-            return super().delete(*args, **kwargs)
+
+    # ===================================================
+    # HNA/NHA UTILS
+
+    def compute_sdwanha(self):
+        if self.site.status in [
+            'no_infra', 'reserved',
+            'template', 'inventory', 'teleworker']:
+            # enforce no_infra constraints
+            self.sdwanha = '-NO NETWORK-'
+            self.sdwan1_bw = None
+            self.sdwan2_bw = None
+            self.criticity_stars = None
+            self.site_infra_sysinfra = None
+        else:
+            # compute sdwanha for normal sites
+            self.sdwanha = '-NHA-'
+            self.criticity_stars = '*'
+            if self.site_type_vip == 'true':
+                self.sdwanha = '-HA-'
+                self.criticity_stars = '***'
+            # no -HAS- because there is no site_type_indus == IPL
+            elif self.site_type_indus == 'fac' \
+                or self.site_phone_critical == 'true' \
+                or self.site_type_red == 'true' \
+                or self.site_type_wms == 'true' \
+                or self.site_infra_sysinfra == 'sysclust' \
+                or self.site_user_count in ['50<100', '100<200', '200<500', '>500']:
+                self.sdwanha = '-HA-'
+                self.criticity_stars = '**'
+
+
+        
+    # ===================================================
+    # FIELDS ENFORCING
+
+    def enforce_slave_fields(self):
+        self.sdwanha = '-SLAVE SITE-'
+        self.sdwan1_bw = None
+        self.sdwan2_bw = None
+        self.migration_sdwan = None
+        self.site_type_vip = None
+        self.site_type_wms = None
+        self.site_type_red = None
+        self.site_phone_critical = None
+        self.site_infra_sysinfra = None
+        self.site_type_indus = None
+        self.wan_reco_bw = None
+        self.criticity_stars = None
+        self.site_mx_model = None
+
+
+    def enforce_dc_fields(self):
+        self.sdwanha = '-DC-'
+        self.site_user_count = '-DC'
+        self.site_sdwan_master_location = None
+        self.master_site = None
+        self.wan_reco_bw = None
+        self.wan_computed_users = None
+        self.criticity_stars = '****'
+        self.site_mx_model = 'MX450'
+
+
+    # ===================================================
+    # USER COUNT UTILS
+
+    def calc_cumul_and_propagate(self)->bool:
+        loop=list()
+        # calculate cumul
+        return self._rec_calc_cumul_and_propagate(loop, False)
+
+    def _rec_calc_cumul_and_propagate(self, loop, save)->bool:
+        if self in loop:
+            raise Exception("Loop detected when propagating to masters !")
+        loop.append(self)
+        (wc, bc) = self.calc_wan_computed_users()
+        if wc==self.wan_computed_users and bc==self.wan_computed_users_bc:
+            # NO change -> no propagation
+            return False
+        # If we're already propagating, we'll need to snap and save
+        if save :
+            self.snapshot()
+        self.wan_computed_users=wc
+        self.wan_computed_users_bc=bc
+        self.wan_reco_bw=SopInfraUtils.get_recommended_bandwidth(self.wan_computed_users)
+        (self.site_mx_model,self.site_user_count)=SopInfraUtils.get_mx_and_user_slice(self.wan_computed_users)
+        # If we're already propagating, we'll need to snap and save
+        if save :
+            self.save()
+        # Try to propagate further
+        ms=self.master_site
+        if ms is None:
+            return
+        si=ms.sopinfra
+        if si is None:
+            return
+        si._rec_calc_cumul_and_propagate(loop, True)
+        return True
+
+
+
+    def calc_wan_computed_users(self) -> tuple[int, int]:
+        isilog=self.site.custom_field_data.get("site_integration_isilog")
+        loop=list()
+        return self._rec_calc_site_users(isilog, loop)
+    
+    def _rec_calc_site_users(self, isilog:str, loop:list) -> tuple[int, int] :
+        if self in loop:
+            raise Exception("Loop detected when computed users !")
+        loop.append(self)
+        if isilog=="done":
+            wan_wc = self.ad_direct_users
+            wan_bc = self.ad_direct_users_bc
+        else : 
+            wan_wc = self.est_cumulative_users
+            wan_bc = self.est_cumulative_users_bc
+        if wan_wc is None:
+            wan_wc = 0
+        if wan_bc is None:
+            wan_bc = 0
+        slaves = SopInfra.objects.filter(master_site=self.site)
+        for slave in slaves:
+            tup:tuple[int, int] = slave._rec_calc_site_users(isilog, loop)
+            wan_wc += tup[0]
+            wan_bc += tup[1]
+        return (wan_wc, wan_bc)
+
+
+
+
