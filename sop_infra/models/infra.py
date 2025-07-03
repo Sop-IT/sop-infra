@@ -428,10 +428,10 @@ class SopInfra(NetBoxModel):
         # Try to propagate further
         ms=self.master_site
         if ms is None:
-            return
+            return True
         si=ms.sopinfra
         if si is None:
-            return
+            return True
         si._rec_calc_cumul_and_propagate(loop, True)
         return True
 
