@@ -68,7 +68,7 @@ class SopMerakiDeviceTable(NetBoxTable):
         fields = ('pk', 'id', 'nom', 'org', 'site',  'serial', \
             'meraki_netid', 'meraki_notes', 'meraki_network', 'ptype', \
             'meraki_tags', 'meraki_details', 'firmware', 'netbox_device', \
-            'netbox_dev_type')
+            'netbox_dev_type', 'model', 'mac', )
         default_columns = ('nom',  'serial',  'site', 'org', 'meraki_network', 'meraki_notes')
 
 
