@@ -178,13 +178,28 @@ class SopInfraSizingForm(NetBoxModelForm):
     site = DynamicModelChoiceField(
         label=_("Site"), queryset=Site.objects.all(), required=True
     )
-    est_cumulative_users = forms.IntegerField(
-        label=_("EST cumul. users"), required=False
+    est_cumulative_users_wc = forms.IntegerField(
+        label=_("EST cumul. white collar users"), required=False
+    )
+    est_cumulative_users_bc = forms.IntegerField(
+        label=_("EST cumul. blue collar users"), required=False
+    )
+    est_cumulative_users_ext = forms.IntegerField(
+        label=_("EST cumul. external users"), required=False
+    )
+    est_cumulative_users_nom = forms.IntegerField(
+        label=_("EST cumul. nomad users"), required=False
     )
 
     class Meta:
         model = SopInfra
-        fields = ["site", "est_cumulative_users"]
+        fields = [
+            "site",
+            "est_cumulative_users_wc",
+            "est_cumulative_users_bc",
+            "est_cumulative_users_ext",
+            "est_cumulative_users_nom",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -240,7 +255,13 @@ class SopInfraForm(
             "site_type_wms",
             name=_("Classification"),
         ),
-        FieldSet("est_cumulative_users", name=_("Sizing")),
+        FieldSet(
+            "est_cumulative_users_wc",
+            "est_cumulative_users_bc",
+            "est_cumulative_users_ext",
+            "est_cumulative_users_nom",
+            name=_("Sizing"),
+        ),
         FieldSet(
             "sdwanha",
             "hub_order_setting",
@@ -266,7 +287,10 @@ class SopInfraForm(
             "site_type_red",
             "site_type_vip",
             "site_type_wms",
-            "est_cumulative_users",
+            "est_cumulative_users_wc",
+            "est_cumulative_users_bc",
+            "est_cumulative_users_ext",
+            "est_cumulative_users_nom",
             "sdwanha",
             "hub_order_setting",
             "hub_default_route_setting",
@@ -414,11 +438,39 @@ class SopInfraClassificationFilterForm(SopInfraBaseFilterForm):
 
 
 class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
-    ad_direct_users = forms.IntegerField(
-        required=False, label=_("AD direct. users"), help_text=_("Numbers only")
+    ad_direct_users_wc = forms.IntegerField(
+        required=False,
+        label=_("AD direct. white collar users"),
+        help_text=_("Numbers only"),
     )
-    est_cumulative_users = forms.IntegerField(
+    ad_direct_users_bc = forms.IntegerField(
+        required=False,
+        label=_("AD direct. blue collar users"),
+        help_text=_("Numbers only"),
+    )
+    ad_direct_users_ext = forms.IntegerField(
+        required=False,
+        label=_("AD direct. external users"),
+        help_text=_("Numbers only"),
+    )
+    ad_direct_users_nom = forms.IntegerField(
+        required=False, label=_("AD direct. nomad users"), help_text=_("Numbers only")
+    )
+    est_cumulative_users_wc = forms.IntegerField(
+        required=False,
+        label=_("EST cumul. white collar users"),
+        help_text=_("Numbers only"),
+    )
+    est_cumulative_users_bc = forms.IntegerField(
+        required=False,
+        label=_("EST cumul. blue collar users"),
+        help_text=_("Numbers only"),
+    )
+    est_cumulative_users_ext = forms.IntegerField(
         required=False, label=_("EST cumul. users"), help_text=_("Numbers only")
+    )
+    est_cumulative_users_nom = forms.IntegerField(
+        required=False, label=_("EST cumul. nomad users"), help_text=_("Numbers only")
     )
     site_user_count = forms.CharField(
         required=False, label=_("Site user count"), help_text=_("Example: 50<100")
@@ -429,17 +481,27 @@ class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
     wan_reco_bw = forms.IntegerField(
         required=False, label=_("Reco. BW (Mbps)"), help_text=_("Numbers only")
     )
-    wan_computed_users = forms.IntegerField(
-        required=False, label=_("WAN computed users"), help_text=_("Numbers only")
+    wan_computed_users_wc = forms.IntegerField(
+        required=False, label=_("WAN computed white collar users"), help_text=_("Numbers only")
+    )
+    wan_computed_users_bc = forms.IntegerField(
+        required=False, label=_("WAN computed blue collar users"), help_text=_("Numbers only")
     )
 
     fieldsets = (
         FieldSet("region_id", "group_id", "site_id", name=_("Location")),
         FieldSet("status", name=_("Status")),
         FieldSet(
-            "ad_direct_users",
-            "est_cumulative_users",
-            "wan_computed_users",
+            "ad_direct_users_wc",
+            "ad_direct_users_bc",
+            "ad_direct_users_ext",
+            "ad_direct_users_nom",
+            "est_cumulative_users_wc",
+            "est_cumulative_users_bc",
+            "est_cumulative_users_ext",
+            "est_cumulative_users_nom",
+            "wan_computed_users_wc",
+            "wan_computed_users_bc",
             "wan_reco_bw",
             "site_user_count",
             "site_mx_model",
@@ -475,9 +537,16 @@ class SopInfraFilterForm(
             name=_("Classification"),
         ),
         FieldSet(
-            "ad_direct_users",
-            "est_cumulative_users",
-            "wan_computed_users",
+            "ad_direct_users_wc",
+            "ad_direct_users_bc",
+            "ad_direct_users_ext",
+            "ad_direct_users_nom",
+            "est_cumulative_users_wc",
+            "est_cumulative_users_bc",
+            "est_cumulative_users_ext",
+            "est_cumulative_users_nom",
+            "wan_computed_users_wc",
+            "wan_computed_users_bc",
             "wan_reco_bw",
             "site_user_count",
             "site_mx_model",

@@ -8,13 +8,14 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
 from dcim.models import Site, SiteGroup, Region, DeviceType, Device
+from sop_infra.utils.mixins import JobRunnerLogMixin
 from tenancy.models import Tenant, TenantGroup
 from timezone_field import TimeZoneField
 
 import meraki
 from logging import Logger
 
-from sop_infra.utils import ArrayUtils, JobRunnerLogMixin, SopUtils
+from sop_infra.utils.utils import ArrayUtils, SopUtils
 
 __all__ = ("SopMerakiDash", "SopMerakiOrg", "SopMerakiNet","SopMerakiUtils","SopMerakiDevice",)
 
@@ -88,7 +89,7 @@ class SopMerakiUtils:
 
     @staticmethod
     def extractSiteName(name):
-        from ..utils import SopRegExps
+        from ..utils.utils import SopRegExps
         m=SopRegExps.meraki_sitename_re.match(f"{name}")
         if m is None:
             return None

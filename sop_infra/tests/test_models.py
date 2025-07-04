@@ -102,19 +102,19 @@ class SopInfraSlaveModelTestCase(TestCase):
         infra.master_site=self.site3
 
         infra.full_clean()
-        self.assertEqual(infra.wan_computed_users, 0)
+        self.assertEqual(infra.wan_computed_users_wc, 0)
 
-        infra.ad_direct_users = 42
-        infra.est_cumulative_users = 69
+        infra.ad_direct_users_wc = 42
+        infra.est_cumulative_users_wc = 69
         infra.full_clean()
-        self.assertEqual(infra.wan_computed_users, 42)
+        self.assertEqual(infra.wan_computed_users_wc, 42)
 
         infra = SopInfra.objects.get(site=self.site2)
-        infra.ad_direct_users = 42
-        infra.est_cumulative_users = 69
+        infra.ad_direct_users_wc = 42
+        infra.est_cumulative_users_wc = 69
 
         infra.full_clean()
-        self.assertEqual(infra.wan_computed_users, 69)
+        self.assertEqual(infra.wan_computed_users_wc, 69)
 
 
     def test_slave_default_fields(self):
@@ -133,19 +133,19 @@ class SopInfraSlaveModelTestCase(TestCase):
         """Test that delete slave infra recomputes its master"""
         infra = SopInfra.objects.get(site=self.site1)
         infra.master_site=self.site2
-        infra.ad_direct_users = 42
+        infra.ad_direct_users_wc = 42
         infra.full_clean()
         infra.save()
 
         infra2 = SopInfra.objects.get(site=self.site2)
-        infra2.ad_direct_users = 69
+        infra2.ad_direct_users_wc = 69
         infra2.full_clean()
         infra2.save()
 
-        self.assertEqual(infra2.wan_computed_users, 111)
+        self.assertEqual(infra2.wan_computed_users_wc, 111)
 
         infra.delete()
-        self.assertEqual(SopInfra.objects.get(site=self.site2).wan_computed_users, 69)
+        self.assertEqual(SopInfra.objects.get(site=self.site2).wan_computed_users_wc, 69)
 
 
 class SopInfraMasterModelTestCase(TestCase):
@@ -172,12 +172,12 @@ class SopInfraMasterModelTestCase(TestCase):
         cls.infra2 = SopInfra.objects.get(site__slug='site-2')
         cls.infra3 = SopInfra.objects.get(site__slug='site-3')
 
-        cls.infra1.ad_direct_users = 442
-        cls.infra2.ad_direct_users = 42
-        cls.infra2.est_cumulative_users = 69
+        cls.infra1.ad_direct_users_wc = 442
+        cls.infra2.ad_direct_users_wc = 42
+        cls.infra2.est_cumulative_users_wc = 69
         cls.infra2.site_type_red = 'true'
-        cls.infra3.ad_direct_users = 0
-        cls.infra3.est_cumulative_users = 19
+        cls.infra3.ad_direct_users_wc = 0
+        cls.infra3.est_cumulative_users_wc = 19
         cls.infra3.site_type_vip = 'true'
 
         cls.infra1.full_clean()
@@ -189,14 +189,14 @@ class SopInfraMasterModelTestCase(TestCase):
 
 
     def test_master_wan_computed_users(self):
-        """Test that valid MASTER SopInfra computes wan_computed_users"""
-        self.assertEqual(self.infra1.wan_computed_users, 442)
-        self.assertEqual(self.infra2.wan_computed_users, 69)
-        self.assertEqual(self.infra3.wan_computed_users, 19)
+        """Test that valid MASTER SopInfra computes wan_computed_users_wc"""
+        self.assertEqual(self.infra1.wan_computed_users_wc, 442)
+        self.assertEqual(self.infra2.wan_computed_users_wc, 69)
+        self.assertEqual(self.infra3.wan_computed_users_wc, 19)
 
 
     def test_master_wan_computed_users_children(self):
-        """Test that valid MASTER SopInfra with children computes wan_computed_users"""
+        """Test that valid MASTER SopInfra with children computes wan_computed_users_wc"""
         self.infra1.master_site = self.infra2.site
 
         self.infra1.full_clean()
@@ -204,8 +204,8 @@ class SopInfraMasterModelTestCase(TestCase):
         self.infra2.full_clean()
         self.infra2.save()
 
-        self.assertEqual(self.infra1.wan_computed_users, 442)
-        self.assertEqual(self.infra2.wan_computed_users, 511)
+        self.assertEqual(self.infra1.wan_computed_users_wc, 442)
+        self.assertEqual(self.infra2.wan_computed_users_wc, 511)
 
 
     def test_master_mx_user_slice(self):
@@ -223,7 +223,7 @@ class SopInfraMasterModelTestCase(TestCase):
     def test_master_mx_user_slice_children(self):
         """Test that valid MASTER SopInfra with children computes mx and user_slice"""
         self.infra1.master_site = self.infra2.site
-        self.infra2.ad_direct_users = 84
+        self.infra2.ad_direct_users_wc = 84
 
         self.infra1.full_clean()
         self.infra1.save()
@@ -246,8 +246,8 @@ class SopInfraMasterModelTestCase(TestCase):
         self.assertEqual(self.infra3.wan_reco_bw, round(19 * 4))
 
 
-        self.infra2.est_cumulative_users = 9
-        self.infra2.ad_direct_users = 8
+        self.infra2.est_cumulative_users_wc = 9
+        self.infra2.ad_direct_users_wc = 8
         self.infra2.full_clean()
         self.infra2.save()
 
@@ -257,7 +257,7 @@ class SopInfraMasterModelTestCase(TestCase):
     def test_master_recommended_bandwidth_children(self):
         """Test that valid MASTER SopInfra with children computes recommended bandwidth"""
         self.infra1.master_site = self.infra2.site
-        self.infra2.ad_direct_users = 84
+        self.infra2.ad_direct_users_wc = 84
 
         self.infra1.full_clean()
         self.infra1.save()
@@ -288,7 +288,7 @@ class SopInfraMasterModelTestCase(TestCase):
         self.assertEqual(self.infra3.sdwanha, '-NO NETWORK-')
         self.assertEqual(self.infra3.criticity_stars, None)
 
-        self.infra1.ad_direct_users = 9
+        self.infra1.ad_direct_users_wc = 9
         self.infra1.full_clean()
         self.infra1.save()
 

@@ -230,8 +230,8 @@ class SopInfraFilterset(NetBoxModelFilterSet):
                   'site_infra_sysinfra', 'site_type_indus',
                   'criticity_stars', 'site_phone_critical',
                   'site_type_red', 'site_type_vip', 'site_type_wms', 
-                  'est_cumulative_users', 'site_user_count', 'wan_reco_bw',
-                  'site_mx_model', 'wan_computed_users', 'ad_direct_users',
+                  'est_cumulative_users_wc','est_cumulative_users_bc','est_cumulative_users_ext','est_cumulative_users_nom', 'site_user_count', 'wan_reco_bw',
+                  'site_mx_model', 'wan_computed_users_wc', 'wan_computed_users_bc', 'ad_direct_users_wc','ad_direct_users_bc','ad_direct_users_ext','ad_direct_users_nom',
                   'sdwanha', 'hub_order_setting', 'hub_default_route_setting',
                   'sdwan1_bw', 'sdwan2_bw', 'site_sdwan_master_location',
                   'master_site', 'migration_sdwan',
@@ -246,12 +246,19 @@ class SopInfraFilterset(NetBoxModelFilterSet):
             Q(site_infra_sysinfra__icontains=value) |
             Q(site_type_indus__icontains=value) |
             Q(criticity_stars__icontains=value) |
-            Q(est_cumulative_users__icontains=value) |
+            Q(est_cumulative_users_wc__icontains=value) |
+            Q(est_cumulative_users_bc__icontains=value) |
+            Q(est_cumulative_users_ext__icontains=value) |
+            Q(est_cumulative_users_nom__icontains=value) |
             Q(site_user_count__icontains=value) |
             Q(wan_reco_bw__icontains=value) |
             Q(site_mx_model__icontains=value) |
-            Q(wan_computed_users__icontains=value) |
-            Q(ad_direct_users__icontains=value) |
+            Q(wan_computed_users_wc__icontains=value) |
+            Q(wan_computed_users_bc__icontains=value) |
+            Q(ad_direct_users_wc__icontains=value) |
+            Q(ad_direct_users_bc__icontains=value) |
+            Q(ad_direct_users_ext__icontains=value) |
+            Q(ad_direct_users_nom__icontains=value) |
             Q(sdwanha__icontains=value) |
             Q(hub_order_setting__icontains=value) |
             Q(hub_default_route_setting__icontains=value) |

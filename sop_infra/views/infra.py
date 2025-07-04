@@ -7,6 +7,9 @@ from django.urls import reverse
 from django.db.models import Q, Count
 from django.contrib.contenttypes.models import ContentType
 
+from netbox.jobs import Job
+
+from sop_infra.jobs import SopSyncAdUsers
 from utilities.views import register_model_view, ViewTab, ObjectPermissionRequiredMixin
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
@@ -24,7 +27,7 @@ from sop_infra.tables import (
 )
 from sop_infra.models import *
 from sop_infra.filtersets import SopInfraFilterset
-from sop_infra.utils import SopInfraRelatedModelsMixin, SopInfraRefreshMixin
+from sop_infra.utils.utils import SopInfraRelatedModelsMixin, SopInfraRefreshMixin
 
 
 __all__ = (
@@ -53,7 +56,21 @@ __all__ = (
     "SopInfraJsonExportsAdUsers", 
 )
 
+class SopInfraSyncAdUsers(View):
+    """
+    Sync the users from AD
+    """
+    def get(self, request, *args, **kwargs):
 
+        # TODO permissions
+        #if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
+        #    return self.handle_no_permission()
+
+        #restrict_form_fields(self.form(), request.user)
+
+        j:Job=SopSyncAdUsers.launch_manual()
+        return redirect(reverse("extras:script_result", args=[j.pk]))
+   
 
 class SopInfraJsonExportsAdUsers(View):
 

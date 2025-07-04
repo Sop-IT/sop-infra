@@ -29,7 +29,7 @@ from sop_infra.tables import (
     PrismaAccessLocationTable,
     PrismaComputedAccessLocationTable,
 )
-from sop_infra.utils import PrismaAccessLocationRecomputeMixin
+from sop_infra.utils.utils import PrismaAccessLocationRecomputeMixin
 
 
 __all__ = (

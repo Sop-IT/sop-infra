@@ -4,7 +4,7 @@ from utilities.testing import TestCase
 from dcim.models import Site
 
 from sop_infra.models import SopInfra
-from sop_infra.utils import SopInfraRefreshMixin
+from sop_infra.utils.utils import SopInfraRefreshMixin
 
 
 __all__ = ("SopInfraComputeTestCase",)
@@ -45,17 +45,17 @@ class SopInfraComputeTestCase(TestCase):
         s2 = Site.objects.get(slug="site-2")
         s3 = Site.objects.get(slug="site-3")
 
-        self.infra1.ad_direct_users = 42
-        self.infra2.est_cumulative_users = 69
+        self.infra1.ad_direct_users_wc = 42
+        self.infra2.est_cumulative_users_wc = 69
 
         self.infra1.save()
         self.infra2.save()
 
         mixin.refresh_infra(SopInfra.objects.filter(pk=self.infra1.pk))
 
-        self.assertEqual(SopInfra.objects.get(site=s1).wan_computed_users, 111)
-        self.assertEqual(SopInfra.objects.get(site=s2).wan_computed_users, 69)
-        self.assertEqual(SopInfra.objects.get(site=s3).wan_computed_users, 0)
+        self.assertEqual(SopInfra.objects.get(site=s1).wan_computed_users_wc, 111)
+        self.assertEqual(SopInfra.objects.get(site=s2).wan_computed_users_wc, 69)
+        self.assertEqual(SopInfra.objects.get(site=s3).wan_computed_users_wc, 0)
 
     def test_recompute_sizing_child(self):
         """test if recomputing child recomputes their master"""
@@ -65,17 +65,17 @@ class SopInfraComputeTestCase(TestCase):
         s2 = Site.objects.get(slug="site-2")
         s3 = Site.objects.get(slug="site-3")
 
-        self.infra1.ad_direct_users = 42
-        self.infra2.est_cumulative_users = 69
+        self.infra1.ad_direct_users_wc = 42
+        self.infra2.est_cumulative_users_wc = 69
 
         self.infra1.save()
         self.infra2.save()
 
         mixin.refresh_infra(SopInfra.objects.filter(pk=self.infra2.pk))
 
-        self.assertEqual(SopInfra.objects.get(site=s1).wan_computed_users, 111)
-        self.assertEqual(SopInfra.objects.get(site=s2).wan_computed_users, 69)
-        self.assertEqual(SopInfra.objects.get(site=s3).wan_computed_users, 0)
+        self.assertEqual(SopInfra.objects.get(site=s1).wan_computed_users_wc, 111)
+        self.assertEqual(SopInfra.objects.get(site=s2).wan_computed_users_wc, 69)
+        self.assertEqual(SopInfra.objects.get(site=s3).wan_computed_users_wc, 0)
 
     def test_recompute_sizing_none(self):
         """test that recompute sizing with none returns 0"""
@@ -84,13 +84,13 @@ class SopInfraComputeTestCase(TestCase):
         s1 = Site.objects.get(slug="site-1")
         s2 = Site.objects.get(slug="site-2")
 
-        self.infra1.ad_direct_users = None
-        self.infra2.est_cumulative_users = None
+        self.infra1.ad_direct_users_wc = None
+        self.infra2.est_cumulative_users_wc = None
 
         self.infra1.save()
         self.infra2.save()
 
         mixin.refresh_infra(SopInfra.objects.filter(pk=self.infra2.pk))
 
-        self.assertEqual(SopInfra.objects.get(site=s1).wan_computed_users, 0)
-        self.assertEqual(SopInfra.objects.get(site=s2).wan_computed_users, 0)
+        self.assertEqual(SopInfra.objects.get(site=s1).wan_computed_users_wc, 0)
+        self.assertEqual(SopInfra.objects.get(site=s2).wan_computed_users_wc, 0)

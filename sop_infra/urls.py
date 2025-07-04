@@ -1,6 +1,7 @@
 from django.urls import path
 
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
+from sop_infra.views.infra import SopInfraSyncAdUsers
 
 from .views import *
 from .models import *
@@ -12,6 +13,8 @@ app_name = 'sop_infra'
 urlpatterns = [
 
     path('trisearch', SopMerakiTriSearchView.as_view(), name='trisearch'),
+    path('sync_ad_users', SopInfraSyncAdUsers.as_view(), name='sync_ad_users'),
+    
 #    path('create_meraki_network/<int:pk>/', SopMerakiCreateNetworksView.as_view(), name='create_meraki_network'),
 
     path('jsonexports/adusers', SopInfraJsonExportsAdUsers.as_view(), name='jsonexports_adusers'),

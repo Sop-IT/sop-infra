@@ -82,24 +82,62 @@ The `SopInfra` model represents an infrastructure associated with a site. It ens
 
 ### EST. cumulative users
 
-- **Field:** `est_cumulative_users`
+- **Field:** `_est_cumulative_users_wc`
 - **Type:** `PositiveBigInteger`
 - **Details:**
-  - Estimated cumulative users
+  - Estimated cumulative white collars
+
+- **Field:** `_est_cumulative_users_bc`
+- **Type:** `PositiveBigInteger`
+- **Details:**
+  - Estimated cumulative bluc collars
+
+- **Field:** `_est_cumulative_users_ext`
+- **Type:** `PositiveBigInteger`
+- **Details:**
+  - Estimated cumulative external users
+
+- **Field:** `_est_cumulative_users_nom`
+- **Type:** `PositiveBigInteger`
+- **Details:**
+  - Estimated cumulative nomad people
+
 
 ### AD Direct Users
 
-- **Field:** `ad_direct_users`
+- **Field:** `ad_direct_users_wc`
 - **Type:** `PositiveBigInteger`
 - **Details:**
-  - Active Directory direct users
+  - Active Directory direct white collar users
+
+- **Field:** `ad_direct_users_bc`
+- **Type:** `PositiveBigInteger`
+- **Details:**
+  - Active Directory direct blue collar users
+
+- **Field:** `ad_direct_users_ext`
+- **Type:** `PositiveBigInteger`
+- **Details:**
+  - Active Directory direct external users
+
+- **Field:** `ad_direct_users_nom`
+- **Type:** `PositiveBigInteger`
+- **Details:**
+  - Active Directory direct nomad commerce people
+
 
 ### WAN Computed Users
 
-- **Field:** `wan_computed_users`
+- **Field:** `wan_computed_users_wc`
 - **Type:** `PositiveBigInteger`
 - **Details:**
-  - Total computed wan users
+  - Total computed wan white collar users
+  - Calculated field
+
+- **Field:** `wan_computed_users_bc`
+- **Type:** `PositiveBigInteger`
+- **Details:**
+  - Total computed wan blue collar users
   - Calculated field
 
 ### WAN Reco. BW

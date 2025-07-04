@@ -99,11 +99,17 @@ class SopInfra(NetBoxModel):
     )
     # _______
     # Sizing
-    est_cumulative_users = models.PositiveBigIntegerField(
+    est_cumulative_users_wc = models.PositiveBigIntegerField(
         null=True, blank=True, verbose_name=_("Est. cumul. users (WC)")
     )
     est_cumulative_users_bc = models.PositiveBigIntegerField(
         null=True, blank=True, verbose_name=_("Est. cumul. users (BC)")
+    )
+    est_cumulative_users_ext = models.PositiveBigIntegerField(
+        null=True, blank=True, verbose_name=_("Est. cumul. users (EXT)")
+    )
+    est_cumulative_users_nom = models.PositiveBigIntegerField(
+        null=True, blank=True, verbose_name=_("Est. cumul. users (NOM)")
     )
     site_user_count = models.CharField(
         null=True, blank=True, help_text=_("Site user count")
@@ -115,28 +121,34 @@ class SopInfra(NetBoxModel):
         help_text=_("Recommended bandwidth (Mbps)"),
     )
     site_mx_model = models.CharField(
-        max_length=6,
+        max_length=10,
         null=True,
         blank=True,
         verbose_name=_("Reco. MX Model"),
     )
-    wan_computed_users = models.PositiveBigIntegerField(
+    wan_computed_users_wc = models.PositiveBigIntegerField(
         null=True,
         blank=True,
         verbose_name=_("WAN users (WC)"),
-        help_text=_("Total computed wan users. (WC)"),
+        help_text=_("Total computed white collar wan users. (WC)"),
     )
     wan_computed_users_bc = models.PositiveBigIntegerField(
         null=True,
         blank=True,
         verbose_name=_("WAN users (BC)"),
-        help_text=_("Total computed wan users. (BC)"),
+        help_text=_("Total computed blue collar wan users. (BC)"),
     )
-    ad_direct_users = models.PositiveBigIntegerField(
+    ad_direct_users_wc = models.PositiveBigIntegerField(
         null=True, blank=True, verbose_name=_("AD direct. users (WC)")
     )
     ad_direct_users_bc = models.PositiveBigIntegerField(
         null=True, blank=True, verbose_name=_("AD direct. users (BC)")
+    )
+    ad_direct_users_ext = models.PositiveBigIntegerField(
+        null=True, blank=True, verbose_name=_("AD direct. users (EXT)")
+    )
+    ad_direct_users_nom = models.PositiveBigIntegerField(
+        null=True, blank=True, verbose_name=_("AD direct. users (NOM)")
     )
     # _______
     # Meraki
@@ -319,10 +331,14 @@ class SopInfra(NetBoxModel):
 
     def delete(self, *args, **kwargs):
         # RAZ values for recompute propagation
-        self.ad_direct_users=0
+        self.ad_direct_users_wc=0
         self.ad_direct_users_bc=0
-        self.est_cumulative_users=0
+        self.ad_direct_users_ext=0
+        self.ad_direct_users_nom=0
+        self.est_cumulative_users_wc=0
         self.est_cumulative_users_bc=0
+        self.est_cumulative_users_ext=0
+        self.est_cumulative_users_nom=0
         # recompute and propagate
         self.calc_cumul_and_propagate()
         # delete
@@ -394,7 +410,8 @@ class SopInfra(NetBoxModel):
         self.site_sdwan_master_location = None
         self.master_site = None
         self.wan_reco_bw = None
-        self.wan_computed_users = None
+        self.wan_computed_users_wc = None
+        self.wan_computed_users_bc = None
         self.criticity_stars = '****'
         self.site_mx_model = 'MX450'
 
@@ -412,16 +429,16 @@ class SopInfra(NetBoxModel):
             raise Exception("Loop detected when propagating to masters !")
         loop.append(self)
         (wc, bc) = self.calc_wan_computed_users()
-        if wc==self.wan_computed_users and bc==self.wan_computed_users_bc:
+        if wc==self.wan_computed_users_bc and bc==self.wan_computed_users_bc:
             # NO change -> no propagation
             return False
         # If we're already propagating, we'll need to snap and save
         if save :
             self.snapshot()
-        self.wan_computed_users=wc
+        self.wan_computed_users_wc=wc
         self.wan_computed_users_bc=bc
-        self.wan_reco_bw=SopInfraUtils.get_recommended_bandwidth(self.wan_computed_users)
-        (self.site_mx_model,self.site_user_count)=SopInfraUtils.get_mx_and_user_slice(self.wan_computed_users)
+        self.wan_reco_bw=SopInfraUtils.get_recommended_bandwidth(self.wan_computed_users_wc)
+        (self.site_mx_model,self.site_user_count)=SopInfraUtils.get_mx_and_user_slice(self.wan_computed_users_wc)
         # If we're already propagating, we'll need to snap and save
         if save :
             self.save()
@@ -447,10 +464,10 @@ class SopInfra(NetBoxModel):
             raise Exception("Loop detected when computed users !")
         loop.append(self)
         if isilog=="done":
-            wan_wc = self.ad_direct_users
+            wan_wc = self.ad_direct_users_wc
             wan_bc = self.ad_direct_users_bc
         else : 
-            wan_wc = self.est_cumulative_users
+            wan_wc = self.est_cumulative_users_wc
             wan_bc = self.est_cumulative_users_bc
         if wan_wc is None:
             wan_wc = 0
