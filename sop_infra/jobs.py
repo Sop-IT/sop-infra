@@ -117,13 +117,13 @@ class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
                 if t not in ['0','1','2']:
                     continue
                 if sid is None:
-                    self.log_warning(f"{uc.get('ucount')} AD  type {t} users assigned to inexistent NETBOX site (ISILOG {sname}) :")
+                    self.log_warning(f"{uc.get('ucount')} AD  type {t} users assigned to inexistent NETBOX site (ISILOG=> «{sname}») :")
                     cts=Contact.objects.filter(custom_field_data__ad_acct_disabled=False)\
                         .filter(custom_field_data__ad_acct_deleted=False)\
                         .filter(custom_field_data__ad_extAtt7__iexact=t)\
                         .filter(custom_field_data__ad_objectsid__startswith="S")\
                         .filter(custom_field_data__ad_site_id=None)\
-                        .filter(custom_field_data__ad_site_id=sname)
+                        .filter(custom_field_data__ad_site_name=sname)
                     for ct in cts:
                         self.log_warning(f"  - {ct.name} ")
                 else:
