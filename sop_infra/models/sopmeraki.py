@@ -15,7 +15,7 @@ from timezone_field import TimeZoneField
 import meraki
 from logging import Logger
 
-from sop_infra.utils.utils import ArrayUtils, SopUtils
+from sop_infra.utils.sop_utils import ArrayUtils, SopRegExps, SopUtils
 
 __all__ = ("SopMerakiDash", "SopMerakiOrg", "SopMerakiNet","SopMerakiUtils","SopMerakiDevice",)
 
@@ -89,7 +89,6 @@ class SopMerakiUtils:
 
     @staticmethod
     def extractSiteName(name):
-        from ..utils.utils import SopRegExps
         m=SopRegExps.meraki_sitename_re.match(f"{name}")
         if m is None:
             return None
