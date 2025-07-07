@@ -6,4 +6,4 @@ recursive-include sop_infra/views/ *
 recursive-include sop_infra/models/ *
 recursive-include sop_infra/forms/ *
 recursive-include sop_infra/tables/ *
-
+recursive-include sop_infra/utils/ *
