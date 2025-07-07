@@ -100,19 +100,19 @@ class SopInfra(NetBoxModel):
     # _______
     # Sizing
     est_cumulative_users_wc = models.PositiveBigIntegerField(
-        null=True, blank=True, verbose_name=_("Est. cumul. users (WC)")
+        null=True, blank=True, verbose_name=_("Est. users (WC)")
     )
     est_cumulative_users_bc = models.PositiveBigIntegerField(
-        null=True, blank=True, verbose_name=_("Est. cumul. users (BC)")
+        null=True, blank=True, verbose_name=_("Est. users (BC)")
     )
     est_cumulative_users_ext = models.PositiveBigIntegerField(
-        null=True, blank=True, verbose_name=_("Est. cumul. users (EXT)")
+        null=True, blank=True, verbose_name=_("Est. users (EXT)")
     )
     est_cumulative_users_nom = models.PositiveBigIntegerField(
-        null=True, blank=True, verbose_name=_("Est. cumul. users (NOM)")
+        null=True, blank=True, verbose_name=_("Est. users (NOM)")
     )
     site_user_count = models.CharField(
-        null=True, blank=True, help_text=_("Site user count")
+        null=True, blank=True, verbose_name=_("Site user count")
     )
     wan_reco_bw = models.PositiveBigIntegerField(
         null=True,
@@ -438,7 +438,7 @@ class SopInfra(NetBoxModel):
         self.wan_computed_users_wc=wc
         self.wan_computed_users_bc=bc
         self.wan_reco_bw=SopInfraUtils.get_recommended_bandwidth(self.wan_computed_users_wc)
-        (self.site_mx_model,self.site_user_count)=SopInfraUtils.get_mx_and_user_slice(self.wan_computed_users_wc)
+        (self.site_user_count,self.site_mx_model)=SopInfraUtils.get_mx_and_user_slice(self.wan_computed_users_wc)
         # If we're already propagating, we'll need to snap and save
         if save :
             self.save()

@@ -179,16 +179,16 @@ class SopInfraSizingForm(NetBoxModelForm):
         label=_("Site"), queryset=Site.objects.all(), required=True
     )
     est_cumulative_users_wc = forms.IntegerField(
-        label=_("EST cumul. white collar users"), required=False
+        label=_("EST white collar users"), required=False
     )
     est_cumulative_users_bc = forms.IntegerField(
-        label=_("EST cumul. blue collar users"), required=False
+        label=_("EST blue collar users"), required=False
     )
     est_cumulative_users_ext = forms.IntegerField(
-        label=_("EST cumul. external users"), required=False
+        label=_("EST external users"), required=False
     )
     est_cumulative_users_nom = forms.IntegerField(
-        label=_("EST cumul. nomad users"), required=False
+        label=_("EST nomad users"), required=False
     )
 
     class Meta:
@@ -458,19 +458,19 @@ class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
     )
     est_cumulative_users_wc = forms.IntegerField(
         required=False,
-        label=_("EST cumul. white collar users"),
+        label=_("EST white collar users"),
         help_text=_("Numbers only"),
     )
     est_cumulative_users_bc = forms.IntegerField(
         required=False,
-        label=_("EST cumul. blue collar users"),
+        label=_("EST blue collar users"),
         help_text=_("Numbers only"),
     )
     est_cumulative_users_ext = forms.IntegerField(
-        required=False, label=_("EST cumul. users"), help_text=_("Numbers only")
+        required=False, label=_("EST users"), help_text=_("Numbers only")
     )
     est_cumulative_users_nom = forms.IntegerField(
-        required=False, label=_("EST cumul. nomad users"), help_text=_("Numbers only")
+        required=False, label=_("EST nomad users"), help_text=_("Numbers only")
     )
     site_user_count = forms.CharField(
         required=False, label=_("Site user count"), help_text=_("Example: 50<100")
