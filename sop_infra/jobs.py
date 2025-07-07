@@ -13,7 +13,7 @@ from sop_infra.utils.mixins import JobRunnerLogMixin
 from tenancy.models import Contact, Tenant
 
 from sop_infra.models import SopMerakiUtils
-from sop_infra.utils.utils import  SopUtils
+from sop_infra.utils.sop_utils import  SopUtils
 
 
 
@@ -107,21 +107,23 @@ class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
             ucounts=Contact.objects.filter(custom_field_data__ad_acct_disabled=False)\
                 .filter(custom_field_data__ad_acct_deleted=False)\
                 .filter(custom_field_data__ad_objectsid__startswith="S")\
-                .values('custom_field_data__ad_site_id','custom_field_data__ad_extAtt7')\
+                .values('custom_field_data__ad_site_id','custom_field_data__ad_site_name','custom_field_data__ad_extAtt7')\
                 .annotate(ucount=Count('custom_field_data__ad_samacct'))\
                 .order_by()
             for uc in ucounts:
                 sid=uc.get('custom_field_data__ad_site_id')
+                sname=uc.get('custom_field_data__ad_site_name')
                 t=uc.get('custom_field_data__ad_extAtt7')
                 if t not in ['0','1','2']:
                     continue
                 if sid is None:
-                    self.log_warning(f"{uc.get('ucount')} AD  type {t} users without assigned site in ISILOG : ")
+                    self.log_warning(f"{uc.get('ucount')} AD  type {t} users assigned to inexistent NETBOX site (ISILOG {sname}) :")
                     cts=Contact.objects.filter(custom_field_data__ad_acct_disabled=False)\
                         .filter(custom_field_data__ad_acct_deleted=False)\
                         .filter(custom_field_data__ad_extAtt7__iexact=t)\
                         .filter(custom_field_data__ad_objectsid__startswith="S")\
-                        .filter(custom_field_data__ad_site_id=None)
+                        .filter(custom_field_data__ad_site_id=None)\
+                        .filter(custom_field_data__ad_site_id=sname)
                     for ct in cts:
                         self.log_warning(f"  - {ct.name} ")
                 else:

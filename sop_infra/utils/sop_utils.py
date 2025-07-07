@@ -32,7 +32,6 @@ __all__ = (
     "SopInfraRelatedModelsMixin",
     "SopInfraRefreshMixin",
     "SopRegExps", "SopUtils", "DateUtils", 
-    "JobRunnerLogMixin",
 )
 
 
@@ -299,6 +298,7 @@ class SopUtils:
         # TODO : look to implement Jinja templating
         logs = []
         show_obj = False
+        subject="UNHANDLED CASE"
         if isinstance(rep, Script):
             loglst = rep.messages
             logs = [
@@ -352,7 +352,7 @@ class SopUtils:
     @staticmethod
     def _htmlfmt(l: dict, base_url: str, show_obj: bool = False) -> str:
         lvl = l.get("lvl")
-        ret = f"<tr><td{SopUtils._colors.get(lvl)}>{lvl}</td>"
+        ret = f"<tr><td{SopUtils._colors.get(lvl)}>{lvl}</td>" # type: ignore
         if show_obj:
             x = l.get("obj")
             if x is None:
@@ -389,7 +389,7 @@ class SopUtils:
             instance, for_concrete_model=False
         )
         rq_queue_name = get_queue_for_model(object_type.model)
-        queue = django_rq.get_queue(rq_queue_name)
+        queue = django_rq.get_queue(rq_queue_name) # type: ignore
         status = (
             JobStatusChoices.STATUS_SCHEDULED
             if schedule_at
@@ -524,7 +524,7 @@ class PrismaAccessLocationRecomputeMixin:
                 "longitude": obj["longitude"],
                 "location": obj["compute_location"],
             }
-            for obj in existing_object
+            for obj in existing_object # type: ignore
         }
 
         for item in response:

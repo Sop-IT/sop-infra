@@ -27,7 +27,7 @@ from sop_infra.tables import (
 )
 from sop_infra.models import *
 from sop_infra.filtersets import SopInfraFilterset
-from sop_infra.utils.utils import SopInfraRelatedModelsMixin, SopInfraRefreshMixin
+from sop_infra.utils.sop_utils import SopInfraRelatedModelsMixin, SopInfraRefreshMixin
 
 
 __all__ = (

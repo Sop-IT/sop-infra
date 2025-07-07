@@ -14,5 +14,6 @@ class SopInfraConfig(PluginConfig):
     def ready(self):
         super().ready()
         from .jobs import SopMerakiDashRefreshJob
+        from .jobs import SopSyncAdUsers
 
 config = SopInfraConfig

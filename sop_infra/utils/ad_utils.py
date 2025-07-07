@@ -1,6 +1,6 @@
 import struct, re, ldap
 
-from sop_infra.utils.utils import DateUtils, NetboxUtils
+from sop_infra.utils.sop_utils import DateUtils, NetboxUtils
 from django.core.exceptions import ValidationError
 
 from dcim.models import Site
