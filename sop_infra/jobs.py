@@ -16,6 +16,31 @@ from sop_infra.models import SopMerakiUtils
 from sop_infra.utils.sop_utils import  SopUtils
 
 
+class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Refresh Meraki dashboards"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            SopMerakiUtils.create_meraki_networks(self, False, kwargs.pop('site'), kwargs.pop('details'))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        finally:
+            self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(site:Site, details:bool=False)->Job:
+        if settings.DEBUG:
+            return SopMerakiCreateNetworkJob.enqueue(immediate=True, site=site, details=details)
+        return SopMerakiCreateNetworkJob.enqueue(site=site, details=details)
+    
 
 @system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY*10)
 class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
@@ -35,7 +60,6 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
             raise
         finally:
             self.job.data = self.get_job_data()       
-
 
     @staticmethod
     def launch_manual()->Job:

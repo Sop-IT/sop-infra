@@ -7,21 +7,35 @@ from django.shortcuts import render, redirect
 from django.views import View
 from sop_infra.filtersets import *
 from django.http import HttpRequest
-from sop_infra.jobs import SopMerakiDashRefreshJob
+from sop_infra.jobs import SopMerakiCreateNetworkJob, SopMerakiDashRefreshJob
 from netbox.jobs import Job
 from django.urls import reverse
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.mixins import AccessMixin
+# from users.models import ObjectPermission, Group, User
+# from extras.scripts import Script
 
 
+class SopMerakiCreateNetworksView(AccessMixin, View):
 
-
-# class SopMerakiCreateNetworksView(View):
-#     def get(self, request, pk, *args, **kwargs):
-#         # TODO 
-#         # ret=SopMerakiUtils.create_meraki_networks(site)
-#         # TODO renvoi vers la page source avec un message erreur/OK
-#         return redirect(reverse("extras:script_result", args=[j.pk]))
-   
-   
+    def get(self, request, site_id, *args, **kwargs):
+        # Check perms 
+        group_names=['ALL_ITA_Netbox_Team_Integration', 'ALL_ITA_Netbox_Team_Network']
+        if request.user.is_superuser :
+            pass
+        elif not request.user.groups.filter(name__in=group_names):
+            return self.handle_no_permission()
+        # Fetch site
+        site=get_object_or_404(Site, pk=site_id)
+        # Fetch details param
+        details:bool=(request.GET['details']=="True")
+        # Launch job
+        j:Job=SopMerakiCreateNetworkJob.launch_manual(site, details)
+        # Send to script result
+        url=reverse("extras:script_result", args=[j.pk])
+        if details:
+            url+="?log_threshold=debug"
+        return redirect(url)
 
 
 class SopMerakiRefreshDashboardsView(View):
@@ -37,9 +51,15 @@ class SopMerakiRefreshDashboardsView(View):
         #    return self.handle_no_permission()
 
         #restrict_form_fields(self.form(), request.user)
-
+        # Fetch details param
+        details:bool=(request.GET['details']=="True")
+        # Launch job
         j:Job=SopMerakiDashRefreshJob.launch_manual()
-        return redirect(reverse("extras:script_result", args=[j.pk]))
+        # Send to script result
+        url=reverse("extras:script_result", args=[j.pk])
+        if details:
+            url+="?log_threshold=debug"
+        return redirect(url)
    
 
 class SopMerakiTriSearchView(View):
