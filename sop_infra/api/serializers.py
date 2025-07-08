@@ -237,7 +237,7 @@ class SopMerakiOrgSerializer(NetBoxModelSerializer):
     class Meta:
         model = SopMerakiOrg
         fields = (
-            'id', 'display', 'nom', 'description', 'dash', 'tags', 'custom_fields', 'created',
+            'id', 'display', 'nom', 'dash', 'tags', 'custom_fields', 'created',
             'last_updated', 'nets_count', 'devices_count', 
         )
 
