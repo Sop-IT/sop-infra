@@ -4,11 +4,11 @@ from netbox.plugins import PluginMenu, PluginMenuButton, PluginMenuItem
 
 
 menu = PluginMenu(
-    label="SOP Infrastructure",
+    label="SOPREMA PLUGIN",
     icon_class="mdi mdi-router-network-wireless",
     groups=(
         (
-            "Meraki",
+            "SOP MERAKI",
             (
                 PluginMenuItem(
                     link="plugins:sop_infra:sopmerakidash_list",
@@ -71,8 +71,21 @@ menu = PluginMenu(
             ),
         ),
         (
-            "Classification & sizing",
+            "SOP INFRA",
             (
+                PluginMenuItem(
+                    link=f"plugins:sop_infra:sopinfra_list",
+                    link_text=_("Infrastructures"),
+                    permissions=[f"sop_infra.view_sopinfra"],
+                    buttons=(
+                        PluginMenuButton(
+                            link=f"plugins:sop_infra:sopinfra_add",
+                            title="Add",
+                            icon_class="mdi mdi-plus-thick",
+                            permissions=[f"sop_infra.add_sopinfra"],
+                        ),
+                    ),
+                ),
                 PluginMenuItem(
                     link=f"plugins:sop_infra:class_list",
                     link_text=_("Classifications"),
@@ -107,7 +120,7 @@ menu = PluginMenu(
                 ),
                 PluginMenuItem(
                     link=f"plugins:sop_infra:meraki_list",
-                    link_text=_("Meraki SDWAN"),
+                    link_text=_("SDWAN"),
                     permissions=[f"sop_infra.view_sopinfra"],
                     buttons=(
                         PluginMenuButton(
