@@ -79,52 +79,13 @@ menu = PluginMenu(
                     permissions=[f"sop_infra.view_sopinfra"],
                     buttons=(
                         PluginMenuButton(
-                            link=f"plugins:sop_infra:sopinfra_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            permissions=[f"sop_infra.add_sopinfra"],
-                        ),
-                    ),
-                ),
-                PluginMenuItem(
-                    link=f"plugins:sop_infra:class_list",
-                    link_text=_("Classifications"),
-                    permissions=[f"sop_infra.view_sopinfra"],
-                    buttons=(
-                        PluginMenuButton(
-                            link=f"plugins:sop_infra:class_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            permissions=[f"sop_infra.add_sopinfra"],
-                        ),
-                    ),
-                ),
-                PluginMenuItem(
-                    link=f"plugins:sop_infra:sizing_list",
-                    link_text=_("Sizings"),
-                    permissions=[f"sop_infra.view_sopinfra"],
-                    buttons=(
-                        PluginMenuButton(
                             link=f"plugins:sop_infra:sopinfra_refresh",
                             title="Recompute",
                             icon_class="mdi mdi-refresh",
                             permissions=[f"sop_infra.change_sop_infra"],
                         ),
                         PluginMenuButton(
-                            link=f"plugins:sop_infra:sizing_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            permissions=[f"sop_infra.add_sopinfra"],
-                        ),
-                    ),
-                ),
-                PluginMenuItem(
-                    link=f"plugins:sop_infra:meraki_list",
-                    link_text=_("SDWAN"),
-                    permissions=[f"sop_infra.view_sopinfra"],
-                    buttons=(
-                        PluginMenuButton(
-                            link=f"plugins:sop_infra:meraki_add",
+                            link=f"plugins:sop_infra:sopinfra_add",
                             title="Add",
                             icon_class="mdi mdi-plus-thick",
                             permissions=[f"sop_infra.add_sopinfra"],
