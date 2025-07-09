@@ -1,12 +1,12 @@
 import json
-from django.http import HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, JsonResponse
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.urls import reverse
 from django.db.models import Q, Count
 from django.contrib.contenttypes.models import ContentType
-
+from django.http import HttpResponseForbidden
 from netbox.jobs import Job
 
 from sop_infra.jobs import SopSyncAdUsers
@@ -14,24 +14,21 @@ from utilities.views import register_model_view, ViewTab, ObjectPermissionRequir
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
 from netbox.views import generic
+
 from dcim.models import Site
 from ipam.models import Prefix
 from tenancy.models import Contact
 
 from sop_infra.forms import *
-from sop_infra.tables import (
-    SopInfraTable,
-    SopInfraSizingTable,
-    SopInfraMerakiTable,
-    SopInfraClassificationTable,
-)
+from sop_infra.tables import SopInfraTable 
 from sop_infra.models import *
 from sop_infra.filtersets import SopInfraFilterset
 from sop_infra.utils.sop_utils import SopInfraRelatedModelsMixin, SopInfraRefreshMixin
 
 
 __all__ = (
-    "SopInfraTabView",
+    "SopInfraSiteTabView",
+    "SopMerakiSiteTabView",
     "SopInfraAddView",
     "SopInfraEditView",
     "SopInfraListView",
@@ -39,19 +36,8 @@ __all__ = (
     "SopInfraDetailView",
     "SopInfraRefreshView",
     "SopInfraRefreshNoForm",
-    "SopInfraBulkEditView",
-    "SopInfraBulkDeleteView",
-    "SopInfraMerakiAddView",
-    "SopInfraMerakiEditView",
-    "SopInfraMerakiListView",
-    "SopInfraPrismaAddView",
-    "SopInfraPrismaEditView",
-    "SopInfraSizingAddView",
-    "SopInfraSizingEditView",
-    "SopInfraSizingListView",
-    "SopInfraClassificationAddView",
-    "SopInfraClassificationEditView",
-    "SopInfraClassificationListView",
+    # "SopInfraBulkEditView",
+    # "SopInfraBulkDeleteView",
     "SopInfraJsonExportsAdSites",
     "SopInfraJsonExportsAdUsers", 
 )
@@ -124,40 +110,57 @@ class SopInfraJsonExportsAdSites(View):
         return JsonResponse(exp, safe=False)
 
 
-@register_model_view(Site, name="infra")
-class SopInfraTabView(View, ObjectPermissionRequiredMixin, SopInfraRelatedModelsMixin):
+@register_model_view(Site, name="infra", detail=True)
+class SopInfraSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
     """
     creates an "infrastructure" tab on the site page
     """
-
     tab = ViewTab(
         label="SOP Infra", permission=get_permission_for_model(SopInfra, "view")
     )
-    template_name: str = "sop_infra/tab/tab.html"
-    queryset = SopInfra.objects.all()
+    template_name: str = "sop_infra/tab/sopinfra_on_site.html"
+    # On s'affiche sur un site
+    queryset = Site.objects.all()
 
-    def get_extra_context(self, request, pk) -> dict:
-        context: dict = {}
-
-        site = get_object_or_404(Site, pk=pk)
-
-        infra = SopInfra.objects.filter(site=site)
-
-        if infra.exists():
-            context["sop_infra"] = infra.first()
-        else:
-            context["sop_infra"] = SopInfra
-        context["slave"], context["count_slave"] = self.get_slave_sites(infra)
-        context["slave_infra"], context["count_slave_infra"] = self.get_slave_infra(
-            infra
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404(
+            "No instance given."
         )
-        return {"object": site, "context": context}
+        context["site"] = instance
+        if not instance.sopinfra:
+            instance.sopinfra = SopInfra.objects.create(site=instance)
+        context["infra"] = instance.sopinfra    
+        return context
 
-    def get(self, request, pk):
-        # additional permission security
-        if not request.user.has_perm(get_permission_for_model(SopInfra, "view")):
-            return self.handle_no_permission()
-        return render(request, self.template_name, self.get_extra_context(request, pk))
+    
+@register_model_view(Site, name="sopmeraki")
+class SopMerakiSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
+    """
+    creates an "SOP Meraki" tab on the site page
+    """
+    tab = ViewTab(
+        label="SOP Meraki", permission=get_permission_for_model(SopInfra, "view")
+    )
+    template_name: str = "sop_infra/tab/sopmeraki_on_site.html"
+    queryset = Site.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404(
+            "No instance given."
+        )
+        context["site"] = instance
+        if not instance.sopinfra:
+            instance.sopinfra = SopInfra.objects.create(site=instance)
+        context["infra"] = instance.sopinfra    
+        return context
+
+
+
+
 
 
 # ____________________________
@@ -226,264 +229,31 @@ class SopInfraAddView(generic.ObjectEditView):
             return f"/plugins/sop_infra/list"
 
 
-# ____________________________
-# CLASSIFICATION ADD/EDIT
-
-
-class SopInfraClassificationAddView(generic.ObjectEditView):
-    """
-    only adds classification objects in a SopInfra instance
-    """
-
-    template_name: str = "sop_infra/tools/forms.html"
-    queryset = SopInfra.objects.all()
-    form = SopInfraClassificationForm
-
-    def get_object(self, **kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().get_object(**kwargs)
-
-    def alter_object(self, obj, request, args, kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().alter_object(obj, request, args, kwargs)
-
-    def get_return_url(self, request, obj):
-        try:
-            if obj.site:
-                return f"/dcim/sites/{obj.site.id}/infra"
-        except:
-            return f"/plugins/sop_infra/class/list"
-
-    def get_extra_context(self, request, obj) -> dict:
-        context = super().get_extra_context(request, obj)
-        context["object_type"] = "Classification"
-        return context
-
-
-class SopInfraClassificationEditView(generic.ObjectEditView):
-    """
-    only edits classification objects in a sopinfra instance
-    """
-
-    template_name: str = "sop_infra/tools/forms.html"
-    queryset = SopInfra.objects.all()
-    form = SopInfraClassificationForm
-
-    def get_return_url(self, request, obj):
-        if obj.site:
-            return f"/dcim/sites/{obj.site.id}/infra"
-
-    def get_extra_context(self, request, obj) -> dict:
-        context = super().get_extra_context(request, obj)
-        context["object_type"] = "Classification"
-        if obj and obj.site:
-            context["site"] = obj.site
-        return context
-
-
-# ____________________________
-# MERAKI SDWAN ADD/EDIT
-
-
-class SopInfraMerakiAddView(generic.ObjectEditView):
-    """
-    only adds meraki sdwan objects in a sopinfra instance
-    """
-
-    template_name: str = "sop_infra/tools/forms.html"
-    queryset = SopInfra.objects.all()
-    form = SopInfraMerakiForm
-
-    def get_object(self, **kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().get_object(**kwargs)
-
-    def alter_object(self, obj, request, args, kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().alter_object(obj, request, args, kwargs)
-
-    def get_return_url(self, request, obj):
-        try:
-            if obj.site:
-                return f"/dcim/sites/{obj.site.id}/infra"
-        except:
-            return f"/plugins/sop_infra/meraki/list"
-
-    def get_extra_context(self, request, obj) -> dict:
-        context = super().get_extra_context(request, obj)
-        context["object_type"] = "Meraki SDWAN"
-        return context
-
-
-class SopInfraMerakiEditView(generic.ObjectEditView):
-    """
-    only edits meraki sdwan objects in a sopinfra instance
-    """
-
-    template_name: str = "sop_infra/tools/forms.html"
-    queryset = SopInfra.objects.all()
-    form = SopInfraMerakiForm
-
-    def get_return_url(self, request, obj):
-        if obj.site:
-            return f"/dcim/sites/{obj.site.id}/infra"
-
-    def get_extra_context(self, request, obj) -> dict:
-        context = super().get_extra_context(request, obj)
-        context["object_type"] = "Meraki SDWAN"
-        if obj and obj.site:
-            context["site"] = obj.site
-        return context
-
-
-# ____________________________
-# SIZING ADD/EDIT
-
-
-class SopInfraSizingAddView(generic.ObjectEditView):
-    """
-    only adds sizing objects in a sopinfra instance
-    """
-
-    template_name: str = "sop_infra/tools/forms.html"
-    queryset = SopInfra.objects.all()
-    form = SopInfraSizingForm
-
-    def get_object(self, **kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().get_object(**kwargs)
-
-    def alter_object(self, obj, request, args, kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().alter_object(obj, request, args, kwargs)
-
-    def get_return_url(self, request, obj):
-        try:
-            if obj.site:
-                return f"/dcim/sites/{obj.site.id}/infra"
-        except:
-            return f"/plugins/sop_infra/sizing/list"
-
-    def get_extra_context(self, request, obj) -> dict:
-        context = super().get_extra_context(request, obj)
-        context["object_type"] = "Sizing"
-        return context
-
-
-class SopInfraSizingEditView(generic.ObjectEditView):
-    """
-    only edits sizing objects in a sopinfra instance
-    """
-
-    template_name: str = "sop_infra/tools/forms.html"
-    queryset = SopInfra.objects.all()
-    form = SopInfraSizingForm
-
-    def get_return_url(self, request, obj):
-        if obj.site:
-            return f"/dcim/sites/{obj.site.id}/infra"
-
-    def get_extra_context(self, request, obj) -> dict:
-        context = super().get_extra_context(request, obj)
-        context["object_type"] = "Sizing"
-        if obj and obj.site:
-            context["site"] = obj.site
-        return context
-
 
 # ____________________________
 # DETAIL VIEW
-
 
 class SopInfraDetailView(generic.ObjectView):
     """
     detail view with changelog and journal
     """
-
+    template_name: str = "sop_infra/sopinfra.html"
     queryset = SopInfra.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404(
+            "No instance given."
+        )
+        context["infra"] = instance
+        context["site"] = instance.site
+        return context
+
 
 
 # ____________________________
 # LIST VIEWS
-
-
-class SopInfraClassificationListView(generic.ObjectListView):
-    """
-    list view of all sopinfra - classification related instances
-    """
-
-    template_name: str = "sop_infra/tools/tables.html"
-    queryset = SopInfra.objects.all()
-    table = SopInfraClassificationTable
-    filterset_form = SopInfraClassificationFilterForm
-    filterset = SopInfraFilterset
-
-    def get_extra_context(self, request) -> dict:
-        """add context for title"""
-        context = super().get_extra_context(request)
-        context["title"] = "Classification"
-        return context
-
-
-class SopInfraSizingListView(generic.ObjectListView):
-    """
-    list view of all sopinfra - sizing related instances
-    """
-
-    template_name: str = "sop_infra/tools/tables.html"
-    queryset = SopInfra.objects.all()
-    table = SopInfraSizingTable
-    filterset = SopInfraFilterset
-    filterset_form = SopInfraSizingFilterForm
-
-    def get_extra_context(self, request) -> dict:
-        """add context for title"""
-        context = super().get_extra_context(request)
-        context["title"] = "Sizing"
-        return context
-
-
-class SopInfraMerakiListView(generic.ObjectListView):
-    """
-    list view of all sopinfra - meraki sdwan related instances
-    """
-
-    template_name: str = "sop_infra/tools/tables.html"
-    queryset = SopInfra.objects.all()
-    table = SopInfraMerakiTable
-    filterset = SopInfraFilterset
-    filterset_form = SopInfraMerakiFilterForm
-
-    def get_extra_context(self, request) -> dict:
-        """add context for title"""
-        context = super().get_extra_context(request)
-        context["title"] = "Meraki SDWAN"
-        return context
-
 
 class SopInfraListView(generic.ObjectListView):
     """list of all SopInfra objects and instances"""
@@ -515,7 +285,7 @@ class SopInfraRefreshView(View, SopInfraRefreshMixin, ObjectPermissionRequiredMi
             self.template_name,
             {
                 "form": self.form(),
-                "return_url": reverse("plugins:sop_infra:sizing_list"),
+                "return_url": reverse("plugins:sop_infra:sopinfra_list"),
             },
         )
 
@@ -525,7 +295,7 @@ class SopInfraRefreshView(View, SopInfraRefreshMixin, ObjectPermissionRequiredMi
         if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
             return self.handle_no_permission()
 
-        return_url = reverse("plugins:sop_infra:sizing_list")
+        return_url = reverse("plugins:sop_infra:sopinfra_list")
         form = self.form(data=request.POST, files=request.FILES)
         if form.is_valid():
             data: dict = form.cleaned_data
@@ -559,75 +329,20 @@ class SopInfraRefreshNoForm(View, SopInfraRefreshMixin, ObjectPermissionRequired
 # bulk views
 
 
-class SopInfraBulkEditView(generic.BulkEditView):
+# class SopInfraBulkEditView(generic.BulkEditView):
 
-    queryset = SopInfra.objects.all()
-    form = SopInfraForm
-    table = SopInfraTable
-    filterset = SopInfraFilterset
-    filterset_form = SopInfraFilterForm
-
-
-class SopInfraBulkDeleteView(generic.BulkDeleteView):
-
-    queryset = SopInfra.objects.all()
-    table = SopInfraTable
-    filterset = SopInfraFilterset
-    filterset_form = SopInfraFilterForm
+#     queryset = SopInfra.objects.all()
+# TODO should be a bulkeditform
+#     form = SopInfraForm
+#     table = SopInfraTable
+#     # filterset = SopInfraFilterset
+#     # filterset_form = SopInfraFilterForm
 
 
-# ____________________________
-# Infra Prisma views
+# class SopInfraBulkDeleteView(generic.BulkDeleteView):
 
+#     queryset = SopInfra.objects.all()
+#     table = SopInfraTable
+#     # filterset = SopInfraFilterset
+#     # filterset_form = SopInfraFilterForm
 
-class SopInfraPrismaAddView(generic.ObjectEditView):
-
-    template_name: str = "sop_infra/tools/forms.html"
-    queryset = SopInfra.objects.all()
-    form = SopInfraPrismaForm
-
-    def get_object(self, **kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().get_object(**kwargs)
-
-    def alter_object(self, obj, request, args, kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().alter_object(obj, request, args, kwargs)
-
-    def get_return_url(self, request, obj):
-        try:
-            if obj.site:
-                return f"/dcim/sites/{obj.site.id}/infra"
-        except:
-            return f"/plugins/sop_infra/sop_infra/list"
-
-    def get_extra_context(self, request, obj) -> dict:
-        context = super().get_extra_context(request, obj)
-        context["object_type"] = "Infra PRISMA"
-        return context
-
-
-class SopInfraPrismaEditView(generic.ObjectEditView):
-
-    template_name: str = "sop_infra/tools/forms.html"
-    queryset = SopInfra.objects.all()
-    form = SopInfraPrismaForm
-
-    def get_return_url(self, request, obj):
-        if obj.site:
-            return f"/dcim/sites/{obj.site.id}/infra"
-
-    def get_extra_context(self, request, obj) -> dict:
-        context = super().get_extra_context(request, obj)
-        context["object_type"] = "Infra PRISMA"
-        if obj and obj.site:
-            context["site"] = obj.site
-        return context
