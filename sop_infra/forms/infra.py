@@ -17,88 +17,43 @@ from sop_infra.models import *
 
 __all__ = (
     "SopInfraForm",
-    "SopInfraMerakiForm",
+
     "SopInfraMerakiFilterForm",
-    "SopInfraSizingForm",
+
     "SopInfraFilterForm",
     "SopInfraSizingFilterForm",
-    "SopInfraClassificationForm",
+
     "SopInfraClassificationFilterForm",
     "SopInfraRefreshForm",
-    "SopInfraPrismaForm",
+
 )
 
 
-class SopInfraClassificationForm(NetBoxModelForm):
+class SopInfraForm(NetBoxModelForm):
 
-    site = DynamicModelChoiceField(
-        label=_("Site"), queryset=Site.objects.all(), required=True
+    endpoint = DynamicModelChoiceField(
+        label=_("Endpoint"), queryset=PrismaEndpoint.objects.all(), required=False
     )
-    site_infra_sysinfra = forms.ChoiceField(
-        label=_("Infrastructure"),
-        choices=add_blank_choice(InfraTypeChoices),
-        required=False,
-    )
-    site_type_indus = forms.ChoiceField(
-        label=_("Industrial"),
-        choices=add_blank_choice(InfraTypeIndusChoices),
-        required=False,
-    )
-    site_phone_critical = forms.ChoiceField(
-        label=_("Phone critical"),
+    enabled = forms.ChoiceField(
+        label=_("Enabled ?"),
         choices=add_blank_choice(InfraBoolChoices),
-        required=False,
-        help_text=_("Is the phone critical for this site ?"),
-    )
-    site_type_red = forms.ChoiceField(
-        label=_("R&D"),
-        choices=add_blank_choice(InfraBoolChoices),
-        required=False,
-        help_text=_("Does the site have and R&D department or a lab ?"),
-    )
-    site_type_vip = forms.ChoiceField(
-        label=_("VIP"),
-        choices=add_blank_choice(InfraBoolChoices),
-        required=False,
-        help_text=_("Does the site host VIPs ?"),
-    )
-    site_type_wms = forms.ChoiceField(
-        label=_("WMS"),
-        choices=add_blank_choice(InfraBoolChoices),
-        required=False,
-        help_text=_("Does the site run WMS ?"),
-    )
-
-    class Meta:
-        model = SopInfra
-        fields = [
-            "site",
-            "site_infra_sysinfra",
-            "site_type_indus",
-            "site_phone_critical",
-            "site_type_red",
-            "site_type_vip",
-            "site_type_wms",
-        ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if "tags" in self.fields:
-            del self.fields["tags"]
-
-
-class SopInfraMerakiForm(NetBoxModelForm):
-
-    site = DynamicModelChoiceField(
-        label=_("Site"), queryset=Site.objects.all(), required=True
-    )
-    sdwanha = forms.ChoiceField(
-        label=_("HA(S) / NHA target"),
-        help_text=_("Calculated target for this site"),
-        widget=forms.Select(attrs={"disabled": "disabled"}),
+        initial=None,
         required=False,
     )
+
+    est_cumulative_users_wc = forms.IntegerField(
+        label=_("EST white collar users"), required=False
+    )
+    est_cumulative_users_bc = forms.IntegerField(
+        label=_("EST blue collar users"), required=False
+    )
+    est_cumulative_users_ext = forms.IntegerField(
+        label=_("EST external users"), required=False
+    )
+    est_cumulative_users_nom = forms.IntegerField(
+        label=_("EST nomad users"), required=False
+    )
+
     hub_order_setting = forms.ChoiceField(
         label=_("HUB order setting"),
         choices=add_blank_choice(InfraHubOrderChoices),
@@ -150,102 +105,43 @@ class SopInfraMerakiForm(NetBoxModelForm):
         help_text=_("Centreon > Start monitoring when starting the site"),
         required=False,
     )
-
-    class Meta:
-        model = SopInfra
-        fields = [
-            "site",
-            "sdwanha",
-            "hub_order_setting",
-            "hub_default_route_setting",
-            "sdwan1_bw",
-            "sdwan2_bw",
-            "site_sdwan_master_location",
-            "master_site",
-            "migration_sdwan",
-            "monitor_in_starting",
-        ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if "tags" in self.fields:
-            del self.fields["tags"]
-
-
-class SopInfraSizingForm(NetBoxModelForm):
-
-    site = DynamicModelChoiceField(
-        label=_("Site"), queryset=Site.objects.all(), required=True
-    )
-    est_cumulative_users_wc = forms.IntegerField(
-        label=_("EST white collar users"), required=False
-    )
-    est_cumulative_users_bc = forms.IntegerField(
-        label=_("EST blue collar users"), required=False
-    )
-    est_cumulative_users_ext = forms.IntegerField(
-        label=_("EST external users"), required=False
-    )
-    est_cumulative_users_nom = forms.IntegerField(
-        label=_("EST nomad users"), required=False
-    )
-
-    class Meta:
-        model = SopInfra
-        fields = [
-            "site",
-            "est_cumulative_users_wc",
-            "est_cumulative_users_bc",
-            "est_cumulative_users_ext",
-            "est_cumulative_users_nom",
-        ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if "tags" in self.fields:
-            del self.fields["tags"]
-
-
-class SopInfraPrismaForm(NetBoxModelForm):
-
-    site = DynamicModelChoiceField(
-        label=_("Site"), queryset=Site.objects.all(), required=True
-    )
-    endpoint = DynamicModelChoiceField(
-        label=_("Endpoint"), queryset=PrismaEndpoint.objects.all(), required=False
-    )
-    enabled = forms.ChoiceField(
-        label=_("Enabled ?"),
-        choices=add_blank_choice(InfraBoolChoices),
-        initial=None,
+    site_infra_sysinfra = forms.ChoiceField(
+        label=_("Infrastructure"),
+        choices=add_blank_choice(InfraTypeChoices),
         required=False,
     )
-
-    class Meta:
-        model = SopInfra
-        fields = ["site", "endpoint", "enabled"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if "tags" in self.fields:
-            del self.fields["tags"]
-
-
-class SopInfraForm(
-    SopInfraClassificationForm,
-    SopInfraMerakiForm,
-    SopInfraSizingForm,
-    SopInfraPrismaForm,
-):
-
-    site = DynamicModelChoiceField(
-        label=_("Site"), queryset=Site.objects.all(), required=True
+    site_type_indus = forms.ChoiceField(
+        label=_("Industrial"),
+        choices=add_blank_choice(InfraTypeIndusChoices),
+        required=False,
     )
+    site_phone_critical = forms.ChoiceField(
+        label=_("Phone critical"),
+        choices=add_blank_choice(InfraBoolChoices),
+        required=False,
+        help_text=_("Is the phone critical for this site ?"),
+    )
+    site_type_red = forms.ChoiceField(
+        label=_("R&D"),
+        choices=add_blank_choice(InfraBoolChoices),
+        required=False,
+        help_text=_("Does the site have and R&D department or a lab ?"),
+    )
+    site_type_vip = forms.ChoiceField(
+        label=_("VIP"),
+        choices=add_blank_choice(InfraBoolChoices),
+        required=False,
+        help_text=_("Does the site host VIPs ?"),
+    )
+    site_type_wms = forms.ChoiceField(
+        label=_("WMS"),
+        choices=add_blank_choice(InfraBoolChoices),
+        required=False,
+        help_text=_("Does the site run WMS ?"),
+    )
+
+
     fieldsets = (
-        FieldSet("site", name=_("Site")),
         FieldSet(
             "site_infra_sysinfra",
             "site_type_indus",
@@ -253,34 +149,40 @@ class SopInfraForm(
             "site_type_red",
             "site_type_vip",
             "site_type_wms",
-            name=_("Classification"),
+            name=_("Sizing information"),
+        ),
+        FieldSet(
+            "monitor_in_starting",
+            name=_("Centreon"),
+        ),
+        FieldSet("endpoint", 
+                 "enabled", 
+                 name=_("PRISMA")),
+        FieldSet(
+            "sdwan1_bw",
+            "sdwan2_bw",
+            name=_("Current link info")
         ),
         FieldSet(
             "est_cumulative_users_wc",
             "est_cumulative_users_bc",
             "est_cumulative_users_ext",
             "est_cumulative_users_nom",
-            name=_("Sizing"),
-        ),
-        FieldSet(
-            "sdwanha",
-            "hub_order_setting",
-            "hub_default_route_setting",
-            "sdwan1_bw",
-            "sdwan2_bw",
             "site_sdwan_master_location",
             "master_site",
-            "migration_sdwan",
-            "monitor_in_starting",
-            name=_("Meraki SDWAN"),
+            name=_("Site, user count & master/slave"),
         ),
-        FieldSet("endpoint", "enabled", name=_("PRISMA")),
+        FieldSet(
+            "hub_order_setting",
+            "hub_default_route_setting",
+            "migration_sdwan",
+            name=_("Meraki deployment"),
+        ),
     )
 
     class Meta:
         model = SopInfra
         fields = [
-            "site",
             "site_infra_sysinfra",
             "site_type_indus",
             "site_phone_critical",
@@ -291,7 +193,6 @@ class SopInfraForm(
             "est_cumulative_users_bc",
             "est_cumulative_users_ext",
             "est_cumulative_users_nom",
-            "sdwanha",
             "hub_order_setting",
             "hub_default_route_setting",
             "sdwan1_bw",
@@ -302,7 +203,6 @@ class SopInfraForm(
             "monitor_in_starting",
             "endpoint",
             "enabled",
-            "valid",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -577,7 +477,7 @@ class SopInfraRefreshForm(forms.Form):
     def clean(self):
         data = super().clean()
         sites = Site.objects.none()
-        base_url = reverse("plugins:sop_infra:sizing_list")
+        base_url = reverse("plugins:sop_infra:sopinfra_list")
         request = current_request.get()
 
         def get_group_sites(obj):
