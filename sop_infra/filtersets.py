@@ -230,7 +230,7 @@ class SopInfraFilterset(NetBoxModelFilterSet):
 
     class Meta:
         model = SopInfra
-        fields = ('id', 'site', 'site_id', 'site_name', 'status', 
+        fields = ('id', 'site', 'site_id', 'site_name', 'status', "master_site_id",
                   'site_infra_sysinfra', 'site_type_indus',
                   'criticity_stars', 'site_phone_critical',
                   'site_type_red', 'site_type_vip', 'site_type_wms', 
