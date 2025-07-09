@@ -27,6 +27,8 @@ __all__ = (
     'SopMerakiDeviceFilterSet',
 )
 
+# ==========================================================================
+# SOPMERAKI
 
 class SopMerakiDashFilterSet(NetBoxModelFilterSet):
 
@@ -49,7 +51,7 @@ class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
     class Meta:
         model = SopMerakiOrg
         fields = ('id', 'dash', 'dash_id', 'nom', 
-            'meraki_id', 
+            'meraki_id', 'meraki_url'
         )
 
     def search(self, queryset, name, value):
@@ -57,7 +59,7 @@ class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
             return queryset
         return queryset.filter(
             Q(nom__icontains=value) |
-            Q(meraki_notes__icontains=value)|
+            Q(meraki_url__icontains=value)|
             Q(meraki_id__icontains=value)
         )
 
@@ -77,7 +79,6 @@ class SopMerakiNetFilterSet(NetBoxModelFilterSet):
                 },
             }
         }
-
 
     def search(self, queryset, name, value):
         if not value.strip():
@@ -116,6 +117,9 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             Q(meraki_notes__icontains=value)
         )
 
+
+# ==========================================================================
+# PRISMA
 
 class PrismaComputedAccessLocationFilterset(NetBoxModelFilterSet):
 
@@ -196,7 +200,7 @@ class PrismaEndpointFilterset(NetBoxModelFilterSet):
         )
 
 
-#________
+# ==========================================================================
 # SopInfra
 
 
