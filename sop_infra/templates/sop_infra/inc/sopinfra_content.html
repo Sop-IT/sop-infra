@@ -1,0 +1,106 @@
+{% load helpers %}
+{% load plugins %}
+{% load buttons %}
+{% load perms %}
+{% load i18n %}
+
+<div class="row">
+
+  <div class="col col-md-6">
+    <!-- SUPPORT INFO CARD -->
+    <div class="card">
+      <h2 class="card-header">Support info</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">ISILOG Code</th>
+          <td>
+            {{object.isilog_code}}
+          </td>
+        </tr>   
+        {% include 'sop_infra/tools/display_detail.html' with name="criticity_stars" %}
+      </table>
+    </div>
+    <!-- SIZING CARD -->
+    <div class="card">
+      <h2 class="card-header">Sizing information</h5>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="site_infra_sysinfra" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_type_indus" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_phone_critical" badge=1 %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_type_red" badge=1 %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_type_vip" badge=1 %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_type_wms" badge=1 %}
+      </table>
+    </div>
+    <!-- CENTREON CARD -->
+    <div class="card">
+      <h2 class="card-header">{% trans "Centreon" %}</h2>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="monitor_in_starting" %}
+      </table>
+    </div>
+    <!-- PRISMA CARD -->
+    <div class="card">
+      <h2 class="card-header">Prisma Access</h5>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="endpoint" link=1 view="detail" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="enabled" badge=1 %}
+        {# % include 'sop_infra/tools/display_detail.html' with name="valid" badge=1 % #}
+      </table>
+    </div>
+    <!-- CURRENT LINK INFO CARD -->
+    <div class="card">
+      <h2 class="card-header">{% trans "Current link info" %}</h2>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="sdwan1_bw" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="sdwan2_bw" %}
+      </table>
+    </div>
+  </div>
+
+  <div class="col col-md-6">
+    <!-- SITES + MASTER/SLAVE CARD -->
+    <div class="card">
+      <h2 class="card-header">Site, user count & master/slave</h2>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">Site</th>
+          <td>
+            {{object.site|linkify|placeholder}}
+          </td>
+        </tr>   
+        {% include 'sop_infra/tools/display_detail.html' with name="site_user_count" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_sdwan_master_location" link=1 view="" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="master_site" link=1 view="" %}
+      </table>
+    </div>
+    <!-- SDWAN TARGET CARD -->
+    <div class="card">
+      <h2 class="card-header">{% trans "SDWAN target" %}</h2>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="sdwanha" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="wan_reco_bw" %}
+      </table>
+    </div>
+    <!-- CURRENT LINK INFO CARD -->
+    <div class="card">
+      <h2 class="card-header">Meraki Target</h2>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="site_mx_model" %}
+        <!-- TODO HUB ORDER TARGET + DUAL LINK TARGET -->
+      </table>
+    </div>
+    <!-- CURRENT LINK INFO CARD -->
+    <div class="card">
+      <h2 class="card-header">Meraki Deployment</h2>
+      <table class="table table-hover attr-table">
+        {# % include 'sop_infra/tools/display_detail.html' with name="sdwanha_real" % #}
+        {# % include 'sop_infra/tools/display_detail.html' with name="site_mx_model" % #}
+        {% include 'sop_infra/tools/display_detail.html' with name="hub_order_setting" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="hub_default_route_setting" badge=1 %}
+        {% include 'sop_infra/tools/display_detail.html' with name="migration_sdwan" %}
+      </table>
+    </div>
+  </div>
+
+</div>
