@@ -239,11 +239,12 @@ class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
     def nb_load_isilog_codes(self):
         self.isi_codes={}
         for s in Site.objects.all():
-            c=s.custom_field_data.get('site_isilog_code')
-            if c is not None:
-                c=c.strip()
-                if c!="":
-                    self.isi_codes[c]=s.pk 
+            if s.sopinfra is not None :
+                c=s.sopinfra.isilog_code
+                if c is not None:
+                    c=c.strip()
+                    if c!="":
+                        self.isi_codes[c]=s.pk 
         self.log_info(f"  --> {len(self.isi_codes.keys())} ISILOG codes loaded")
 
     def nb_load_tenants_domains(self):
