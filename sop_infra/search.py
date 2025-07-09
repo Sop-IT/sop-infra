@@ -17,6 +17,7 @@ class SopInfraSearchIndex(SearchIndex):
     model = SopInfra
     fields = (
         ("site", 100),
+        ("isilog_code", 10),
         ("site_infra_sysinfra", 100),
         ("site_type_indus", 100),
         ("site_phone_critical", 1000),
