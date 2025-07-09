@@ -185,7 +185,7 @@ class SopInfra(NetBoxModel):
     )
     master_site = models.ForeignKey(
         to=Site,
-        related_name="master_site",
+        related_name="+",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
