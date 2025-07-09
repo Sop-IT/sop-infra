@@ -1,0 +1,57 @@
+{% extends "dcim/site.html" %}
+{% load helpers %}
+{% load plugins %}
+{% load buttons %}
+{% load perms %}
+{% load i18n %}
+
+
+
+{% block controls %}
+
+  {% if request.user|can_add:infra and not infra.pk %}
+    <a href="{% url 'plugins:sop_infra:sopinfra_add' pk=object.id %}" type="button" class="btn btn-primary">
+      <i class="mdi mdi-plus-thick"></i>{% trans "Add Infrastructure" %}</a>
+  {% endif %}
+
+  {% if request.user|can_change:infra and infra.pk %}
+    {% include 'sop_infra/tools/refresh.html' with site=object %}
+    <a href="{% url 'plugins:sop_infra:sopinfra_edit' pk=infra.pk %}" type="button" class="btn btn-yellow">
+      <i class="mdi mdi-pencil"></i>{% trans "Edit Infrastructure" %}</a>
+  {% endif %}
+
+  {% if request.user|can_delete:infra and infra.pk %}
+  <a href="{% url 'plugins:sop_infra:sopinfra_delete' pk=infra.pk %}" type="button" class="btn btn-red">
+    <i class="mdi mdi-trash-can-outline"></i>{% trans "Delete Infrastructure" %}</a>
+  {% endif %}
+
+{% endblock controls %}
+
+
+{% block content %}
+  {% include "sop_infra/inc/sopinfra_content.html" with object=infra %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function()
+  {
+    const all_tabs = document.querySelectorAll('ul.nav.nav-tabs li.nav-item a');
+    update_current_tab_color(all_tabs, 'SOP Infra')
+
+    /*
+     * update tab front background color
+     */
+    function update_current_tab_color(all_tabs, tab_name)
+    {
+      all_tabs.forEach(tab => {
+        if (tab.innerText.trim() == "Site") {
+          tab.classList.remove('active');
+        } else if (tab.innerText.trim() == tab_name) {
+          tab.classList.add('active');
+        }
+      });
+    }
+  });
+</script>
+
+{% endblock content %}
+
