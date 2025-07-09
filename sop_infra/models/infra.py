@@ -50,10 +50,10 @@ class SopInfraUtils():
 
 class SopInfra(NetBoxModel):
     site = models.OneToOneField(
-        to=Site, on_delete=models.CASCADE, unique=True, verbose_name=_("Site")
+        to=Site, on_delete=models.CASCADE, unique=True, verbose_name=_("Site"), editable=False
     )
     # ______________
-    # Classification
+    # Classification / SIZING
     site_infra_sysinfra = models.CharField(
         choices=InfraTypeChoices,
         null=True,
@@ -67,7 +67,7 @@ class SopInfra(NetBoxModel):
         verbose_name=_("Industrial"),
     )
     criticity_stars = models.CharField(
-        max_length=6, null=True, blank=True, verbose_name=_("Criticity stars")
+        max_length=6, null=True, blank=True, verbose_name=_("Criticity stars"), editable=False
     )
     site_phone_critical = models.CharField(
         choices=InfraBoolChoices,
@@ -97,6 +97,7 @@ class SopInfra(NetBoxModel):
         verbose_name=_("WMS ?"),
         help_text=_("Does the site run WMS ?"),
     )
+
     # _______
     # Sizing
     est_cumulative_users_wc = models.PositiveBigIntegerField(
@@ -112,11 +113,12 @@ class SopInfra(NetBoxModel):
         null=True, blank=True, verbose_name=_("Est. users (NOM)")
     )
     site_user_count = models.CharField(
-        null=True, blank=True, verbose_name=_("Site user count")
+        null=True, blank=True, verbose_name=_("Site user count"), 
+        editable=False,
     )
     wan_reco_bw = models.PositiveBigIntegerField(
         null=True,
-        blank=True,
+        blank=True, editable=False,
         verbose_name=_("Reco. BW (Mbps)"),
         help_text=_("Recommended bandwidth (Mbps)"),
     )
@@ -151,29 +153,13 @@ class SopInfra(NetBoxModel):
         null=True, blank=True, verbose_name=_("AD direct. users (NOM)")
     )
     # _______
-    # Meraki
+    # SDWAN
     sdwanha = models.CharField(
         choices=InfraSdwanhaChoices,
         null=True,
         blank=True,
         verbose_name=_("HA(S) / NHA target"),
         help_text=_("Calculated target for this site"),
-    )
-    hub_order_setting = models.CharField(
-        choices=InfraHubOrderChoices,
-        null=True,
-        blank=True,
-        verbose_name=_("HUB order setting"),
-        help_text=_("Choose one of the various supported combinations"),
-    )
-    hub_default_route_setting = models.CharField(
-        choices=InfraBoolChoices,
-        null=True,
-        blank=True,
-        verbose_name=_("HUB default route setting"),
-        help_text=_(
-            "Set to true if the default route should be sent through the AutoVPN"
-        ),
     )
     sdwan1_bw = models.CharField(
         null=True,
@@ -212,12 +198,35 @@ class SopInfra(NetBoxModel):
         verbose_name=_("Migration date"),
         help_text=_("SDWAN > Site migration date to SDWAN"),
     )
+    # _______
+    # CENTREON
     monitor_in_starting = models.BooleanField(
         null=True,
         blank=True,
         verbose_name=_("Monitor in starting"),
         help_text=_("Centreon > Start monitoring when starting the site"),
     )
+    # _______
+    # MERAKI
+    hub_order_setting = models.CharField(
+        choices=InfraHubOrderChoices,
+        null=True,
+        blank=True,
+        verbose_name=_("HUB order setting"),
+        help_text=_("Choose one of the various supported combinations"),
+    )
+    hub_default_route_setting = models.CharField(
+        choices=InfraBoolChoices,
+        null=True,
+        blank=True,
+        verbose_name=_("HUB default route setting"),
+        help_text=_(
+            "Set to true if the default route should be sent through the AutoVPN"
+        ),
+    )
+    claim_net_mx=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="Claim appliances in ")
+    claim_net_ms=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="Claim switches in ")
+    claim_net_mr=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="Claim access points in ")
     # _______
     # PRISMA
     endpoint = models.ForeignKey(
@@ -236,6 +245,22 @@ class SopInfra(NetBoxModel):
     valid = models.CharField(
         choices=InfraBoolChoices, null=True, blank=True, verbose_name=_("Valid ?")
     )
+
+    # =============================
+    # PROPERTIES
+
+    @property
+    def isilog_code(self):
+        if self.site is None:
+            return None
+        if self.site.region is None:
+            return None
+        if self.site.tenant is None:
+            return None
+        if self.site.tenant.group is None:
+            return None
+        return f"{self.site.region.name}-{self.site.tenant.group.name}-{self.site.name}"
+
 
     def __str__(self):
         return f"{self.site} SOP Infra"
@@ -277,6 +302,10 @@ class SopInfra(NetBoxModel):
             for _ in self.criticity_stars
         ]
         return mark_safe("".join(html))
+    
+
+    # ===================================
+    # DJANGO STD
 
     class Meta(NetBoxModel.Meta):
         verbose_name = "SOP Infra"
@@ -297,10 +326,12 @@ class SopInfra(NetBoxModel):
         ]
 
 
+
+
     # =================================================
     # DJANGO OVERRIDES
 
-    def clean(self):
+    def save(self, *args, **kwargs):
         
         # just to be sure, should never happens
         if self.site is None:
@@ -326,7 +357,7 @@ class SopInfra(NetBoxModel):
         # recompute user counts and propagate
         self.calc_cumul_and_propagate()
 
-        return super().clean()
+        return super().save(*args, **kwargs)
 
 
     def delete(self, *args, **kwargs):
