@@ -200,9 +200,7 @@ class SopInfraClassificationTable(NetBoxTable):
         return record.get_criticity_stars()
 
 
-class SopInfraTable(
-    SopInfraClassificationTable, SopInfraMerakiTable, SopInfraSizingTable
-):
+class SopInfraTable(NetBoxTable):
 
     class Meta(NetBoxTable.Meta):
         model = SopInfra
@@ -213,7 +211,8 @@ class SopInfraTable(
             "created",
             "last_updated",
             "site",
-            "status" "site_infra_sysinfra",
+            "site__status",
+            "site_infra_sysinfra",
             "site_type_indus",
             "site_phone_critical",
             "site_type_red",
@@ -242,10 +241,14 @@ class SopInfraTable(
             "migration_sdwan",
             "monitor_in_starting",
             "tunnel",
+            "claim_net_mx",
+            "claim_net_ms",
+            "claim_net_mr",
         )
         default_columns = (
+            "id",
             "site",
-            "status",
+            "site__status",
             "criticity_stars",
             "sdwanha",
             "wan_computed_users_wc",
@@ -253,3 +256,23 @@ class SopInfraTable(
         )
 
         order_by = ("site",)
+
+    def render_site__status(self, record):
+        if not record.site:
+            return None
+
+        value = record.site.status
+        bg_color = SiteStatusChoices.colors.get(value)
+        if not bg_color:
+            bg_color = "gray"
+        return mark_safe(
+            f'<span class="badge text-bg-{bg_color}">{value.title()}</span>'
+        )
+
+    def render_criticity_stars(self, record):
+        if not record.criticity_stars:
+            return None
+
+        return record.get_criticity_stars()
+
+
