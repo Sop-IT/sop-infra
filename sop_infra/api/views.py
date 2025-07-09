@@ -4,19 +4,26 @@ from netbox.api.viewsets import NetBoxModelViewSet
 from netbox.api.metadata import ContentTypeMetadata
 
 from sop_infra.models import *
-from sop_infra.filtersets import SopInfraFilterset, PrismaEndpointFilterset, SopMerakiDashFilterSet, SopMerakiDeviceFilterSet, SopMerakiNetFilterSet, SopMerakiOrgFilterSet
+from sop_infra.filtersets import (
+    SopInfraFilterset,
+    PrismaEndpointFilterset,
+    SopMerakiDashFilterSet,
+    SopMerakiDeviceFilterSet,
+    SopMerakiNetFilterSet,
+    SopMerakiOrgFilterSet,
+)
 from sop_infra.api.serializers import *
 
 
 __all__ = (
-    'SopInfraViewSet',
-    'PrismaEndpointViewSet',
-    'PrismaAccessLocationViewSet',
-    'PrismaComputedAccessLocationViewSet',
-    'SopMerakiDashViewSet',
-    'SopMerakiOrgViewSet',
-    'SopMerakiNetViewSet',
-    'SopMerakiDeviceViewSet',
+    "SopInfraViewSet",
+    "PrismaEndpointViewSet",
+    "PrismaAccessLocationViewSet",
+    "PrismaComputedAccessLocationViewSet",
+    "SopMerakiDashViewSet",
+    "SopMerakiOrgViewSet",
+    "SopMerakiNetViewSet",
+    "SopMerakiDeviceViewSet",
 )
 
 
@@ -33,12 +40,10 @@ class PrismaAccessLocationViewSet(NetBoxModelViewSet):
     serializer_class = PrismaAccessLocationSerializer
 
 
-
 class PrismaComputedAccessLocationViewSet(NetBoxModelViewSet):
     metadata_class = ContentTypeMetadata
     queryset = PrismaComputedAccessLocation.objects.all()
     serializer_class = PrismaComputedAccessLocationSerializer
-
 
 
 class SopInfraViewSet(NetBoxModelViewSet):
@@ -49,16 +54,17 @@ class SopInfraViewSet(NetBoxModelViewSet):
 
 
 class SopMerakiDashViewSet(NetBoxModelViewSet):
-    queryset = SopMerakiDash.objects.prefetch_related('tags').annotate(
-        orgs_count=Count('orgs')
+    queryset = SopMerakiDash.objects.prefetch_related("tags").annotate(
+        orgs_count=Count("orgs")
     )
     serializer_class = SopMerakiDashSerializer
     filterset_class = SopMerakiDashFilterSet
 
+
 class SopMerakiOrgViewSet(NetBoxModelViewSet):
-    queryset = SopMerakiOrg.objects\
-        .annotate(nets_count=Count('nets', distinct=True))\
-        .annotate(devices_count=Count('devices', distinct=True))
+    queryset = SopMerakiOrg.objects.annotate(
+        nets_count=Count("nets", distinct=True)
+    ).annotate(devices_count=Count("devices", distinct=True))
     serializer_class = SopMerakiOrgSerializer
     filterset_class = SopMerakiOrgFilterSet
 
