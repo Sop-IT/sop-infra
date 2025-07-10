@@ -426,7 +426,7 @@ class SopInfraFilterForm(
     )
 
     fieldsets = (
-        FieldSet("region_id", "group_id", "site_id", name=_("Location")),
+        FieldSet("region_id", "group_id", "site_id", "status", name=_("Location")),
         FieldSet(
             "site_infra_sysinfra",
             "site_type_indus",
@@ -485,7 +485,7 @@ class SopInfraRefreshForm(forms.Form):
             ids = (obj.get_descendants()).values_list("sites", flat=True)
             sites = Site.objects.filter(group=obj.pk)
             if ids.exists():
-                sites = Site.objects.filter(id__in=ids)
+                sites |= Site.objects.filter(id__in=ids)
 
             if not sites.exists():
                 messages.error(
@@ -503,7 +503,7 @@ class SopInfraRefreshForm(forms.Form):
             ids = (obj.get_descendants()).values_list("sites", flat=True)
             sites = Site.objects.filter(region=obj.pk)
             if ids.exists():
-                sites = Site.objects.filter(id__in=ids)
+                sites |= Site.objects.filter(id__in=ids)
 
             if not sites.exists():
                 messages.error(
@@ -530,6 +530,9 @@ class SopInfraRefreshForm(forms.Form):
         if data["group"]:
             sites |= get_group_sites(data["group"])
 
+        if data["site"]:
+            sites |= Site.objects.filter(pk=data["site"].pk)
+
         if sites.filter(status="dc").exists():
             messages.warning(
                 request,
@@ -541,7 +544,11 @@ class SopInfraRefreshForm(forms.Form):
             site__in=(sites.exclude(status="dc").distinct())
         )
 
+        return_url=f"{base_url}?{normalize_queryset(infra.values_list('id', flat=True))}"
+        if request.GET.get("return_url"):
+            return_url=request.GET.get("return_url")
+
         return {
             "infra": infra,
-            "return_url": f"{base_url}?{normalize_queryset(infra.values_list('id', flat=True))}",
+            "return_url": return_url,
         }
