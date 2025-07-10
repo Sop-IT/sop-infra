@@ -260,13 +260,15 @@ class SopInfra(NetBoxModel):
         if self.site.tenant.group is None:
             return None
         return f"{self.site.region.name}-{self.site.tenant.group.name}-{self.site.name}"
+    
+    @property
+    def centreon_active(self)->bool:
+        if self.site is None:
+            return False
+        if self.site.status is None:
+            return False
+        return self.site.status=="active" or (self.site.status=="starting" and self.monitor_in_starting==True)
 
-
-    def __str__(self):
-        return f"{self.site} SOP Infra"
-
-    def get_absolute_url(self) -> str:
-        return reverse("plugins:sop_infra:sopinfra_detail", args=[self.pk])
 
     # get_object_color methods are used by NetBoxTable
     # to display choices colors
@@ -326,12 +328,18 @@ class SopInfra(NetBoxModel):
         ]
 
 
+    def __str__(self):
+        return f"{self.site}"
+
+    def get_absolute_url(self) -> str:
+        return reverse("plugins:sop_infra:sopinfra_detail", args=[self.pk])
+
 
 
     # =================================================
     # DJANGO OVERRIDES
 
-    def save(self, *args, **kwargs):
+    def clean(self, *args, **kwargs):
         
         # just to be sure, should never happens
         if self.site is None:
@@ -357,7 +365,7 @@ class SopInfra(NetBoxModel):
         # recompute user counts and propagate
         self.calc_cumul_and_propagate()
 
-        return super().save(*args, **kwargs)
+        return super().clean(*args, **kwargs)
 
 
     def delete(self, *args, **kwargs):
