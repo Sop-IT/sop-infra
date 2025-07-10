@@ -53,9 +53,10 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
         obj = job.object
         try:
             SopMerakiUtils.refresh_dashboards(self, settings.DEBUG)
-        except Exception:
-            text=traceback.format_exc()
-            self.failure(text)
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
             self.job.error = text
             raise
         finally:
