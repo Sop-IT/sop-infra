@@ -8,23 +8,14 @@
 
 
 {% block controls %}
-
-  {% if request.user|can_add:infra and not infra.pk %}
-    <a href="{% url 'plugins:sop_infra:sopinfra_add' pk=object.id %}" type="button" class="btn btn-primary">
-      <i class="mdi mdi-plus-thick"></i>{% trans "Add Infrastructure" %}</a>
-  {% endif %}
-
+  <div class="btn-list justify-content-end mb-2">
   {% if request.user|can_change:infra and infra.pk %}
-    {% include 'sop_infra/tools/refresh.html' with site=object %}
-    <a href="{% url 'plugins:sop_infra:sopinfra_edit' pk=infra.pk %}" type="button" class="btn btn-yellow">
-      <i class="mdi mdi-pencil"></i>{% trans "Edit Infrastructure" %}</a>
+    {% include 'sop_infra/inc/refresh_btn.html' with site=object %}
+    <a href="{% url 'plugins:sop_infra:sopinfra_edit' pk=infra.pk %}?return_url={{ request.get_full_path }}" type="button" class="btn btn-yellow">
+      <i class="mdi mdi-pencil"></i>{% trans "Edit Infrastructure" %}
+    </a>
   {% endif %}
-
-  {% if request.user|can_delete:infra and infra.pk %}
-  <a href="{% url 'plugins:sop_infra:sopinfra_delete' pk=infra.pk %}" type="button" class="btn btn-red">
-    <i class="mdi mdi-trash-can-outline"></i>{% trans "Delete Infrastructure" %}</a>
-  {% endif %}
-
+  </div>
 {% endblock controls %}
 
 
