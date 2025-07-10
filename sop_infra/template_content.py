@@ -10,6 +10,7 @@ from netbox.context import current_request
 from dcim.models import Site
 
 from sop_infra.models import SopInfra
+from sop_infra.models.sopmeraki import SopMerakiDash
 
 
 # _________SITE_POST_SAVE
@@ -50,7 +51,12 @@ def create_or_update_sopinfra(sender, instance, created, **kwargs):
 
 class SopInfraPluginExtension(PluginTemplateExtension):
     def list_buttons(self):
-        return self.render("sop_infra/inc/refresh_btn.html", extra_context={})
+        if self.context.get("object"):
+            if isinstance(self.context.get("object"), SopMerakiDash):
+                return self.render("sop_infra/inc/refresh_dash.html", extra_context={})
+            elif isinstance(self.context.get("object"), SopInfra):
+                return self.render("sop_infra/inc/refresh_btn.html", extra_context={})
+        return super().list_buttons()
 
 
 class TrigramSearch(PluginTemplateExtension):
