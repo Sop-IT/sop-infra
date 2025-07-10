@@ -32,7 +32,7 @@
     {% subscribe_button object %}
   {% endif %}
   {% if request.user|can_change:object %}
-    {% include 'sop_infra/tools/refresh.html' with object=object.site %}
+    {% include 'sop_infra/inc/refresh_btn.html' with object=object.site %}
     {% edit_button object %}
   {% endif %}
   {% if request.user|can_delete:object %}
