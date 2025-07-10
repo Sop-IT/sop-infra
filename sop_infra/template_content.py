@@ -12,29 +12,29 @@ from dcim.models import Site
 from sop_infra.models import SopInfra
 
 
-
-#_________SITE_POST_SAVE
+# _________SITE_POST_SAVE
 
 
 @receiver(post_save, sender=Site)
 def create_or_update_sopinfra(sender, instance, created, **kwargs):
-    '''
+    """
     when creating or updating a Site
     create or update its related SopInfra instance
-    '''
+    """
     request = current_request.get()
     target = SopInfra.objects.filter(site=instance)
 
     # create
-    infra:SopInfra
+    infra: SopInfra
     if created and not target.exists():
         infra = SopInfra.objects.create(site=instance)
         infra.full_clean()
         infra.snapshot()
         infra.save()
         try:
-            messages.success(request, f'Created {infra}')
-        except:pass
+            messages.success(request, f"Created {infra}")
+        except:
+            pass
         return
 
     # update
@@ -43,114 +43,21 @@ def create_or_update_sopinfra(sender, instance, created, **kwargs):
     infra.full_clean()
     infra.save()
     try:
-        messages.success(request, f'Updated {infra}')
-    except:pass
+        messages.success(request, f"Updated {infra}")
+    except:
+        pass
 
 
-
-#_________PANELS_CONFIGURATION
-
-
-ALLOWED_PANELS = ['meraki', 'classification', 'sizing', 'prisma']
-ALLOWED_POSITIONS = ['left_page', 'right_page']
-
-
-# overrides NetBox PluginTemplateExtension method to display
-# the panel according to PLUGINS_CONFIG in configuration.py
-def create_new_panel(self):
-
-    # infra = the instance of SopInfra
-    # what = the name of the panel
-    def get_extra_context() -> dict:
-
-        qs = SopInfra.objects.filter(site=self.context['object'])
-        infra = qs.first() if qs.exists() else SopInfra()
-
-        return {'infra': infra, 'what': self.what}
-
-    return self.render(f'sop_infra/panels/panel.html', get_extra_context())
-
-
-class SopInfraDashboard:
-
-    template_name = 'sop_infra/tab/{}.html'
-    # model to display dashboard on
-    model = 'dcim.site'
-
-    def __init__(self):
-        self.settings = settings.PLUGINS_CONFIG.get('sop_infra', {})
-
-
-    def get_html_panel(self, panel):
-
-        return self.template_name.format(panel)
-
-
-    # parse display positions and check if valid
-    def get_display_position(self, panel, display):
-
-        if exists := display.get(panel):
-
-            if exists not in ALLOWED_POSITIONS:
-                return None
-
-            return exists
-
-        return None
-
-
-    def get_display_extensions(self) -> list[PluginTemplateExtension]:
-
-        extensions = []
-        _display = self.settings.get('display')
-
-        # no configuration
-        if _display is None:
-            return []
-
-        # error handling
-        if not isinstance(_display, dict):
-            logging.error(f'Invalid syntax "{_display}", must be a dict.')
-            return []
-
-        for panel in _display:
-
-            if panel not in ALLOWED_PANELS:
-                logging.error(f'Invalid panel "{panel}", valid display are:', ALLOWED_PANELS)
-                continue
-
-            # return the position of {panel:position}
-            position = self.get_display_position(panel, _display)
-
-            if position is None:
-                logging.error(f'Invalid position "{position}", valid positions are:', ALLOWED_POSITIONS)
-                continue
-
-            # creates dynamically a template extension class
-            new_class = type(
-                f'{panel}_SopInfra_panel_extension',
-                (PluginTemplateExtension,), {
-                    'model': self.model,
-                    'what': self.get_html_panel(panel),
-                    position: create_new_panel
-                }
-            )
-            extensions.append(new_class)
-
-
-        return extensions
-
-
-
+class SopInfraPluginExtension(PluginTemplateExtension):
+    def list_buttons(self):
+        return self.render("sop_infra/inc/refresh_btn.html", extra_context={})
 
 
 class TrigramSearch(PluginTemplateExtension):
     def navbar(self):
-        return self.render('sop_infra/inc/trisearch.html', extra_context={
-        })
+        return self.render("sop_infra/inc/trisearch.html", extra_context={})
 
 
-# TODO unfold + simplify further
-template_extensions = SopInfraDashboard().get_display_extensions()
-template_extensions.append(TrigramSearch) # type: ignore
-
+template_extensions = list()
+template_extensions.append(SopInfraPluginExtension)
+template_extensions.append(TrigramSearch)  # type: ignore
