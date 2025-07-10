@@ -1,7 +1,8 @@
 from django import forms
+from django.urls import reverse
 from utilities.forms.fields import DynamicModelChoiceField
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
-
+from netbox.context import current_request
 from dcim.models import Site
 from sop_infra.models import SopMerakiDash, SopMerakiOrg, SopMerakiNet, SopMerakiDevice
 
@@ -103,3 +104,44 @@ class SopMerakiDeviceFilterForm(NetBoxModelFilterSetForm):
     nom=forms.CharField(
         required=False
     )
+
+
+
+
+##############  ACTION FORMS ################################
+
+
+class SopMerakiRefreshDashboardsForm(forms.Form):
+
+    dash = DynamicModelChoiceField(queryset=SopMerakiDash.objects.all(), required=False)
+    details = forms.BooleanField(required=False)
+
+    def clean(self):
+        data = super().clean()
+        dashs = SopMerakiDash.objects.none()
+        base_url = reverse("plugins:sop_infra:sopmerakidash_list")
+        request = current_request.get()
+
+        def normalize_queryset(obj):
+            qs = [str(item) for item in obj]
+            if qs == []:
+                return None
+            return f"id=" + "&id=".join(qs)
+
+        if data["dash"]:
+            dashs = SopMerakiDash.objects.filter(pk=data["dash"].pk)
+        else: 
+            dashs = SopMerakiDash.objects.all()
+
+        return_url=f"{base_url}?{normalize_queryset(dashs.values_list('id', flat=True))}"
+        if request.GET.get("return_url"):
+            return_url=request.GET.get("return_url")
+
+        details:bool=False
+        if data["details"]:
+            details=data["details"]
+
+        return {
+            "dashs": dashs, "details":details,
+            "return_url": return_url,
+        }

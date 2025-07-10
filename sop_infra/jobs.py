@@ -8,6 +8,7 @@ from core.choices import JobIntervalChoices
 from netbox.jobs import JobRunner, Job, system_job
 
 from dcim.models import Site
+from sop_infra.models.sopmeraki import SopMerakiDash
 from sop_infra.utils.ad_utils import ADCountersUpd, user_info, user_infos
 from sop_infra.utils.mixins import JobRunnerLogMixin
 from tenancy.models import Contact, Tenant
@@ -52,7 +53,7 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
         job:Job=self.job
         obj = job.object
         try:
-            SopMerakiUtils.refresh_dashboards(self, settings.DEBUG)
+            SopMerakiUtils.refresh_dashboards(self, settings.DEBUG, kwargs.pop('dashs'), kwargs.pop('details'))
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
@@ -63,10 +64,10 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
             self.job.data = self.get_job_data()       
 
     @staticmethod
-    def launch_manual()->Job:
+    def launch_manual(dashs:list[SopMerakiDash], details:bool)->Job:
         if settings.DEBUG:
-            return SopMerakiDashRefreshJob.enqueue(immediate=True)
-        return SopMerakiDashRefreshJob.enqueue()
+            return SopMerakiDashRefreshJob.enqueue(immediate=True, dashs=dashs, details=details)
+        return SopMerakiDashRefreshJob.enqueue(dashs=dashs, details=details)
     
 
 @system_job(interval=JobIntervalChoices.INTERVAL_HOURLY)

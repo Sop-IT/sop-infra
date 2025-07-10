@@ -91,14 +91,16 @@ class SopMerakiUtils:
         )
 
     @classmethod
-    def refresh_dashboards(cls, log: JobRunnerLogMixin, simulate: bool):
-        for smd in SopMerakiDash.objects.all():
+    def refresh_dashboards(cls, log: JobRunnerLogMixin, simulate: bool, dashs:list, details:bool=False):
+        if dashs is None or len(dashs)==0:
+            dashs=SopMerakiDash.objects.all() # type: ignore
+        for smd in dashs:
             if log:
                 log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
             conn = cls.connect(smd.nom, smd.api_url, simulate)
             if log:
                 log.info(f"Trying to refresh '{smd.nom}'")
-            smd.refresh_from_meraki(conn, log)
+            smd.refresh_from_meraki(conn, log, details)
 
     @classmethod
     def create_meraki_networks(
@@ -107,7 +109,7 @@ class SopMerakiUtils:
         if log and details:
             log.log_debug(f"create_meraki_networks for site {site}")
         # Check site sopinfra for existing nets
-        if site.meraki_nets.exists():
+        if site.meraki_nets.exists(): # type: ignore
             if log and details:
                 log.log_failure(
                     f"SopMerakiNets already exist for site {site}..."
@@ -145,8 +147,8 @@ class SopMerakiUtils:
             log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
         conn = cls.connect(smd.nom, smd.api_url, simulate)
         # Calc names
-        sdwan_name = f"{site.group.parent.name}-{site.region.name}-{site.tenant.group.name}@--{site.name}"
-        switch_name = f"{site.group.parent.name}-{site.region.name}-{site.tenant.group.name}--{site.name}"
+        sdwan_name = f"{site.group.parent.name}-{site.region.name}-{site.tenant.group.name}@--{site.name}" # type: ignore
+        switch_name = f"{site.group.parent.name}-{site.region.name}-{site.tenant.group.name}--{site.name}" # type: ignore
         if log and details:
             log.log_debug(
                 f"create_meraki_networks : network names -> {sdwan_name=}, {switch_name=}"
@@ -164,7 +166,7 @@ class SopMerakiUtils:
             log.log_debug(
                 f"created SDWAN network {sdwan=}"
             )
-        SopMerakiNet.create_or_refresh(conn, sdwan, org, log)
+        SopMerakiNet.create_or_refresh(conn, sdwan, org, log, details)
         switches=conn.organizations.createOrganizationNetwork(
             org.meraki_id,
             name=switch_name,
@@ -175,13 +177,13 @@ class SopMerakiUtils:
             log.log_debug(
                 f"created Switch + Wifi network {switches=}"
             )
-        SopMerakiNet.create_or_refresh(conn, switches, org, log)
+        SopMerakiNet.create_or_refresh(conn, switches, org, log, details)
         bind=conn.networks.bindNetwork(switches["id"], "L_731271989494293752")
         if log and details:
             log.log_debug(
                 f"bound network {bind=}"
             )
-        SopMerakiNet.create_or_refresh(conn, bind, org, log)
+        SopMerakiNet.create_or_refresh(conn, bind, org, log, details)
         if log:
             log.log_success(
                 f"Done creating networks !"
@@ -339,7 +341,7 @@ class SopMerakiDash(NetBoxModel):
         verbose_name_plural = "Meraki dashboards"
 
     def refresh_from_meraki(
-        self, conn: meraki.DashboardAPI, log: JobRunnerLogMixin = None
+        self, conn: meraki.DashboardAPI, log: JobRunnerLogMixin, details:bool
     ):
         save = self.pk is None
 
@@ -361,11 +363,11 @@ class SopMerakiDash(NetBoxModel):
                 smo = SopMerakiOrg()
             else:
                 smo = SopMerakiOrg.objects.get(meraki_id=org["id"])
-            smo.refresh_from_meraki(conn, org, self, log)
+            smo.refresh_from_meraki(conn, org, self, log, details)
 
         if log:
             log.info(f"Done looping on '{self.nom}' organizations, starting cleanup...")
-        for smo in self.orgs.all():
+        for smo in self.orgs.all(): # type: ignore
             if smo.meraki_id not in org_ids:
                 log.info(f"Deleting ORG '{smo.nom}' / {smo.meraki_id}")
                 smo.delete()
@@ -381,7 +383,6 @@ class SopMerakiOrg(NetBoxModel):
     """
 
     nom = models.CharField(max_length=50, null=False, blank=False, verbose_name="Name")
-
     dash = models.ForeignKey(
         to=SopMerakiDash,
         on_delete=models.CASCADE,
@@ -390,7 +391,6 @@ class SopMerakiOrg(NetBoxModel):
         verbose_name="Dashboard",
         related_name="orgs",
     )
-
     meraki_id = models.CharField(
         max_length=100,
         null=False,
@@ -424,7 +424,8 @@ class SopMerakiOrg(NetBoxModel):
         conn: meraki.DashboardAPI,
         org,
         dash: SopMerakiDash,
-        log: JobRunnerLogMixin = None,
+        log: JobRunnerLogMixin,
+        details:bool
     ):
         save = self.pk is None
         # cf https://developer.cisco.com/meraki/api-v1/get-organizations/
@@ -434,7 +435,7 @@ class SopMerakiOrg(NetBoxModel):
         if self.meraki_id != org["id"]:
             self.meraki_id = org["id"]
             save = True
-        if self.dash_id is None or self.dash != dash:
+        if self.dash_id is None or self.dash != dash: # type: ignore
             self.dash = dash
             save = True
         if self.meraki_url != org["url"]:
@@ -453,10 +454,11 @@ class SopMerakiOrg(NetBoxModel):
         for net in conn.organizations.getOrganizationNetworks(
             org["id"], total_pages=-1
         ):
-            SopMerakiNet.create_or_refresh(conn, net, self, log)
+            net_ids.append(net["id"])
+            SopMerakiNet.create_or_refresh(conn, net, self, log, details)
         if log:
             log.info(f"Done looping on '{self.nom}' networks, starting cleanup...")
-        for smn in self.nets.all():
+        for smn in self.nets.all(): # type: ignore
             if smn.meraki_id not in net_ids:
                 log.info(f"Deleting '{smn.nom}'...")
                 smn.delete()
@@ -478,10 +480,10 @@ class SopMerakiOrg(NetBoxModel):
                 smd = SopMerakiDevice()
             else:
                 smd = SopMerakiDevice.objects.get(serial=dev["serial"])
-            smd.refresh_from_meraki(conn, dev, self, log)
+            smd.refresh_from_meraki(conn, dev, self, log, details)
         if log:
             log.info(f"Done looping on '{self.nom}' devices, starting cleanup...")
-        for smd in self.devices.filter(org__meraki_id=org["id"]):
+        for smd in self.devices.filter(org__meraki_id=org["id"]): # type: ignore
             if smd.serial not in serials:
                 log.info(f"Orphaning '{smd.nom}'/'{smd.serial}'...")
                 smd.orphan_device()
@@ -553,7 +555,8 @@ class SopMerakiNet(NetBoxModel):
         conn: meraki.DashboardAPI,
         net,
         org: SopMerakiOrg,
-        log: JobRunnerLogMixin = None,
+        log: JobRunnerLogMixin,
+        details:bool
     ):
         if not SopMerakiNet.objects.filter(meraki_id=net["id"]).exists():
             if log:
@@ -563,7 +566,7 @@ class SopMerakiNet(NetBoxModel):
             smn = SopMerakiNet()
         else:
             smn = SopMerakiNet.objects.get(meraki_id=net["id"])
-        smn.refresh_from_meraki(conn, net, org, log)
+        smn.refresh_from_meraki(conn, net, org, log, details)
 
 
     def refresh_from_meraki(
@@ -571,10 +574,11 @@ class SopMerakiNet(NetBoxModel):
         conn: meraki.DashboardAPI,
         net,
         org: SopMerakiOrg,
-        log: JobRunnerLogMixin = None,
+        log: JobRunnerLogMixin,
+        details:bool
     ):
         # cf https://developer.cisco.com/meraki/api-v1/get-organization-networks/
-        if log:
+        if log and details:
             log.info(f"Refreshing '{self.nom}'...")
         save = self.pk is None
         if self.nom != net["name"]:
@@ -583,7 +587,7 @@ class SopMerakiNet(NetBoxModel):
         if self.meraki_id != net["id"]:
             self.meraki_id = net["id"]
             save = True
-        if self.org_id is None or self.org != org:
+        if self.org_id is None or self.org != org: # type: ignore
             self.org = org
             save = True
         if self.bound_to_template != net["isBoundToConfigTemplate"]:
@@ -598,21 +602,23 @@ class SopMerakiNet(NetBoxModel):
         if f"{self.timezone}" != f"{net['timeZone']}":
             self.timezone = net["timeZone"]
             save = True
-        if not ArrayUtils.equal_sets(self.meraki_tags, net["tags"]):
+        if not ArrayUtils.equal_sets(self.meraki_tags, net["tags"]): # type: ignore
             self.meraki_tags = net["tags"]
             save = True
-        if not ArrayUtils.equal_sets(self.ptypes, net["productTypes"]):
+        if not ArrayUtils.equal_sets(self.ptypes, net["productTypes"]): # type: ignore
             self.ptypes = net["productTypes"]
             save = True
         slug = SopMerakiUtils.extractSiteName(self.nom)
         if slug is None:
-            val = None
+            if self.site_id is not None:
+                self.site_id=None
         elif not Site.objects.filter(slug=slug).exists():
-            val = None
+            if self.site_id is not None:
+                self.site_id=None
         else:
             val = Site.objects.get(slug=slug)
-        if self.site_id is None or self.site != val:
-            self.site = val
+            if self.site_id != val.pk :
+                self.site = val
 
         # Prepare Meraki site update
         update_meraki: dict = {}
@@ -621,11 +627,11 @@ class SopMerakiNet(NetBoxModel):
         if self.site is not None:
             # handle tags
             current_tags: list[str] = SopMerakiUtils.only_non_netbox_tags(
-                self.meraki_tags
+                self.meraki_tags # type: ignore
             )
             netbox_tags: list[str] = SopMerakiUtils.calc_site_netbox_tags(self.site)
             current_tags.extend(netbox_tags)
-            if not ArrayUtils.equal_sets(self.meraki_tags, current_tags):
+            if not ArrayUtils.equal_sets(self.meraki_tags, current_tags): # type: ignore
                 self.meraki_tags = current_tags
                 save = True
                 update_meraki["tags"] = self.meraki_tags
@@ -662,14 +668,14 @@ class SopMerakiNet(NetBoxModel):
     @staticmethod
     def get_appliance_networks(site: Site) -> list:
         ret: list[SopMerakiNet] = list()
-        smns: list[SopMerakiNet] = site.meraki_nets
+        smns: list[SopMerakiNet] = site.meraki_nets # type: ignore
         # loop on the site networks
         for smn in smns:
             # skip bound networks
             if smn.bound_to_template:
                 continue
             # skip non appliance networks
-            if "appliance" not in smn.ptypes:
+            if "appliance" not in smn.ptypes: # type: ignore
                 continue
             # add to tentative list
             ret.append(smn)
@@ -679,7 +685,7 @@ class SopMerakiNet(NetBoxModel):
     @staticmethod
     def get_all_networks(site: Site) -> list:
         ret: list[SopMerakiNet] = list()
-        smns: list[SopMerakiNet] = site.meraki_nets
+        smns: list[SopMerakiNet] = site.meraki_nets # type: ignore
         # loop on the site networks
         for smn in smns:
             # add to tentative list
@@ -690,7 +696,7 @@ class SopMerakiNet(NetBoxModel):
     @staticmethod
     def get_bound_networks(site: Site) -> list:
         ret: list[SopMerakiNet] = list()
-        smns: list[SopMerakiNet] = site.meraki_nets
+        smns: list[SopMerakiNet] = site.meraki_nets # type: ignore
         # loop on the site networks
         for smn in smns:
             # skip not bound networks
@@ -805,13 +811,13 @@ class SopMerakiDevice(NetBoxModel):
         verbose_name_plural = "Meraki Devices"
 
     def refresh_from_meraki(
-        self, conn: meraki.DashboardAPI, dev, org: SopMerakiOrg, log: JobRunnerLogMixin
+        self, conn: meraki.DashboardAPI, dev, org: SopMerakiOrg, log: JobRunnerLogMixin, details:bool
     ):
         # cf https://developer.cisco.com/meraki/api-v1/get-organization-devices/
-        if log:
+        if log and details:
             log.info(f"Refreshing '{self.nom}'...")
         save = self.pk is None
-        if self.org_id is None or self.org != org:
+        if self.org_id is None or self.org != org: # type: ignore
             self.org = org
             save = True
         nameval = dev.get("name", None)
@@ -842,7 +848,7 @@ class SopMerakiDevice(NetBoxModel):
             self.firmware = dev.get("firmware", None)
             save = True
 
-        if not ArrayUtils.equal_sets(self.meraki_tags, dev.get("firmware", list())):
+        if not ArrayUtils.equal_sets(self.meraki_tags, dev.get("firmware", list())): # type: ignore
             self.meraki_tags = dev.get("meraki_tags", list())
             save = True
         if not SopUtils.deep_equals_json_ic(

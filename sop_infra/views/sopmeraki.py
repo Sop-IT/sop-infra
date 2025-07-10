@@ -14,7 +14,9 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import AccessMixin
 # from users.models import ObjectPermission, Group, User
 # from extras.scripts import Script
-
+from utilities.views import register_model_view, ViewTab, ObjectPermissionRequiredMixin
+from utilities.permissions import get_permission_for_model
+from utilities.forms import restrict_form_fields
 
 class SopMerakiCreateNetworksView(AccessMixin, View):
 
@@ -38,28 +40,52 @@ class SopMerakiCreateNetworksView(AccessMixin, View):
         return redirect(url)
 
 
-class SopMerakiRefreshDashboardsView(View):
+class SopMerakiRefreshDashboardsView(View, ObjectPermissionRequiredMixin):
     """
     refresh the dashboards
     """
-    template_name: str = "sop_infra/tools/refresh_dashboards.html"
+    form = SopMerakiRefreshDashboardsForm
+    template_name: str = "sop_infra/actions/sopmeraki_refresh_dashboards.html"
 
     def get(self, request, *args, **kwargs):
 
-        # TODO permissions
-        #if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
-        #    return self.handle_no_permission()
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(SopMerakiNet, "change")):
+            return self.handle_no_permission()
 
-        #restrict_form_fields(self.form(), request.user)
-        # Fetch details param
-        details:bool=(request.GET['details']=="True")
-        # Launch job
-        j:Job=SopMerakiDashRefreshJob.launch_manual()
-        # Send to script result
-        url=reverse("extras:script_result", args=[j.pk])
-        if details:
-            url+="?log_threshold=debug"
-        return redirect(url)
+        restrict_form_fields(self.form(), request.user)
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": self.form(),
+                "return_url": reverse("plugins:sop_infra:sopmerakidash_list"),
+            },
+        )
+    
+    def post(self, request, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(SopMerakiNet, "change")):
+            return self.handle_no_permission()
+
+        return_url = reverse("plugins:sop_infra:sopmerakidash_list")
+
+        form = self.form(data=request.POST, files=request.FILES)
+        if form.is_valid():
+            data: dict = form.cleaned_data
+            dashs = data ["dashs"]
+            return_url = data["return_url"]
+            details = data["details"]
+                
+            # Launch job
+            j:Job=SopMerakiDashRefreshJob.launch_manual(dashs=dashs, details=details)
+            # Send to script result
+            url=reverse("extras:script_result", args=[j.pk])
+            if details:
+                url+="?log_threshold=debug"
+            return redirect(url)
    
 
 class SopMerakiTriSearchView(View):
