@@ -56,7 +56,7 @@ class SopInfraPluginExtension(PluginTemplateExtension):
                 return self.render("sop_infra/inc/refresh_dash.html", extra_context={})
             elif isinstance(self.context.get("object"), SopInfra):
                 return self.render("sop_infra/inc/refresh_btn.html", extra_context={})
-        return super().list_buttons()
+        return ""
 
 
 class TrigramSearch(PluginTemplateExtension):
