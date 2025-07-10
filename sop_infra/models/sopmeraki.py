@@ -187,6 +187,84 @@ class SopMerakiUtils:
                 f"Done creating networks !"
             )
 
+    # @classmethod
+    # def claim_meraki_device(
+    #     cls, log: JobRunnerLogMixin, simulate: bool, site: Site, serial:str, details: bool = False
+    # ):
+    #     if log and details:
+    #         log.log_debug(f"claim_meraki_device - {site=} {serial=}")
+    #     # Get claim org from region hierarchy
+    #     region: Region = site.region  # type: ignore
+    #     org_id: int = None  # type: ignore
+    #     while org_id is None and region is not None:
+    #         org_id = region.custom_field_data.get("meraki_org")
+    #         region = region.parent  # type: ignore
+    #     if org_id is None :
+    #         if log:
+    #             log.log_failure(
+    #                 f"Unable to determine claim settings for site {site} :  {org_id=}"
+    #             )
+    #         return
+    #     if log and details:
+    #         log.log_debug(
+    #             f"create_meraki_networks : {org_id=}} for {site}"
+    #         )
+    #     # Get con from dash from org
+    #     org = SopMerakiOrg.objects.get(pk=org_id)
+    #     copy_from = SopMerakiNet.objects.get(pk=copy_from_id)
+    #     if copy_from.org != org:
+    #         if log:
+    #             log.log_failure(
+    #                 f"copy_from org != creation org  {org=} VS {copy_from.org=}"
+    #             )
+    #         return
+    #     smd: SopMerakiDash = org.dash
+    #     if log:
+    #         log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+    #     conn = cls.connect(smd.nom, smd.api_url, simulate)
+    #     # Calc names
+    #     sdwan_name = f"{site.group.parent.name}-{site.region.name}-{site.tenant.group.name}@--{site.name}"
+    #     switch_name = f"{site.group.parent.name}-{site.region.name}-{site.tenant.group.name}--{site.name}"
+    #     if log and details:
+    #         log.log_debug(
+    #             f"create_meraki_networks : network names -> {sdwan_name=}, {switch_name=}"
+    #         )
+    #     # Create missing ones
+    #     sdwan=conn.organizations.createOrganizationNetwork(
+    #         org.meraki_id,
+    #         name=sdwan_name,
+    #         copyFromNetworkId=copy_from.meraki_id,
+    #         timeZone=f"{copy_from.timezone}",
+    #         productTypes=["appliance"],
+    #         tags=SopMerakiUtils.calc_site_netbox_tags(site)
+    #     )
+    #     if log and details:
+    #         log.log_debug(
+    #             f"created SDWAN network {sdwan=}"
+    #         )
+    #     SopMerakiNet.create_or_refresh(conn, sdwan, org, log)
+    #     switches=conn.organizations.createOrganizationNetwork(
+    #         org.meraki_id,
+    #         name=switch_name,
+    #         productTypes=["switch","wireless"],
+    #         tags=SopMerakiUtils.calc_site_netbox_tags(site)
+    #     )
+    #     if log and details:
+    #         log.log_debug(
+    #             f"created Switch + Wifi network {switches=}"
+    #         )
+    #     SopMerakiNet.create_or_refresh(conn, switches, org, log)
+    #     bind=conn.networks.bindNetwork(switches["id"], "L_731271989494293752")
+    #     if log and details:
+    #         log.log_debug(
+    #             f"bound network {bind=}"
+    #         )
+    #     SopMerakiNet.create_or_refresh(conn, bind, org, log)
+    #     if log:
+    #         log.log_success(
+    #             f"Done creating networks !"
+    #         )
+
     @staticmethod
     def extractSiteName(name):
         m = SopRegExps.meraki_sitename_re.match(f"{name}")
@@ -375,7 +453,7 @@ class SopMerakiOrg(NetBoxModel):
         for net in conn.organizations.getOrganizationNetworks(
             org["id"], total_pages=-1
         ):
-            SopMerakiNet.create_or_refresh(conn, net, org, log)
+            SopMerakiNet.create_or_refresh(conn, net, self, log)
         if log:
             log.info(f"Done looping on '{self.nom}' networks, starting cleanup...")
         for smn in self.nets.all():
@@ -469,15 +547,6 @@ class SopMerakiNet(NetBoxModel):
     class Meta(NetBoxModel.Meta):
         verbose_name = "Meraki Network"
         verbose_name_plural = "Meraki Networks"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["nom", "org"],
-                name="%(app_label)s_%(class)s_unique_net_dash",
-                violation_error_message=_(
-                    "This org already has an net with this name."
-                ),
-            ),
-        ]
 
     @staticmethod
     def create_or_refresh(
