@@ -16,7 +16,7 @@ menu = PluginMenu(
                     #permissions=["sop_infra.view_merakidashs"],
                     buttons=(
                         PluginMenuButton(
-                            link=f"plugins:sop_infra:sopmerakidash_refresh",
+                            link="plugins:sop_infra:sopmerakidash_refresh",
                             title="Refetch dashboards from Meraki",
                             icon_class="mdi mdi-refresh",
                             #permissions=[f"sop_infra.change_sop_infra"],
@@ -83,12 +83,6 @@ menu = PluginMenu(
                             title="Recompute",
                             icon_class="mdi mdi-refresh",
                             permissions=[f"sop_infra.change_sop_infra"],
-                        ),
-                        PluginMenuButton(
-                            link=f"plugins:sop_infra:sopinfra_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            permissions=[f"sop_infra.add_sopinfra"],
                         ),
                     ),
                 ),
