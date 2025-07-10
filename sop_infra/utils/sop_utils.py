@@ -30,7 +30,6 @@ from sop_infra.models import SopInfra
 __all__ = (
     "PrismaAccessLocationRecomputeMixin",
     "SopInfraRelatedModelsMixin",
-    "SopInfraRefreshMixin",
     "SopRegExps", "SopUtils", "DateUtils", 
 )
 
@@ -596,21 +595,6 @@ class PrismaAccessLocationRecomputeMixin:
         return True
 
 
-class SopInfraRefreshMixin:
-
-    def refresh_infra(self, queryset):
-        instance: SopInfra
-        for instance in queryset:
-            # on snappe pour être sûrs
-            instance.snapshot()
-            if instance.calc_cumul_and_propagate():
-                # si ça a changé, on sauve
-                instance.save()
-        try:
-            request:HttpRequest = current_request.get() # type: ignore
-            messages.success(request, f"Successfully recomputed SopInfra sizing.")
-        except:
-            pass
 
 
 class SopInfraRelatedModelsMixin:
