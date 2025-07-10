@@ -36,7 +36,12 @@
     <div class="card">
       <h2 class="card-header">{% trans "Centreon" %}</h2>
       <table class="table table-hover attr-table">
-        {% include 'sop_infra/tools/display_detail.html' with name="monitor_in_starting" %}
+        <tr>
+          <th scope="row">Is centreon active ?</th>
+          <td>
+            {% include 'sop_infra/tools/badge.html' with object=object.centreon_active %}
+          </td>
+        </tr>   
       </table>
     </div>
     <!-- PRISMA CARD -->
