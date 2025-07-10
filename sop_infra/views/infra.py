@@ -23,19 +23,19 @@ from sop_infra.forms import *
 from sop_infra.tables import SopInfraTable 
 from sop_infra.models import *
 from sop_infra.filtersets import SopInfraFilterset
-from sop_infra.utils.sop_utils import SopInfraRelatedModelsMixin, SopInfraRefreshMixin
-
+from sop_infra.utils.sop_utils import SopInfraRelatedModelsMixin
+from django.contrib import messages
 
 __all__ = (
     "SopInfraSiteTabView",
     "SopMerakiSiteTabView",
-    "SopInfraAddView",
+    # "SopInfraAddView",
     "SopInfraEditView",
     "SopInfraListView",
     "SopInfraDeleteView",
     "SopInfraDetailView",
     "SopInfraRefreshView",
-    "SopInfraRefreshNoForm",
+    # "SopInfraRefreshNoForm",
     # "SopInfraBulkEditView",
     # "SopInfraBulkDeleteView",
     "SopInfraJsonExportsAdSites",
@@ -81,8 +81,6 @@ class SopInfraJsonExportsAdUsers(View):
                 contsdict[k]=dc
         return JsonResponse(contsdict, safe=False)
     
-
-
 
 class SopInfraJsonExportsAdSites(View):
 
@@ -159,10 +157,6 @@ class SopMerakiSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
         return context
 
 
-
-
-
-
 # ____________________________
 # SOP INFRA BASE MODEL VIEWS
 
@@ -180,58 +174,24 @@ class SopInfraEditView(generic.ObjectEditView):
     edits an existing SopInfra instance
     """
 
-    template_name: str = "sop_infra/tools/forms.html"
     queryset = SopInfra.objects.all()
     form = SopInfraForm
 
-    def get_return_url(self, request, obj):
-        if obj.site:
-            return f"/dcim/sites/{obj.site.id}/infra"
+    # def get_return_url(self, request, obj):
+    #     return_url=f"{base_url}?{normalize_queryset(infra.values_list('id', flat=True))}"
+    #     if request.GET.get("return_url"):
+    #         return_url=request.GET.get("return_url")
+        
+    #     if obj.site:
+    #         return f"/dcim/sites/{obj.site.id}/infra"
 
-    def get_extra_context(self, request, obj):
-        context = super().get_extra_context(request, obj)
-        if not obj:
-            return context
-        context["object_type"] = obj
-        return context
+    # def get_extra_context(self, request, obj):
+    #     context = super().get_extra_context(request, obj)
+    #     if not obj:
+    #         return context
+    #     context["object_type"] = obj
+    #     return context
 
-
-class SopInfraAddView(generic.ObjectEditView):
-    """
-    adds a new SopInfra instance
-    if the request is from the site page,
-    -> the site id is passed as an argument (pk)
-    """
-
-    queryset = SopInfra.objects.all()
-    form = SopInfraForm
-
-    def get_object(self, **kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().get_object(**kwargs)
-
-    def alter_object(self, obj, request, args, kwargs):
-        """ """
-        if "pk" in kwargs:
-            site = get_object_or_404(Site, pk=kwargs["pk"])
-            obj = self.queryset.model
-            return obj(site=site)
-        return super().alter_object(obj, request, args, kwargs)
-
-    def get_return_url(self, request, obj):
-        try:
-            return f"/dcim/sites/{obj.site.id}/infra"
-        except:
-            return f"/plugins/sop_infra/list"
-
-
-
-# ____________________________
-# DETAIL VIEW
 
 class SopInfraDetailView(generic.ObjectView):
     """
@@ -251,10 +211,6 @@ class SopInfraDetailView(generic.ObjectView):
         return context
 
 
-
-# ____________________________
-# LIST VIEWS
-
 class SopInfraListView(generic.ObjectListView):
     """list of all SopInfra objects and instances"""
 
@@ -263,8 +219,14 @@ class SopInfraListView(generic.ObjectListView):
     filterset = SopInfraFilterset
     filterset_form = SopInfraFilterForm
 
+    actions ={
+        'export': {'view'},
+    }
 
-class SopInfraRefreshView(View, SopInfraRefreshMixin, ObjectPermissionRequiredMixin):
+
+### ACTION VIEWS
+
+class SopInfraRefreshView(View, ObjectPermissionRequiredMixin):
     """
     refresh targeted sopinfra computed values
     """
@@ -296,6 +258,7 @@ class SopInfraRefreshView(View, SopInfraRefreshMixin, ObjectPermissionRequiredMi
             return self.handle_no_permission()
 
         return_url = reverse("plugins:sop_infra:sopinfra_list")
+
         form = self.form(data=request.POST, files=request.FILES)
         if form.is_valid():
             data: dict = form.cleaned_data
@@ -306,23 +269,22 @@ class SopInfraRefreshView(View, SopInfraRefreshMixin, ObjectPermissionRequiredMi
         return render(
             request, self.template_name, {"form": self.form(), "return_url": return_url}
         )
-
-
-class SopInfraRefreshNoForm(View, SopInfraRefreshMixin, ObjectPermissionRequiredMixin):
-
-    def get_return_url(self, pk) -> str:
-
-        return f"/dcim/sites/{pk}/infra/"
-
-    def get(self, request, *args, **kwargs):
-
-        # additional security
-        if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
-            return self.handle_no_permission()
-
-        pk = request.GET.get("qs")
-        self.refresh_infra(SopInfra.objects.filter(site__pk=pk))
-        return redirect(self.get_return_url(pk))
+    
+    def refresh_infra(self, queryset):
+        instance: SopInfra
+        for instance in queryset:
+            # on snappe pour être sûrs
+            instance.snapshot()
+            if instance.calc_cumul_and_propagate():
+                # si ça a changé, on déclenche le recalcul
+                instance.full_clean()
+                # Puis on sauve
+                instance.save()
+        try:
+            request:HttpRequest = current_request.get() # type: ignore
+            messages.success(request, f"Successfully recomputed SopInfra sizing.")
+        except:
+            pass
 
 
 # ____________________________
