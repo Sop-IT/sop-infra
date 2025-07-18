@@ -18,27 +18,6 @@ from utilities.views import register_model_view, ViewTab, ObjectPermissionRequir
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
 
-class SopMerakiCreateNetworksView(AccessMixin, View):
-
-    def get(self, request, site_id, *args, **kwargs):
-        # Check perms 
-        group_names=['ALL_ITA_Netbox_Team_Integration', 'ALL_ITA_Netbox_Team_Network']
-        if request.user.is_superuser :
-            pass
-        elif not request.user.groups.filter(name__in=group_names):
-            return self.handle_no_permission()
-        # Fetch site
-        site=get_object_or_404(Site, pk=site_id)
-        # Fetch details param
-        details:bool=(request.GET['details']=="True")
-        # Launch job
-        j:Job=SopMerakiCreateNetworkJob.launch_manual(site, details)
-        # Send to script result
-        url=reverse("extras:script_result", args=[j.pk])
-        if details:
-            url+="?log_threshold=debug"
-        return redirect(url)
-
 
 class SopMerakiRefreshDashboardsView(View, ObjectPermissionRequiredMixin):
     """

@@ -1,0 +1,50 @@
+{% extends 'generic/object_edit.html' %}
+
+
+{% block title %}
+  Claim Meraki NETWORK devices
+{% endblock %}
+
+
+{% block tabs %}
+  This page claims Meraki <b><u>NETWORK</u></b> devices : Switches (MS), Access Points (MR) and Appliances (MX).<br/>
+  <br/>
+  {% if merorg %}
+    Network devices for this site will be claimed in the «<a href={{merorg.get_absolute_url}}>{{merorg}}</a>» Meraki Organisation.<br/>
+    
+    {% if claim_net_mx %}
+    MX devices (routers) will be claimed/moved into the  «<a href={{claim_net_mx.get_absolute_url}}>{{claim_net_mx}}</a>» Meraki Network.<br/>
+    {% else %}
+    MX claim network is undefined → appliances wont be moved.<br/>
+    {% endif %}
+
+    {% if claim_net_ms %}
+    MS devices (switches) will be claimed/moved into the  «<a href={{claim_net_ms.get_absolute_url}}>{{claim_net_ms}}</a>» Meraki Network.<br/>
+    {% else %}
+    MS claim network is undefined → switches wont be moved.<br/>
+    {% endif %}
+
+    {% if claim_net_mr %}
+    MR devices (wifi access points) will be claimed/moved into the  «<a href={{claim_net_mr.get_absolute_url}}>{{claim_net_mr}}</a>» Meraki Network.<br/>
+    {% else %}
+    MR claim network is undefined → wifi access points wont be moved.<br/>
+    {% endif %}
+
+  {% else %}
+    Claim Organisation is not set for this network → impossible to claim<br/>
+  {% endif %}
+  <br/>
+{% endblock %}
+
+
+{% block buttons %}
+  <a href="{{ return_url }}" class="btn btn-outline-secondary">Cancel</a>
+  {% if merorg %}
+  <div class="btn-group" role="group" aria-label="Actions">
+    <button type="submit" name="_create" class="btn btn-primary">
+      <i class="mdi mdi-plus-thick" title="Claim NETWORK devices"></i>
+      Claim NETWORK devices
+    </button>
+  </div>
+  {% endif %}
+{% endblock buttons %}}

@@ -1,3 +1,4 @@
+import re
 from django import forms
 from django.urls import reverse
 from django.contrib import messages
@@ -17,15 +18,12 @@ from sop_infra.models import *
 
 __all__ = (
     "SopInfraForm",
-
+    "SopMerakiForm",
     "SopInfraMerakiFilterForm",
-
     "SopInfraFilterForm",
     "SopInfraSizingFilterForm",
-
     "SopInfraClassificationFilterForm",
     "SopInfraRefreshForm",
-
 )
 
 
@@ -140,7 +138,6 @@ class SopInfraForm(NetBoxModelForm):
         help_text=_("Does the site run WMS ?"),
     )
 
-
     fieldsets = (
         FieldSet(
             "site_infra_sysinfra",
@@ -155,14 +152,8 @@ class SopInfraForm(NetBoxModelForm):
             "monitor_in_starting",
             name=_("Centreon"),
         ),
-        FieldSet("endpoint", 
-                 "enabled", 
-                 name=_("PRISMA")),
-        FieldSet(
-            "sdwan1_bw",
-            "sdwan2_bw",
-            name=_("Current link info")
-        ),
+        FieldSet("endpoint", "enabled", name=_("PRISMA")),
+        FieldSet("sdwan1_bw", "sdwan2_bw", name=_("Current link info")),
         FieldSet(
             "est_cumulative_users_wc",
             "est_cumulative_users_bc",
@@ -203,6 +194,74 @@ class SopInfraForm(NetBoxModelForm):
             "monitor_in_starting",
             "endpoint",
             "enabled",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if "tags" in self.fields:
+            del self.fields["tags"]
+
+
+class SopMerakiForm(NetBoxModelForm):
+
+    claim_net_mx = DynamicModelChoiceField(
+        label=_("MX claim network"),
+        # TODO filter by site org
+        queryset=SopMerakiNet.objects.all(),
+        query_params={
+            "ptypes__contains": SopMerakiUtils.DEV_TYPE_MX,
+            "bound_to_template": False,
+        },
+        required=False,
+    )
+    claim_net_ms = DynamicModelChoiceField(
+        label=_("MS claim network"),
+        # TODO filter by site org
+        queryset=SopMerakiNet.objects.all(),
+        query_params={
+            "ptypes__contains": SopMerakiUtils.DEV_TYPE_MS,
+            "bound_to_template": True,
+        },
+        required=False,
+    )
+    claim_net_mr = DynamicModelChoiceField(
+        label=_("MR claim network"),
+        # TODO filter by site org
+        queryset=SopMerakiNet.objects.all(),
+        query_params={
+            "ptypes__contains": SopMerakiUtils.DEV_TYPE_MR,
+            "bound_to_template": True,
+        },
+        required=False,
+    )
+    # claim_net_mv = DynamicModelChoiceField(
+    #     label=_("MV claim network"),
+    #     # TODO filter by site org
+    #     queryset=SopMerakiNet.objects.all(),
+    #     query_params={
+    #         "ptypes__contains": SopMerakiUtils.DEV_TYPE_MR,
+    #     },
+    #     required=False,
+    # )
+
+    fieldsets = (
+        FieldSet(
+            "claim_net_mx",
+            "claim_net_ms",
+            "claim_net_mr",
+            # "claim_net_mv",
+            name=_("Claiming information"),
+        ),
+    )
+
+    class Meta:
+        model = SopInfra
+        fields = [
+            "claim_net_mx",
+            "claim_net_ms",
+            "claim_net_mr",
+            # "claim_net_mv",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -382,10 +441,14 @@ class SopInfraSizingFilterForm(SopInfraBaseFilterForm):
         required=False, label=_("Reco. BW (Mbps)"), help_text=_("Numbers only")
     )
     wan_computed_users_wc = forms.IntegerField(
-        required=False, label=_("WAN computed white collar users"), help_text=_("Numbers only")
+        required=False,
+        label=_("WAN computed white collar users"),
+        help_text=_("Numbers only"),
     )
     wan_computed_users_bc = forms.IntegerField(
-        required=False, label=_("WAN computed blue collar users"), help_text=_("Numbers only")
+        required=False,
+        label=_("WAN computed blue collar users"),
+        help_text=_("Numbers only"),
     )
 
     fieldsets = (
@@ -544,11 +607,80 @@ class SopInfraRefreshForm(forms.Form):
             site__in=(sites.exclude(status="dc").distinct())
         )
 
-        return_url=f"{base_url}?{normalize_queryset(infra.values_list('id', flat=True))}"
+        return_url = (
+            f"{base_url}?{normalize_queryset(infra.values_list('id', flat=True))}"
+        )
         if request.GET.get("return_url"):
-            return_url=request.GET.get("return_url")
+            return_url = request.GET.get("return_url")
 
         return {
             "infra": infra,
             "return_url": return_url,
+        }
+
+
+class SopMerakiClaimForm(forms.Form):
+
+    serials = forms.RegexField(
+        widget=forms.Textarea,
+        required=True,
+        regex=r"^(?:[\s,]*[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}[\s,]*)+$",
+        help_text="Input serial numbers (XXXX-XXXX-XXXX), separated by commas and/or whitespace",
+    )
+    status = forms.ChoiceField(
+        choices=(
+            ("active", "Active"),
+            ("planned", "Planned"),
+            ("staged", "Staged"),
+            ("inventory", "Inventory"),
+        ),
+        required=True,
+        initial="staged",
+        help_text="Netbox status you want to assign to the claimed devices",
+    )
+    allow_netbox_site_change = forms.BooleanField(
+        initial=False, required=False,
+        label="Change netbox site ?",
+        help_text="If the device exists on another netbox site, should we move it or leave it there ?",
+    )
+    allow_netbox_status_change = forms.BooleanField(
+        initial=False, required=False,
+        label="Change netbox device status ?",
+        help_text="If the device exists with a different status, should we override it or leave be ?",
+    )
+
+    fieldsets = (
+        FieldSet("serials", "status", name=""),
+        FieldSet(
+            "allow_netbox_site_change",
+            "allow_netbox_status_change",
+            name="Existing NETBOX devices",
+        ),
+    )
+
+    def clean(self):
+        data = super().clean()
+
+        serials_txt = data.get("serials")
+        if not serials_txt:
+            try:
+                request: HttpRequest = current_request.get()  # type: ignore
+                messages.error(
+                    request,
+                    f"Only Meraki serial numbers separated by commas are accepted",
+                )
+            except:
+                pass
+            raise forms.ValidationError(
+                "Only Meraki serial numbers separated by commas are accepted"
+            )
+
+        serials_txt = re.sub(r"\s+", ",", serials_txt)
+        serials_list = re.split(r",+", serials_txt)
+
+        return {
+            "serials_list": serials_list,
+            "status": data.get("status", "inventory"),
+            "allow_netbox_site_change": data.get("allow_netbox_site_change", False),
+            "allow_netbox_status_change": data.get("allow_netbox_status_change", False),
         }

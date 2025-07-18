@@ -1,0 +1,22 @@
+{% load helpers %}
+{% load plugins %}
+{% load buttons %}
+{% load perms %}
+{% load i18n %}
+
+<div class="row">
+
+  <div class="col col-md-6">
+    <!-- CLAIM INFO CARD -->
+    <div class="card">
+      <h2 class="card-header">Claiming info</h5>
+      <table class="table table-hover attr-table">
+        <!-- TODO LINK TO SOPMERAKINET -->
+        {% include 'sop_infra/tools/display_detail.html' with object=infra name="claim_net_mx" %}
+        {% include 'sop_infra/tools/display_detail.html' with object=infra name="claim_net_ms" %}
+        {% include 'sop_infra/tools/display_detail.html' with object=infra name="claim_net_mr" %}
+      </table>
+    </div>
+  </div>
+
+</div>

@@ -224,9 +224,10 @@ class SopInfra(NetBoxModel):
             "Set to true if the default route should be sent through the AutoVPN"
         ),
     )
-    claim_net_mx=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="Claim appliances in ")
-    claim_net_ms=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="Claim switches in ")
-    claim_net_mr=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="Claim access points in ")
+    claim_net_mx=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="MX claim network", help_text="In which Meraki Network should we try to claim MX devices")
+    claim_net_ms=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="MS claim network", help_text="In which Meraki Network should we try to claim MS devices")
+    claim_net_mr=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="MR claim network", help_text="In which Meraki Network should we try to claim MR devices")
+    
     # _______
     # PRISMA
     endpoint = models.ForeignKey(
@@ -269,7 +270,6 @@ class SopInfra(NetBoxModel):
             return False
         return self.site.status=="active" or (self.site.status=="starting" and self.monitor_in_starting==True)
 
-
     # get_object_color methods are used by NetBoxTable
     # to display choices colors
     def get_site_type_red_color(self) -> str:
@@ -305,7 +305,6 @@ class SopInfra(NetBoxModel):
         ]
         return mark_safe("".join(html))
     
-
     # ===================================
     # DJANGO STD
 
@@ -327,14 +326,11 @@ class SopInfra(NetBoxModel):
             ),
         ]
 
-
     def __str__(self):
         return f"{self.site}"
 
     def get_absolute_url(self) -> str:
         return reverse("plugins:sop_infra:sopinfra_detail", args=[self.pk])
-
-
 
     # =================================================
     # DJANGO OVERRIDES
@@ -367,7 +363,6 @@ class SopInfra(NetBoxModel):
 
         return super().clean(*args, **kwargs)
 
-
     def delete(self, *args, **kwargs):
         # RAZ values for recompute propagation
         self.ad_direct_users_wc=0
@@ -383,14 +378,12 @@ class SopInfra(NetBoxModel):
         # delete
         return super().delete(*args, **kwargs)
 
-
     # ===================================================
     # MASTER / SLAVE UTILS
 
     def is_slave(self) -> bool:
         return self.master_site is not None \
             or self.site_sdwan_master_location is not None
-
 
     # ===================================================
     # HNA/NHA UTILS
@@ -422,8 +415,6 @@ class SopInfra(NetBoxModel):
                 self.sdwanha = '-HA-'
                 self.criticity_stars = '**'
 
-
-        
     # ===================================================
     # FIELDS ENFORCING
 
@@ -442,7 +433,6 @@ class SopInfra(NetBoxModel):
         self.criticity_stars = None
         self.site_mx_model = None
 
-
     def enforce_dc_fields(self):
         self.sdwanha = '-DC-'
         self.site_user_count = '-DC'
@@ -453,7 +443,6 @@ class SopInfra(NetBoxModel):
         self.wan_computed_users_bc = None
         self.criticity_stars = '****'
         self.site_mx_model = 'MX450'
-
 
     # ===================================================
     # USER COUNT UTILS
@@ -490,8 +479,6 @@ class SopInfra(NetBoxModel):
             return True
         si._rec_calc_cumul_and_propagate(loop, True)
         return True
-
-
 
     def calc_wan_computed_users(self) -> tuple[int, int]:
         isilog=self.site.custom_field_data.get("site_integration_isilog")

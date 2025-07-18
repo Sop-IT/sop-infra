@@ -7,7 +7,15 @@
 
 
 {% block controls %}
+  
+  <div class="btn-list justify-content-end mb-2">
   {% include 'sop_infra/tools/sopmeraki.html' with site=object %}
+  {% if request.user|can_change:infra and infra.pk %}
+    <a href="{% url 'plugins:sop_infra:sopmeraki_edit' pk=infra.pk %}?return_url={{ request.get_full_path }}" type="button" class="btn btn-yellow">
+      <i class="mdi mdi-pencil"></i>{% trans "Edit SOP Meraki" %}
+    </a>
+  {% endif %}
+  </div>
 {% endblock controls %}
 
 
@@ -15,14 +23,15 @@
 
 <div class="row">
 
-  <div class="col-md-6">
+  <!-- <div class="col-md-6">
     Coming soon :-)
     <br/>
     <br/>
     You can use the buttons at the top ATM :  <br/>
     - "Create networks" : will create the 2 standard Meraki networks if you have the rights to do so. <br/>
-  </div>
+  </div> -->
 
+  {% include "sop_infra/inc/sopmeraki_content.html" with object=infra %}
 
 </div>
 

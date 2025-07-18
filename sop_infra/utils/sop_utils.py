@@ -1,4 +1,4 @@
-import re, logging, json, dateutil, smtplib
+import re, json, dateutil, smtplib
 
 from django.http import HttpRequest
 from requests import Session
@@ -24,14 +24,6 @@ from extras.scripts import Script
 from extras.reports import Report
 
 from sop_infra.models import SopInfra
-
-
-
-__all__ = (
-    "PrismaAccessLocationRecomputeMixin",
-    "SopInfraRelatedModelsMixin",
-    "SopRegExps", "SopUtils", "DateUtils", 
-)
 
 
 class SopRegExps:
@@ -110,7 +102,6 @@ class StringUtils:
         return arg
 
 
-
 class ArrayUtils:
 
     @staticmethod
@@ -141,7 +132,7 @@ class ArrayUtils:
 
 
 class SopUtils:
-   
+
     _email_config = get_config().EMAIL
     _email_server = _email_config.get("SERVER")
     _email_port = _email_config.get("PORT")
@@ -245,7 +236,11 @@ class SopUtils:
 
     @staticmethod
     def send_simple_email(
-        subject: str, sender: str, receivers: list[str], text: str, html: str|None = None
+        subject: str,
+        sender: str,
+        receivers: list[str],
+        text: str,
+        html: str | None = None,
     ):
         if sender is None or sender.strip() == "":
             sender = SopUtils._email_from
@@ -297,7 +292,7 @@ class SopUtils:
         # TODO : look to implement Jinja templating
         logs = []
         show_obj = False
-        subject="UNHANDLED CASE"
+        subject = "UNHANDLED CASE"
         if isinstance(rep, Script):
             loglst = rep.messages
             logs = [
@@ -351,7 +346,7 @@ class SopUtils:
     @staticmethod
     def _htmlfmt(l: dict, base_url: str, show_obj: bool = False) -> str:
         lvl = l.get("lvl")
-        ret = f"<tr><td{SopUtils._colors.get(lvl)}>{lvl}</td>" # type: ignore
+        ret = f"<tr><td{SopUtils._colors.get(lvl)}>{lvl}</td>"  # type: ignore
         if show_obj:
             x = l.get("obj")
             if x is None:
@@ -388,7 +383,7 @@ class SopUtils:
             instance, for_concrete_model=False
         )
         rq_queue_name = get_queue_for_model(object_type.model)
-        queue = django_rq.get_queue(rq_queue_name) # type: ignore
+        queue = django_rq.get_queue(rq_queue_name)  # type: ignore
         status = (
             JobStatusChoices.STATUS_SCHEDULED
             if schedule_at
@@ -421,39 +416,42 @@ class SopUtils:
 
         return job
 
-class NetboxUtils():
-    
+
+class NetboxUtils:
+
     @staticmethod
-    def get_site_sopinfra(site:Site):
+    def get_site_sopinfra(site: Site):
         try:
-            return site.sopinfra # type: ignore
-        except: 
-            return None  
+            return site.sopinfra  # type: ignore
+        except:
+            return None
 
     @staticmethod
-    def get_sopinfra_site_master_site_id(site:Site)->int|None:
-        sopinfra=NetboxUtils.get_site_sopinfra(site)
+    def get_sopinfra_site_master_site_id(site: Site) -> int | None:
+        sopinfra = NetboxUtils.get_site_sopinfra(site)
         if sopinfra is not None and sopinfra.master_site is not None:
-            return site.sopinfra.master_site.id # type: ignore
+            return site.sopinfra.master_site.id  # type: ignore
         return None
 
     @staticmethod
-    def get_sopinfra_ad_direct_users(site:Site)->int|None:
-        sopinfra=NetboxUtils.get_site_sopinfra(site)
-        if sopinfra is not None :
-            return site.sopinfra.ad_direct_users # type: ignore
+    def get_sopinfra_ad_direct_users(site: Site) -> int | None:
+        sopinfra = NetboxUtils.get_site_sopinfra(site)
+        if sopinfra is not None:
+            return site.sopinfra.ad_direct_users  # type: ignore
         return None
+
 
 #
 # Job Handling
 #
+
 
 class PrismaAccessLocationRecomputeMixin:
 
     ACCESS_TOKEN_URL = "https://auth.apps.paloaltonetworks.com/oauth2/access_token"
     PAYLOAD_URL = "https://api.sase.paloaltonetworks.com/sse/config/v1/locations"
 
-    request:HttpRequest = current_request.get() # type: ignore
+    request: HttpRequest = current_request.get()  # type: ignore
     session = Session()
     model = None
     parent = None
@@ -523,7 +521,7 @@ class PrismaAccessLocationRecomputeMixin:
                 "longitude": obj["longitude"],
                 "location": obj["compute_location"],
             }
-            for obj in existing_object # type: ignore
+            for obj in existing_object  # type: ignore
         }
 
         for item in response:
@@ -593,8 +591,6 @@ class PrismaAccessLocationRecomputeMixin:
             )
             return False
         return True
-
-
 
 
 class SopInfraRelatedModelsMixin:

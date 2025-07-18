@@ -64,9 +64,6 @@ class SopBaseScriptMixin:
             )
 
 
-
-
-
 class JobRunnerLogMixin:
     """
     Stripped down reimplementation from Netbox Script logging

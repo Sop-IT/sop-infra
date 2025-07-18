@@ -1,7 +1,7 @@
 from django.urls import path
 
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
-from sop_infra.views.infra import SopInfraSyncAdUsers
+from sop_infra.views.infra import SopInfraSyncAdUsers, SopMerakiClaimView, SopMerakiCreateNetworksView, SopMerakiEditView
 
 from .views import *
 from .models import *
@@ -15,7 +15,6 @@ urlpatterns = [
     path('trisearch', SopMerakiTriSearchView.as_view(), name='trisearch'),
     path('sync_ad_users', SopInfraSyncAdUsers.as_view(), name='sync_ad_users'),
     
-    path('create_meraki_network/<int:site_id>/', SopMerakiCreateNetworksView.as_view(), name='create_meraki_network'),
 
     path('jsonexports/adusers', SopInfraJsonExportsAdUsers.as_view(), name='jsonexports_adusers'),
     path('jsonexports/adsites', SopInfraJsonExportsAdSites.as_view(), name='jsonexports_adsites'),
@@ -29,10 +28,19 @@ urlpatterns = [
     path('journal/<int:pk>', ObjectJournalView.as_view(), name='sopinfra_journal', kwargs={'model': SopInfra}),
     path('changelog/<int:pk>', ObjectChangeLogView.as_view(), name='sopinfra_changelog', kwargs={'model': SopInfra}),
 
-    #____________________
+    # ____________________
     # list views
     path('list/', SopInfraListView.as_view(), name='sopinfra_list'),
   
+
+    # ____________________
+    # SOP INFRA - SOP MERAKI VIEWS
+    path('edit_meraki/<int:pk>/', SopMerakiEditView.as_view(), name='sopmeraki_edit'),
+    path('create_meraki_network/<int:pk>/', SopMerakiCreateNetworksView.as_view(), name='create_meraki_network'),
+    path('claim_meraki_devices/<int:pk>/', SopMerakiClaimView.as_view(), name='claim_meraki_devices'),
+    
+
+
     # #____________________
     # # bulk views
     # path('delete/', SopInfraBulkDeleteView.as_view(), name='sopinfra_bulk_delete'),

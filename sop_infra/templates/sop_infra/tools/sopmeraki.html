@@ -3,10 +3,14 @@
 {% if object.status and object.status == 'dc' %}
 {% else %}
   {% if object.pk %}
-    <a href="{% url 'plugins:sop_infra:create_meraki_network' site_id=object.pk %}?details=True" type="button" class="btn btn-primary">
+    <a href="{% url 'plugins:sop_infra:create_meraki_network' pk=object.pk %}?details=True&return_url={{ request.get_full_path }}" type="button" class="btn btn-primary">
       <i class="mdi mdi-plus-thick"></i>
         Create networks
     </a>
+    <!-- <a href="{% url 'plugins:sop_infra:claim_meraki_devices' pk=object.pk %}?details=True&return_url={{ request.get_full_path }}" type="button" class="btn btn-primary">
+      <i class="mdi mdi-plus-thick"></i>
+        Claim devices
+    </a> -->
   {% endif %}
 {% endif %}
 
