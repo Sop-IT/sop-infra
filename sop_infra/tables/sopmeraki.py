@@ -1,12 +1,14 @@
 import django_tables2 as tables
 
 from netbox.tables import NetBoxTable, columns
-from sop_infra.models import SopMerakiOrg, SopMerakiDash, SopMerakiNet, SopMerakiDevice
+from sop_infra.models import SopMerakiOrg, SopMerakiDash, SopMerakiNet, SopMerakiDevice, SopMerakiSwitchStack
+
 
 __all__ = (
     'SopMerakiDashTable',
     'SopMerakiOrgTable',
     'SopMerakiNetTable',
+    'SopMerakiSwitchStackTable', 
     'SopMerakiDeviceTable',
 )
 
@@ -54,6 +56,17 @@ class SopMerakiNetTable(NetBoxTable):
         model = SopMerakiNet
         fields = ('pk', 'id', 'nom', 'org', 'site',  'meraki_id', 'meraki_url', 'meraki_notes', 'bound_to_template', 'ptypes', 'meraki_tags', 'timezone')
         default_columns = ('nom',  'meraki_url',  'site', 'org', 'bound_to_template', 'meraki_notes')
+
+
+class SopMerakiSwitchStackTable(NetBoxTable):
+
+    nom = tables.Column(linkify=True)
+    net = tables.Column(linkify=True)
+    
+    class Meta(NetBoxTable.Meta):
+        model = SopMerakiSwitchStack
+        fields = ('pk', 'id', 'nom', 'net', 'meraki_id', 'serials', 'members')
+        default_columns = ('nom',  'net')
 
 
 class SopMerakiDeviceTable(NetBoxTable):

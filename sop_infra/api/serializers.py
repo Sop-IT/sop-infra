@@ -7,18 +7,7 @@ from netbox.api.serializers import NetBoxModelSerializer
 from dcim.api.serializers import SiteSerializer, LocationSerializer
 
 from sop_infra.models import *
-
-
-__all__ = (
-    "SopInfraSerializer",
-    "PrismaEndpointSerializer",
-    "PrismaAccessLocationSerializer",
-    "PrismaComputedAccessLocationSerializer",
-    "SopMerakiDashSerializer",
-    "SopMerakiOrgSerializer",
-    "SopMerakiNetSerializer",
-    "SopMerakiDeviceSerializer",
-)
+from sop_infra.models.sopmeraki import SopMerakiSwitchStack
 
 
 class PrismaEndpointSerializer(NetBoxModelSerializer):
@@ -35,7 +24,11 @@ class PrismaEndpointSerializer(NetBoxModelSerializer):
             "display",
             "name",
             "slug",
-            'prisma_org_id', 'psk', 'local_id', 'remote_id', 'peer_ip',
+            "prisma_org_id",
+            "psk",
+            "local_id",
+            "remote_id",
+            "peer_ip",
         )
         brief_fields = (
             "id",
@@ -43,7 +36,11 @@ class PrismaEndpointSerializer(NetBoxModelSerializer):
             "display",
             "name",
             "slug",
-            'prisma_org_id', 'psk', 'local_id', 'remote_id', 'peer_ip',
+            "prisma_org_id",
+            "psk",
+            "local_id",
+            "remote_id",
+            "peer_ip",
         )
 
     # def get_access_location(self, obj):
@@ -219,46 +216,155 @@ class SopInfraSerializer(NetBoxModelSerializer):
 
 class SopMerakiDashSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:sop_infra-api:merakidash-detail'
+        view_name="plugins-api:sop_infra-api:sopmerakidash-detail"
     )
     orgs_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = SopMerakiDash
         fields = (
-            'id', 'display', 'nom', 'description', 'api_url', 'tags', 'custom_fields', 'created',
-            'last_updated', 'orgs_count', 
+            "id",
+            "display",
+            "nom",
+            "url", 
+            "description",
+            "api_url",
+            "tags",
+            "custom_fields",
+            "created",
+            "last_updated",
+            "orgs_count",
         )
 
 
 class SopMerakiOrgSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:sop_infra-api:merakiorg-detail'
+        view_name="plugins-api:sop_infra-api:sopmerakiorg-detail"
     )
     nets_count = serializers.IntegerField(read_only=True)
     devices_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = SopMerakiOrg
         fields = (
-            'id', 'display', 'nom', 'dash', 'tags', 'custom_fields', 'created',
-            'last_updated', 'nets_count', 'devices_count', 
+            "id",
+            "display",
+            "url",
+            "nom",
+            "dash",
+            "tags",
+            "custom_fields",
+            "created",
+            "last_updated",
+            "nets_count",
+            "devices_count",
         )
 
+
 class SopMerakiNetSerializer(NetBoxModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:sop_infra-api:merakinet-detail')
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:sop_infra-api:sopmerakinet-detail"
+    )
+
     class Meta:
         model = SopMerakiNet
         fields = (
-            'id', 'display', 'nom', 'site', 'org', 'tags', 'custom_fields', 'created',
-            'last_updated',  
+            "id",
+            "display",
+            "url",
+            "nom",
+            "site",
+            "org",
+            "tags",
+            "custom_fields",
+            "created",
+            "last_updated",
         )
 
 
+class SopMerakiSwitchStackSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:sop_infra-api:sopmerakiswitchstack-detail"
+    )
+
+    class Meta:
+        model = SopMerakiSwitchStack
+        fields = (
+            "id",
+            "display",
+            "url",
+            "meraki_id",
+            "nom",
+            "net",
+            "serials",
+            "members",
+        )
+        brief_fields = ("id", "display", "url")
+
+
 class SopMerakiDeviceSerializer(NetBoxModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:sop_infra-api:merakidevice-detail')
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:sop_infra-api:sopmerakidevice-detail"
+    )
+
     class Meta:
         model = SopMerakiDevice
         fields = (
-            'id', 'display', 'serial', 'org', 'org_id', 'model', 'meraki_netid', 
-            'firmware', 'meraki_details', 'meraki_notes', 'ptype', 'meraki_tags', 'site', 'tags', 'custom_fields', 'created',
-            'last_updated',  
+            "id",
+            "display",
+            "url",
+            "serial",
+            "org",
+            "org_id",
+            "model",
+            "meraki_netid",
+            "firmware",
+            "meraki_details",
+            "meraki_notes",
+            "ptype",
+            "meraki_tags",
+            "site",
+            "tags",
+            "custom_fields",
+            "created",
+            "last_updated",
+        )
+
+
+class SopSwitchTemplateSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:sop_infra-api:sopswitchtemplate-detail"
+    )
+
+    class Meta:
+        model = SopSwitchTemplate
+        fields = (
+            "id",
+            "display",
+            "url",
+            "nom",
+            "stp_prio",
+        )
+        brief_fields = (
+            "id",
+            "display",
+            "url",
+            "nom",
+            "stp_prio",
+        )
+
+
+class SopDeviceSettingSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:sop_infra-api:sopdevicesetting-detail"
+    )
+
+    class Meta:
+        model = SopDeviceSetting
+        fields = (
+            "id",
+            "display",
+            "url",
+            "device",
+            "switch_template",
         )

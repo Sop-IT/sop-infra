@@ -1,0 +1,33 @@
+{% extends 'generic/object.html' %}
+{% load render_table from django_tables2 %}
+
+{% block content %}
+  <div class="row mb-3">
+    {% if object.switch_template %}
+    <div class="col col-md-6">
+      <div class="card">
+        <h5 class="card-header">SOP Switch Template "{{ object.switch_template }}"</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Name</th>
+              <td>{{ object.switch_template.nom }}</td>
+            </tr>
+            <tr>
+              <th scope="row">STP Prio</th>
+              <td>{{ object.switch_template.stp_prio }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      {% include 'inc/panels/custom_fields.html' %}
+    </div>
+    <div class="col col-md-6">
+      {% include 'inc/panels/tags.html' %}
+      {% include 'inc/panels/comments.html' %}
+    </div>
+    {% else %}
+    NOT AVAILABLE FOR THIS DEVICE type
+    {% end if %}
+  </div>
+{% endblock content %}

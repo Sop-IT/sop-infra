@@ -6,26 +6,26 @@ from django.views import View
 from django.urls import reverse
 from django.db.models import Q, Count
 from django.contrib.contenttypes.models import ContentType
-from django.http import HttpResponseForbidden
 from netbox.jobs import Job
 from django.contrib.auth.mixins import AccessMixin
 
 from sop_infra.forms.infra import SopMerakiClaimForm
 from sop_infra.jobs import SopMerakiCreateNetworkJob, SopSyncAdUsers
-from utilities.views import register_model_view, ViewTab, ObjectPermissionRequiredMixin
+from utilities.views import register_model_view, ViewTab
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
 from netbox.views import generic
 
-from dcim.models import Site
+from dcim.models import Site, Device
+from dcim.tables import DeviceTable
 from ipam.models import Prefix
 from tenancy.models import Contact
 
 from sop_infra.forms import *
-from sop_infra.tables import SopInfraTable
+from sop_infra.tables import *
 from sop_infra.models import *
-from sop_infra.filtersets import SopInfraFilterset
-from sop_infra.utils.sop_utils import NetboxUtils, SopInfraRelatedModelsMixin
+from sop_infra.filtersets import *
+from sop_infra.utils.sop_utils import  SopInfraRelatedModelsMixin
 from django.contrib import messages
 
 __all__ = (
@@ -42,6 +42,12 @@ __all__ = (
     # "SopInfraBulkDeleteView",
     "SopInfraJsonExportsAdSites",
     "SopInfraJsonExportsAdUsers",
+    "SopSwitchTemplateDetailView",
+    "SopSwitchTemplateEditView",
+    "SopSwitchTemplateDeleteView",
+    "SopSwitchTemplateListView",
+    "SopDeviceSettingDetailView",
+    "SopDeviceSettingEditView",
 )
 
 
@@ -246,7 +252,105 @@ class SopMerakiEditView(generic.ObjectEditView):
     form = SopMerakiForm
 
 
-### ACTION VIEWS
+# ======================================================================
+# SWITCH TEMPLATES MODEL VIEWS 
+
+
+class SopSwitchTemplateDeleteView(generic.ObjectDeleteView):
+    """
+    deletes an existing SopSwitchTemplate instance
+    """
+    queryset = SopSwitchTemplate.objects.all()
+
+
+class SopSwitchTemplateEditView(generic.ObjectEditView):
+    """
+    edits an existing SopSwitchTemplate instance
+    """
+    queryset = SopSwitchTemplate.objects.all()
+    form = SopSwitchTemplateForm
+
+
+class SopSwitchTemplateDetailView(generic.ObjectView):
+    """
+    detail view with changelog and journal
+    """
+    template_name: str = "sop_infra/sopswitchtemplate.html"
+    queryset = SopSwitchTemplate.objects.all()
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["swtmpl"] = instance
+        return context
+
+
+class SopSwitchTemplateListView(generic.ObjectListView):
+    """
+    list of all SopSwitchTemplate objects and instances
+    """
+    queryset = SopSwitchTemplate.objects.all()
+    table = SopSwitchTemplateTable
+    filterset = SopSwitchTemplateFilterset
+    filterset_form = SopSwitchTemplateFilterForm
+
+
+
+# ======================================================================
+# DEVICE SETTINGS MODEL VIEWS
+
+
+class SopDeviceSettingDetailView(generic.ObjectView):
+    """
+    detail view with changelog and journal
+    """
+    template_name: str = "sop_infra/sopdevicesetting.html"
+    queryset = SopDeviceSetting.objects.all()
+    # def get_extra_context(self, request, instance) -> dict:
+    #     context = super().get_extra_context(request, instance)
+    #     table = DeviceTable( instance.devices.all() )
+    #     if not instance:
+    #         raise Http404("No instance given.")
+    #     context["swtmpl"] = instance
+    #     context["devs_table"] = table
+    #     return context
+
+
+class SopDeviceSettingEditView(generic.ObjectEditView):
+    """
+    edits an existing SopSwitchTemplate instance
+    """
+    queryset = SopDeviceSetting.objects.all()
+    form = SopDeviceSettingForm
+
+
+@register_model_view(Device, name="sopdevicesetting", detail=True)
+class DeviceSopDeviceSettingTabView(generic.ObjectView):
+    """
+    creates a "sopdevicesetting" tab on the device page
+    """
+
+    tab = ViewTab(
+        label="SOP Device Settings", permission=get_permission_for_model(SopDeviceSetting, "view")
+    )
+    template_name: str = "sop_infra/tab/sopdevicesetting_on_device.html"
+    # On s'affiche sur un site
+    queryset = Device.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["device"] = instance
+        try:
+            context["sopdevicesetting"] = instance.sopdevicesetting
+        except SopDeviceSetting.DoesNotExist:
+            context["sopdevicesetting"] =  None
+        return context
+
+
+# ======================================================================
+# ACTION VIEWS
 
 
 class SopMerakiClaimView(AccessMixin, View):

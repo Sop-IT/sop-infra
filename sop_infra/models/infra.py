@@ -1,3 +1,4 @@
+import django.core.validators
 from django.db import models
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -5,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
-from dcim.models import Site, Location
+from dcim.models import Site, Location, Device
 
 from sop_infra.validators import (
     SopInfraSlaveValidator,
@@ -14,29 +15,33 @@ from .prisma import *
 from .choices import *
 
 
-__all__ = ("SopInfra",)
+__all__ = (
+    "SopInfra",
+    "SopSwitchTemplate",
+    "SopDeviceSetting",
+)
 
 
-class SopInfraUtils():
-
-    @staticmethod
-    def get_mx_and_user_slice(wan:int) -> tuple[str,str]:
-        if wan < 10 :
-            return '<10', 'MX67'
-        elif wan < 20 :
-            return '10<20', 'MX67'
-        elif wan < 50 :
-            return '20<50', 'MX68'
-        elif wan < 100 :
-            return '50<100', 'MX85'
-        elif wan < 200 :
-            return '100<200', 'MX95'
-        elif wan < 500 :
-            return '200<500', 'MX95'
-        return '>500', 'MX250'
+class SopInfraUtils:
 
     @staticmethod
-    def get_recommended_bandwidth(wan:int) -> int:
+    def get_mx_and_user_slice(wan: int) -> tuple[str, str]:
+        if wan < 10:
+            return "<10", "MX67"
+        elif wan < 20:
+            return "10<20", "MX67"
+        elif wan < 50:
+            return "20<50", "MX68"
+        elif wan < 100:
+            return "50<100", "MX85"
+        elif wan < 200:
+            return "100<200", "MX95"
+        elif wan < 500:
+            return "200<500", "MX95"
+        return ">500", "MX250"
+
+    @staticmethod
+    def get_recommended_bandwidth(wan: int) -> int:
         if wan > 100:
             return round(wan * 2.5)
         elif wan > 50:
@@ -46,11 +51,14 @@ class SopInfraUtils():
         else:
             return round(wan * 5)
 
-        
 
 class SopInfra(NetBoxModel):
     site = models.OneToOneField(
-        to=Site, on_delete=models.CASCADE, unique=True, verbose_name=_("Site"), editable=False
+        to=Site,
+        on_delete=models.CASCADE,
+        unique=True,
+        verbose_name=_("Site"),
+        editable=False,
     )
     # ______________
     # Classification / SIZING
@@ -67,7 +75,11 @@ class SopInfra(NetBoxModel):
         verbose_name=_("Industrial"),
     )
     criticity_stars = models.CharField(
-        max_length=6, null=True, blank=True, verbose_name=_("Criticity stars"), editable=False
+        max_length=6,
+        null=True,
+        blank=True,
+        verbose_name=_("Criticity stars"),
+        editable=False,
     )
     site_phone_critical = models.CharField(
         choices=InfraBoolChoices,
@@ -97,7 +109,6 @@ class SopInfra(NetBoxModel):
         verbose_name=_("WMS ?"),
         help_text=_("Does the site run WMS ?"),
     )
-
     # _______
     # Sizing
     est_cumulative_users_wc = models.PositiveBigIntegerField(
@@ -113,12 +124,15 @@ class SopInfra(NetBoxModel):
         null=True, blank=True, verbose_name=_("Est. users (NOM)")
     )
     site_user_count = models.CharField(
-        null=True, blank=True, verbose_name=_("Site user count"), 
+        null=True,
+        blank=True,
+        verbose_name=_("Site user count"),
         editable=False,
     )
     wan_reco_bw = models.PositiveBigIntegerField(
         null=True,
-        blank=True, editable=False,
+        blank=True,
+        editable=False,
         verbose_name=_("Reco. BW (Mbps)"),
         help_text=_("Recommended bandwidth (Mbps)"),
     )
@@ -224,10 +238,33 @@ class SopInfra(NetBoxModel):
             "Set to true if the default route should be sent through the AutoVPN"
         ),
     )
-    claim_net_mx=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="MX claim network", help_text="In which Meraki Network should we try to claim MX devices")
-    claim_net_ms=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="MS claim network", help_text="In which Meraki Network should we try to claim MS devices")
-    claim_net_mr=models.ForeignKey(to="SopMerakiNet", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="MR claim network", help_text="In which Meraki Network should we try to claim MR devices")
-    
+    claim_net_mx = models.ForeignKey(
+        to="SopMerakiNet",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="MX claim network",
+        help_text="In which Meraki Network should we try to claim MX devices",
+    )
+    claim_net_ms = models.ForeignKey(
+        to="SopMerakiNet",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="MS claim network",
+        help_text="In which Meraki Network should we try to claim MS devices",
+    )
+    claim_net_mr = models.ForeignKey(
+        to="SopMerakiNet",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="MR claim network",
+        help_text="In which Meraki Network should we try to claim MR devices",
+    )
     # _______
     # PRISMA
     endpoint = models.ForeignKey(
@@ -261,14 +298,16 @@ class SopInfra(NetBoxModel):
         if self.site.tenant.group is None:
             return None
         return f"{self.site.region.name}-{self.site.tenant.group.name}-{self.site.name}"
-    
+
     @property
-    def centreon_active(self)->bool:
+    def centreon_active(self) -> bool:
         if self.site is None:
             return False
         if self.site.status is None:
             return False
-        return self.site.status=="active" or (self.site.status=="starting" and self.monitor_in_starting==True)
+        return self.site.status == "active" or (
+            self.site.status == "starting" and self.monitor_in_starting == True
+        )
 
     # get_object_color methods are used by NetBoxTable
     # to display choices colors
@@ -290,7 +329,7 @@ class SopInfra(NetBoxModel):
     def get_monitor_in_starting_color(self) -> str:
         if self.monitor_in_starting is None:
             return "gray"
-        elif  self.monitor_in_starting:
+        elif self.monitor_in_starting:
             return "green"
         return "red"
 
@@ -304,7 +343,7 @@ class SopInfra(NetBoxModel):
             for _ in self.criticity_stars
         ]
         return mark_safe("".join(html))
-    
+
     # ===================================
     # DJANGO STD
 
@@ -336,25 +375,25 @@ class SopInfra(NetBoxModel):
     # DJANGO OVERRIDES
 
     def clean(self, *args, **kwargs):
-        
+
         # just to be sure, should never happens
         if self.site is None:
             raise ValidationError({"site": "Infrastructure must be set on a site."})
-        
+
         # dc site__status related validators
         if self.site.status == "dc":
             self.enforce_dc_fields()
             return
-        
+
         if self.is_slave():
             # Enforce master site
-            if self.site_sdwan_master_location is not None :
+            if self.site_sdwan_master_location is not None:
                 self.master_site = self.site_sdwan_master_location.site
             # Enforce slave fields
             self.enforce_slave_fields()
             # all slave related validators
             SopInfraSlaveValidator(self)
-        else :
+        else:
             # Normal site, maybe master
             self.compute_sdwanha()
 
@@ -365,14 +404,14 @@ class SopInfra(NetBoxModel):
 
     def delete(self, *args, **kwargs):
         # RAZ values for recompute propagation
-        self.ad_direct_users_wc=0
-        self.ad_direct_users_bc=0
-        self.ad_direct_users_ext=0
-        self.ad_direct_users_nom=0
-        self.est_cumulative_users_wc=0
-        self.est_cumulative_users_bc=0
-        self.est_cumulative_users_ext=0
-        self.est_cumulative_users_nom=0
+        self.ad_direct_users_wc = 0
+        self.ad_direct_users_bc = 0
+        self.ad_direct_users_ext = 0
+        self.ad_direct_users_nom = 0
+        self.est_cumulative_users_wc = 0
+        self.est_cumulative_users_bc = 0
+        self.est_cumulative_users_ext = 0
+        self.est_cumulative_users_nom = 0
         # recompute and propagate
         self.calc_cumul_and_propagate()
         # delete
@@ -382,44 +421,51 @@ class SopInfra(NetBoxModel):
     # MASTER / SLAVE UTILS
 
     def is_slave(self) -> bool:
-        return self.master_site is not None \
-            or self.site_sdwan_master_location is not None
+        return (
+            self.master_site is not None or self.site_sdwan_master_location is not None
+        )
 
     # ===================================================
     # HNA/NHA UTILS
 
     def compute_sdwanha(self):
         if self.site.status in [
-            'no_infra', 'reserved',
-            'template', 'inventory', 'teleworker']:
+            "no_infra",
+            "reserved",
+            "template",
+            "inventory",
+            "teleworker",
+        ]:
             # enforce no_infra constraints
-            self.sdwanha = '-NO NETWORK-'
+            self.sdwanha = "-NO NETWORK-"
             self.sdwan1_bw = None
             self.sdwan2_bw = None
             self.criticity_stars = None
             self.site_infra_sysinfra = None
         else:
             # compute sdwanha for normal sites
-            self.sdwanha = '-NHA-'
-            self.criticity_stars = '*'
-            if self.site_type_vip == 'true':
-                self.sdwanha = '-HA-'
-                self.criticity_stars = '***'
+            self.sdwanha = "-NHA-"
+            self.criticity_stars = "*"
+            if self.site_type_vip == "true":
+                self.sdwanha = "-HA-"
+                self.criticity_stars = "***"
             # no -HAS- because there is no site_type_indus == IPL
-            elif self.site_type_indus == 'fac' \
-                or self.site_phone_critical == 'true' \
-                or self.site_type_red == 'true' \
-                or self.site_type_wms == 'true' \
-                or self.site_infra_sysinfra == 'sysclust' \
-                or self.site_user_count in ['50<100', '100<200', '200<500', '>500']:
-                self.sdwanha = '-HA-'
-                self.criticity_stars = '**'
+            elif (
+                self.site_type_indus == "fac"
+                or self.site_phone_critical == "true"
+                or self.site_type_red == "true"
+                or self.site_type_wms == "true"
+                or self.site_infra_sysinfra == "sysclust"
+                or self.site_user_count in ["50<100", "100<200", "200<500", ">500"]
+            ):
+                self.sdwanha = "-HA-"
+                self.criticity_stars = "**"
 
     # ===================================================
     # FIELDS ENFORCING
 
     def enforce_slave_fields(self):
-        self.sdwanha = '-SLAVE SITE-'
+        self.sdwanha = "-SLAVE SITE-"
         self.sdwan1_bw = None
         self.sdwan2_bw = None
         self.migration_sdwan = None
@@ -434,65 +480,69 @@ class SopInfra(NetBoxModel):
         self.site_mx_model = None
 
     def enforce_dc_fields(self):
-        self.sdwanha = '-DC-'
-        self.site_user_count = '-DC'
+        self.sdwanha = "-DC-"
+        self.site_user_count = "-DC"
         self.site_sdwan_master_location = None
         self.master_site = None
         self.wan_reco_bw = None
         self.wan_computed_users_wc = None
         self.wan_computed_users_bc = None
-        self.criticity_stars = '****'
-        self.site_mx_model = 'MX450'
+        self.criticity_stars = "****"
+        self.site_mx_model = "MX450"
 
     # ===================================================
     # USER COUNT UTILS
 
-    def calc_cumul_and_propagate(self)->bool:
-        loop=list()
+    def calc_cumul_and_propagate(self) -> bool:
+        loop = list()
         # calculate cumul
         return self._rec_calc_cumul_and_propagate(loop, False)
 
-    def _rec_calc_cumul_and_propagate(self, loop, save)->bool:
+    def _rec_calc_cumul_and_propagate(self, loop, save) -> bool:
         if self in loop:
             raise Exception("Loop detected when propagating to masters !")
         loop.append(self)
         (wc, bc) = self.calc_wan_computed_users()
-        if wc==self.wan_computed_users_bc and bc==self.wan_computed_users_bc:
+        if wc == self.wan_computed_users_bc and bc == self.wan_computed_users_bc:
             # NO change -> no propagation
             return False
         # If we're already propagating, we'll need to snap and save
-        if save :
+        if save:
             self.snapshot()
-        self.wan_computed_users_wc=wc
-        self.wan_computed_users_bc=bc
-        self.wan_reco_bw=SopInfraUtils.get_recommended_bandwidth(self.wan_computed_users_wc)
-        (self.site_user_count,self.site_mx_model)=SopInfraUtils.get_mx_and_user_slice(self.wan_computed_users_wc)
+        self.wan_computed_users_wc = wc
+        self.wan_computed_users_bc = bc
+        self.wan_reco_bw = SopInfraUtils.get_recommended_bandwidth(
+            self.wan_computed_users_wc
+        )
+        (self.site_user_count, self.site_mx_model) = (
+            SopInfraUtils.get_mx_and_user_slice(self.wan_computed_users_wc)
+        )
         # If we're already propagating, we'll need to snap and save
-        if save :
+        if save:
             self.save()
         # Try to propagate further
-        ms=self.master_site
+        ms = self.master_site
         if ms is None:
             return True
-        si=ms.sopinfra
+        si = ms.sopinfra
         if si is None:
             return True
         si._rec_calc_cumul_and_propagate(loop, True)
         return True
 
     def calc_wan_computed_users(self) -> tuple[int, int]:
-        isilog=self.site.custom_field_data.get("site_integration_isilog")
-        loop=list()
+        isilog = self.site.custom_field_data.get("site_integration_isilog")
+        loop = list()
         return self._rec_calc_site_users(isilog, loop)
-    
-    def _rec_calc_site_users(self, isilog:str, loop:list) -> tuple[int, int] :
+
+    def _rec_calc_site_users(self, isilog: str, loop: list) -> tuple[int, int]:
         if self in loop:
             raise Exception("Loop detected when computed users !")
         loop.append(self)
-        if isilog=="done":
+        if isilog == "done":
             wan_wc = self.ad_direct_users_wc
             wan_bc = self.ad_direct_users_bc
-        else : 
+        else:
             wan_wc = self.est_cumulative_users_wc
             wan_bc = self.est_cumulative_users_bc
         if wan_wc is None:
@@ -501,11 +551,70 @@ class SopInfra(NetBoxModel):
             wan_bc = 0
         slaves = SopInfra.objects.filter(master_site=self.site)
         for slave in slaves:
-            tup:tuple[int, int] = slave._rec_calc_site_users(isilog, loop)
+            tup: tuple[int, int] = slave._rec_calc_site_users(isilog, loop)
             wan_wc += tup[0]
             wan_bc += tup[1]
         return (wan_wc, wan_bc)
 
 
+# ======================================================================
+#  DEVICE SETTINGS AND TEMPLATES 
+
+class SopSwitchTemplate(NetBoxModel):
+
+    nom = models.CharField(
+        max_length=50, null=False, blank=False, unique=True, verbose_name="Name"
+    )
+    stp_prio = models.PositiveIntegerField(
+        null=False,
+        blank=False,
+        default=32768,
+        verbose_name="STP priority",
+        validators=[
+            django.core.validators.MinValueValidator(4096),
+            django.core.validators.MaxValueValidator(65536),
+        ],
+    )
+
+    # ===================================
+    # DJANGO STD
+
+    class Meta(NetBoxModel.Meta):
+        verbose_name = "SOP Switch Template"
+        verbose_name_plural = "SOP Switches Templates"
+
+    def __str__(self):
+        return f"{self.nom}"
+
+    def get_absolute_url(self) -> str:
+        return reverse("plugins:sop_infra:sopswitchtemplate_detail", args=[self.pk])
 
 
+class SopDeviceSetting(NetBoxModel):
+    device = models.OneToOneField(
+        to=Device,
+        on_delete=models.CASCADE,
+        unique=True,
+        verbose_name=_("Device"),
+        editable=False,
+    )
+    switch_template = models.ForeignKey(
+        to=SopSwitchTemplate,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Switch template"),
+    )
+
+    # ===================================
+    # DJANGO STD
+
+    class Meta(NetBoxModel.Meta):
+        verbose_name = "SOP Device Setting"
+        verbose_name_plural = "SOP Devices Settings"
+
+    def __str__(self):
+        return f"{self.device}"
+
+    def get_absolute_url(self) -> str:
+        return reverse("plugins:sop_infra:sopdevicesetting_detail", args=[self.pk])

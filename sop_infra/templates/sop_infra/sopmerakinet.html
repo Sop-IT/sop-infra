@@ -1,10 +1,36 @@
 {% extends 'generic/object.html' %}
+{% load perms %}
+{% load buttons %}
+{% load sop_perms %}
+{% load sop_buttons %}
+{% load plugins %}
+{% load infra_custom_tags %}
+{% load i18n %}
+{% load render_table from django_tables2 %}
+
+{% block control-buttons %}
+  {% if request.user|can_refresh:object %}
+    {% refresh_button object %}
+  {% endif %}
+  {% if perms.extras.add_bookmark and object.bookmarks %}
+    {% bookmark_button object %}
+  {% endif %}
+  {% if perms.extras.add_subscription and object.subscriptions %}
+    {% subscribe_button object %}
+  {% endif %}
+  {% if request.user|can_change:object %}
+    {% edit_button object %}
+  {% endif %}
+  {% if request.user|can_delete:object %}
+    {% delete_button object %}
+  {% endif %}
+{% endblock control-buttons %}
 
 {% block content %}
   <div class="row mb-3">
     <div class="col col-md-6">
       <div class="card">
-        <h5 class="card-header">Meraki Network</h5>
+        <h5 class="card-header">Meraki Information</h5>
         <div class="card-body">
           <table class="table table-hover attr-table">
             <tr>

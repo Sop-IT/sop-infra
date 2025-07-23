@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 
+from sop_infra.models.sopmeraki import SopMerakiUtils
 from utilities.forms.fields import DynamicModelChoiceField
 from netbox.forms import NetBoxModelFilterSetForm, NetBoxModelForm
 from utilities.forms.widgets import DatePicker
@@ -24,6 +25,9 @@ __all__ = (
     "SopInfraSizingFilterForm",
     "SopInfraClassificationFilterForm",
     "SopInfraRefreshForm",
+    "SopSwitchTemplateForm",
+    "SopSwitchTemplateFilterForm",
+    "SopDeviceSettingForm",
 )
 
 
@@ -639,12 +643,14 @@ class SopMerakiClaimForm(forms.Form):
         help_text="Netbox status you want to assign to the claimed devices",
     )
     allow_netbox_site_change = forms.BooleanField(
-        initial=False, required=False,
+        initial=False,
+        required=False,
         label="Change netbox site ?",
         help_text="If the device exists on another netbox site, should we move it or leave it there ?",
     )
     allow_netbox_status_change = forms.BooleanField(
-        initial=False, required=False,
+        initial=False,
+        required=False,
         label="Change netbox device status ?",
         help_text="If the device exists with a different status, should we override it or leave be ?",
     )
@@ -684,3 +690,96 @@ class SopMerakiClaimForm(forms.Form):
             "allow_netbox_site_change": data.get("allow_netbox_site_change", False),
             "allow_netbox_status_change": data.get("allow_netbox_status_change", False),
         }
+
+
+# ======================================================================
+#  SWITCH TEMPLATES FORMS
+
+
+class SopSwitchTemplateForm(NetBoxModelForm):
+
+    nom = forms.CharField(
+        label=_("Name"),
+        help_text=_("Switch settings template name"),
+        required=True,
+    )
+    stp_prio = forms.IntegerField(label=_("Spanning tree priority"), required=True)
+
+    fieldsets = (
+        FieldSet(
+            "nom",
+            name="",
+        ),
+        FieldSet(
+            "stp_prio",
+            name=_("Spanning Tree"),
+        ),
+    )
+
+    class Meta:
+        model = SopSwitchTemplate
+        fields = [
+            "nom",
+            "stp_prio",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if "tags" in self.fields:
+            del self.fields["tags"]
+
+
+class SopSwitchTemplateFilterForm(NetBoxModelFilterSetForm):
+
+    model = SopSwitchTemplate
+    
+    nom = forms.CharField(
+        required=False,
+        label=_("Template name"),
+    )
+    stp_prio = forms.IntegerField(
+        required=False, label=_("STP prio"), help_text=_("Numbers only")
+    )
+
+    fieldsets = (
+        FieldSet("nom", name=_("")),
+        FieldSet(
+            "stp_prio",
+            name=_("Spanning Tree"),
+        ),
+    )
+
+
+
+# ======================================================================
+#  DEVICE SETTINGS FORMS
+
+
+
+class SopDeviceSettingForm(NetBoxModelForm):
+
+    switch_template = DynamicModelChoiceField(
+        label=_("Switch template"),
+        queryset=SopSwitchTemplate.objects.all(),
+        required=False,
+    )
+
+    fieldsets = (
+        FieldSet(
+            "switch_template",
+            name="",
+        ),
+    )
+
+    class Meta:
+        model = SopDeviceSetting
+        fields = [
+            "switch_template",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if "tags" in self.fields:
+            del self.fields["tags"]

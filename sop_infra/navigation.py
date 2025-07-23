@@ -8,63 +8,88 @@ menu = PluginMenu(
     icon_class="mdi mdi-router-network-wireless",
     groups=(
         (
-            "SOP MERAKI",
+            "MERAKI INTEGRATION",
             (
                 PluginMenuItem(
                     link="plugins:sop_infra:sopmerakidash_list",
                     link_text="Dashboards",
-                    #permissions=["sop_infra.view_merakidashs"],
+                    permissions=["sop_infra.view_sopmerakidash"],
                     buttons=(
                         PluginMenuButton(
-                            link="plugins:sop_infra:sopmerakidash_refresh",
+                            link="plugins:sop_infra:sopmerakidash_refresh_choose",
                             title="Refetch dashboards from Meraki",
                             icon_class="mdi mdi-refresh",
-                            #permissions=[f"sop_infra.change_sop_infra"],
+                            permissions=[f"sop_infra.refresh_sopmerakidash"],
                         ),
                         PluginMenuButton(
                             link="plugins:sop_infra:sopmerakidash_add",
                             title="Add",
                             icon_class="mdi mdi-plus-thick",
-                            #permissions=["sop_infra.add_merakidashs"],
+                            permissions=["sop_infra.add_sopmerakidash"],
                         ),
                     ),
                 ),
                 PluginMenuItem(
                     link="plugins:sop_infra:sopmerakiorg_list",
                     link_text="Organizations",
-                    #permissions=["sop_infra.view_merakiorgs"],
+                    permissions=["sop_infra.view_sopmerakiorg"],
                     buttons=(
+                        PluginMenuButton(
+                            link="plugins:sop_infra:sopmerakiorg_refresh_choose",
+                            title="Refetch organizations from Meraki",
+                            icon_class="mdi mdi-refresh",
+                            permissions=[f"sop_infra.refresh_sopmerakiorg"],
+                        ),
                         PluginMenuButton(
                             link="plugins:sop_infra:sopmerakiorg_add",
                             title="Add",
                             icon_class="mdi mdi-plus-thick",
-                            #permissions=["sop_infra.add_merakiorgs"],
+                            permissions=["sop_infra.add_sopmerakiorg"],
                         ),
                     ),
                 ),
                 PluginMenuItem(
                     link="plugins:sop_infra:sopmerakinet_list",
                     link_text="Networks",
-                    #permissions=["sop_infra.view_merakinets"],
+                    permissions=["sop_infra.view_sopmerakinet"],
                     buttons=(
+                        PluginMenuButton(
+                            link="plugins:sop_infra:sopmerakinet_refresh_choose",
+                            title="Refetch networks from Meraki",
+                            icon_class="mdi mdi-refresh",
+                            permissions=[f"sop_infra.refresh_sopmerakinet"],
+                        ),
                         PluginMenuButton(
                             link="plugins:sop_infra:sopmerakinet_add",
                             title="Add",
                             icon_class="mdi mdi-plus-thick",
-                            #permissions=["sop_infra.add_merakinets"],
+                            permissions=["sop_infra.add_sopmerakinet"],
                         ),
                     ),
                 ),
                 PluginMenuItem(
                     link="plugins:sop_infra:sopmerakidevice_list",
                     link_text="Devices",
-                    #permissions=["sop_infra.view_merakinets"],
+                    permissions=["sop_infra.view_sopmerakidevice"],
                     buttons=(
                         PluginMenuButton(
                             link="plugins:sop_infra:sopmerakidevice_add",
                             title="Add",
                             icon_class="mdi mdi-plus-thick",
-                            #permissions=["sop_infra.add_merakinets"],
+                            permissions=["sop_infra.add_sopmerakidevice"],
+                        ),
+                    ),
+                ),
+                PluginMenuItem(
+                    link="plugins:sop_infra:sopmerakiswitchstack_list",
+                    link_text="Switch Stacks",
+                    permissions=["sop_infra.view_sopmerakiswitchstack"],
+                    buttons=(
+                        PluginMenuButton(
+                            link="plugins:sop_infra:sopmerakiswitchstack_add",
+                            title="Add",
+                            icon_class="mdi mdi-plus-thick",
+                            permissions=["sop_infra.add_sopmerakiswitchstack"],
                         ),
                     ),
                 ),
@@ -86,10 +111,23 @@ menu = PluginMenu(
                         ),
                     ),
                 ),
+                PluginMenuItem(
+                    link="plugins:sop_infra:sopswitchtemplate_list",
+                    link_text="Switch templates",
+                    permissions=["sop_infra.view_sopswitchtemplate"],
+                    buttons=(
+                        PluginMenuButton(
+                            link="plugins:sop_infra:sopswitchtemplate_add",
+                            title="Add",
+                            icon_class="mdi mdi-plus-thick",
+                            permissions=["sop_infra.add_sopswitchtemplate"],
+                        ),
+                    ),
+                ),
             ),
         ),
         (
-            "Prisma",
+            "PRISMA INTEGRATION",
             (
                 PluginMenuItem(
                     link=f"plugins:sop_infra:prismaendpoint_list",

@@ -2,9 +2,12 @@ from zoneinfo import ZoneInfo
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django.contrib import messages
 
 from netbox.models import NetBoxModel
+from netbox.context import current_request
 from dcim.models import Site, SiteGroup, Region, DeviceType, Device
+from sop_infra.models.infra import SopDeviceSetting
 from sop_infra.utils.mixins import JobRunnerLogMixin
 from tenancy.models import Tenant, TenantGroup
 from timezone_field import TimeZoneField
@@ -15,11 +18,12 @@ from sop_infra.utils.sop_utils import ArrayUtils, SopRegExps, SopUtils
 
 
 __all__ = (
-    "SopMerakiUtils",
     "SopMerakiDash",
     "SopMerakiOrg",
     "SopMerakiNet",
+    "SopMerakiSwitchStack",
     "SopMerakiDevice",
+    "SopMerakiSwitchSettings",
 )
 
 
@@ -103,6 +107,39 @@ class SopMerakiUtils:
             if log:
                 log.info(f"Trying to refresh '{smd.nom}'")
             smd.refresh_from_meraki(conn, log, details)
+
+    @classmethod
+    def refresh_organizations(
+        cls, log: JobRunnerLogMixin, simulate: bool, orgs: list, details: bool = False
+    ):
+        if orgs is None or len(orgs) == 0:
+            orgs = SopMerakiOrg.objects.all()  # type: ignore
+        smo:SopMerakiOrg
+        for smo in orgs:
+            smd:SopMerakiDash=smo.dash
+            if log:
+                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+            conn = cls.connect(smd.nom, smd.api_url, simulate)
+            if log:
+                log.info(f"Trying to refresh '{smo.nom}'")
+            smo.refresh_from_meraki(conn, smd, log, details)
+
+    @classmethod
+    def refresh_networks(
+        cls, log: JobRunnerLogMixin, simulate: bool, nets: list, details: bool = False
+    ):
+        if nets is None or len(nets) == 0:
+            nets = SopMerakiNet.objects.all()  # type: ignore
+        smn:SopMerakiNet
+        for smn in nets:
+            smo:SopMerakiOrg=smn.org
+            smd:SopMerakiDash=smo.dash
+            if log:
+                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+            conn = cls.connect(smd.nom, smd.api_url, simulate)
+            if log:
+                log.info(f"Trying to refresh '{smn.nom}'")
+            smn.refresh_from_meraki(conn, smo, log, details)
 
     @classmethod
     def create_meraki_networks(
@@ -331,6 +368,35 @@ class SopMerakiUtils:
             return None
         return orgs[0]
 
+    @staticmethod
+    def check_create_sopdevicesetting(instance: Device):
+        """
+        Create a SopDeviceSetting for the device if supported
+        """
+        if instance.device_type is None:
+            return 
+        dt:DeviceType=instance.device_type
+        if not dt.model.startswith("Meraki "):
+            return
+        if not dt.model.startswith("Meraki MS"):
+            return
+
+        sdss = SopDeviceSetting.objects.filter(device=instance)
+
+        if sdss.exists():
+            return
+
+        sds:SopDeviceSetting = SopDeviceSetting.objects.create(device=instance)
+        sds.snapshot()
+        sds.full_clean()
+        sds.save()
+        try:
+            request = current_request.get()
+            messages.success(request, f"Created {sds} SopDeviceSetting !") # type: ignore
+        except:
+            pass
+        return
+
 
 class SopMerakiDash(NetBoxModel):
     """
@@ -380,7 +446,7 @@ class SopMerakiDash(NetBoxModel):
                 smo = SopMerakiOrg()
             else:
                 smo = SopMerakiOrg.objects.get(meraki_id=org["id"])
-            smo.refresh_from_meraki(conn, org, self, log, details)
+            smo.refresh_from_meraki_data(conn, org, self, log, details)
 
         if log:
             log.info(f"Done looping on '{self.nom}' organizations, starting cleanup...")
@@ -439,24 +505,34 @@ class SopMerakiOrg(NetBoxModel):
     def refresh_from_meraki(
         self,
         conn: meraki.DashboardAPI,
-        org,
+        dash: SopMerakiDash,
+        log: JobRunnerLogMixin,
+        details: bool,
+    ):
+        org_data=conn.organizations.getOrganization(self.meraki_id)
+        return self.refresh_from_meraki_data(conn, org_data, dash, log, details)
+
+    def refresh_from_meraki_data(
+        self,
+        conn: meraki.DashboardAPI,
+        org_data:dict,
         dash: SopMerakiDash,
         log: JobRunnerLogMixin,
         details: bool,
     ):
         save = self.pk is None
         # cf https://developer.cisco.com/meraki/api-v1/get-organizations/
-        if self.nom != org["name"]:
-            self.nom = org["name"]
+        if self.nom != org_data["name"]:
+            self.nom = org_data["name"]
             save = True
-        if self.meraki_id != org["id"]:
-            self.meraki_id = org["id"]
+        if self.meraki_id != org_data["id"]:
+            self.meraki_id = org_data["id"]
             save = True
         if self.dash_id is None or self.dash != dash:  # type: ignore
             self.dash = dash
             save = True
-        if self.meraki_url != org["url"]:
-            self.meraki_url = org["url"]
+        if self.meraki_url != org_data["url"]:
+            self.meraki_url = org_data["url"]
             save = True
 
         if save:
@@ -469,7 +545,7 @@ class SopMerakiOrg(NetBoxModel):
         if log:
             log.info(f"Looping on '{self.nom}' networks...")
         for net in conn.organizations.getOrganizationNetworks(
-            org["id"], total_pages=-1
+            org_data["id"], total_pages=-1
         ):
             net_ids.append(net["id"])
             SopMerakiNet.create_or_refresh(conn, net, self, log, details)
@@ -486,7 +562,7 @@ class SopMerakiOrg(NetBoxModel):
         if log:
             log.info(f"Looping on '{self.nom}' devices...")
         for dev in conn.organizations.getOrganizationInventoryDevices(
-            org["id"], total_pages=-1
+            org_data["id"], total_pages=-1
         ):
             serials.append(dev["serial"])
             if not SopMerakiDevice.objects.filter(serial=dev["serial"]).exists():
@@ -500,13 +576,18 @@ class SopMerakiOrg(NetBoxModel):
             smd.refresh_from_meraki(conn, dev, self, log, details)
         if log:
             log.info(f"Done looping on '{self.nom}' devices, starting cleanup...")
-        for smd in self.devices.filter(org__meraki_id=org["id"]):  # type: ignore
+        for smd in self.devices.filter(org__meraki_id=org_data["id"]):  # type: ignore
             if smd.serial not in serials:
                 log.info(f"Orphaning '{smd.nom}'/'{smd.serial}'...")
                 smd.orphan_device()
 
+        # refresh stacks
+        smn: SopMerakiNet
+        for smn in self.nets.filter(ptypes__contains="switch"):  # type: ignore
+            for st in conn.switch.getNetworkSwitchStacks(smn.meraki_id):
+                SopMerakiSwitchStack.create_or_refresh(conn, st, smn, log, details)
         if log:
-            log.info(f"Done cleaning up '{self.nom}'...")
+            log.info(f"Done refreshing stacks for '{self.nom}'...")
 
         return save
 
@@ -570,23 +651,33 @@ class SopMerakiNet(NetBoxModel):
     @staticmethod
     def create_or_refresh(
         conn: meraki.DashboardAPI,
-        net,
+        net_data:dict,
         org: SopMerakiOrg,
         log: JobRunnerLogMixin,
         details: bool,
     ):
-        if not SopMerakiNet.objects.filter(meraki_id=net["id"]).exists():
+        if not SopMerakiNet.objects.filter(meraki_id=net_data["id"]).exists():
             if log:
-                log.info(f"Creating new NET for '{net['id']}' on ORG '{org.nom}'...")
+                log.info(f"Creating new NET for '{net_data['id']}' on ORG '{org.nom}'...")
             smn = SopMerakiNet()
         else:
-            smn = SopMerakiNet.objects.get(meraki_id=net["id"])
-        smn.refresh_from_meraki(conn, net, org, log, details)
+            smn = SopMerakiNet.objects.get(meraki_id=net_data["id"])
+        smn.refresh_from_meraki_data(conn, net_data, org, log, details)
 
     def refresh_from_meraki(
         self,
         conn: meraki.DashboardAPI,
-        net,
+        org: SopMerakiOrg,
+        log: JobRunnerLogMixin,
+        details: bool,
+    ):
+        net_data=conn.networks.getNetwork( self.meraki_id)
+        return self.refresh_from_meraki_data(conn, net_data, org, log, details)
+
+    def refresh_from_meraki_data(
+        self,
+        conn: meraki.DashboardAPI,
+        net_data : dict,
         org: SopMerakiOrg,
         log: JobRunnerLogMixin,
         details: bool,
@@ -595,32 +686,32 @@ class SopMerakiNet(NetBoxModel):
         if log and details:
             log.info(f"Refreshing '{self.nom}'...")
         save = self.pk is None
-        if self.nom != net["name"]:
-            self.nom = net["name"]
+        if self.nom != net_data["name"]:
+            self.nom = net_data["name"]
             save = True
-        if self.meraki_id != net["id"]:
-            self.meraki_id = net["id"]
+        if self.meraki_id != net_data["id"]:
+            self.meraki_id = net_data["id"]
             save = True
         if self.org_id is None or self.org != org:  # type: ignore
             self.org = org
             save = True
-        if self.bound_to_template != net["isBoundToConfigTemplate"]:
-            self.bound_to_template = net["isBoundToConfigTemplate"]
+        if self.bound_to_template != net_data["isBoundToConfigTemplate"]:
+            self.bound_to_template = net_data["isBoundToConfigTemplate"]
             save = True
-        if self.meraki_url != net["url"]:
-            self.meraki_url = net["url"]
+        if self.meraki_url != net_data["url"]:
+            self.meraki_url = net_data["url"]
             save = True
-        if self.meraki_notes != net["notes"]:
-            self.meraki_notes = net["notes"]
+        if self.meraki_notes != net_data["notes"]:
+            self.meraki_notes = net_data["notes"]
             save = True
-        if f"{self.timezone}" != f"{net['timeZone']}":
-            self.timezone = net["timeZone"]
+        if f"{self.timezone}" != f"{net_data['timeZone']}":
+            self.timezone = net_data["timeZone"]
             save = True
-        if not ArrayUtils.equal_sets(self.meraki_tags, net["tags"]):  # type: ignore
-            self.meraki_tags = net["tags"]
+        if not ArrayUtils.equal_sets(self.meraki_tags, net_data["tags"]):  # type: ignore
+            self.meraki_tags = net_data["tags"]
             save = True
-        if not ArrayUtils.equal_sets(self.ptypes, net["productTypes"]):  # type: ignore
-            self.ptypes = net["productTypes"]
+        if not ArrayUtils.equal_sets(self.ptypes, net_data["productTypes"]):  # type: ignore
+            self.ptypes = net_data["productTypes"]
             save = True
         slug = SopMerakiUtils.extractSiteName(self.nom)
         if slug is None:
@@ -722,6 +813,117 @@ class SopMerakiNet(NetBoxModel):
         return ret
 
 
+class SopMerakiSwitchStack(NetBoxModel):
+
+    meraki_id = models.CharField(
+        max_length=50, null=False, blank=False, verbose_name="Meraki Stack ID"
+    )
+    nom = models.CharField(max_length=50, null=False, blank=False, verbose_name="Name")
+    net = models.ForeignKey(
+        to=SopMerakiNet, on_delete=models.CASCADE, null=False, blank=False, related_name="switch_stacks"
+    )
+    serials = models.JSONField(
+        verbose_name="Serials",
+        default=list,
+        blank=True,
+        null=True,
+    )
+    members = models.JSONField(
+        verbose_name="Members",
+        default=list,
+        blank=True,
+        null=True,
+    )
+
+    def __str__(self):
+        return f"{self.nom}"
+
+    def get_absolute_url(self) -> str:
+        return reverse(
+            "plugins:sop_infra:sopmerakiswitchstack_detail", args=[self.pk]
+        )
+
+    class Meta(NetBoxModel.Meta):
+        verbose_name = "Meraki Switch Stack"
+        verbose_name_plural = "Meraki Switch Stacks"
+
+    @staticmethod
+    def create_or_refresh(
+        conn: meraki.DashboardAPI,
+        stack,
+        smnet: SopMerakiNet,
+        log: JobRunnerLogMixin,
+        details: bool,
+    ):
+        if not SopMerakiSwitchStack.objects.filter(meraki_id=stack["id"]).exists():
+            if log:
+                log.info(
+                    f"Creating new STACK for '{stack['id']}' on NET '{smnet.nom}'..."
+                )
+            sms = SopMerakiSwitchStack()
+        else:
+            sms = SopMerakiSwitchStack.objects.get(meraki_id=stack["id"])
+        sms.refresh_from_meraki(conn, stack, smnet, log, details)
+
+    def refresh_from_meraki(
+        self,
+        conn: meraki.DashboardAPI,
+        stack,
+        smnet: SopMerakiNet,
+        log: JobRunnerLogMixin,
+        details: bool,
+    ):
+        # cf https://developer.cisco.com/meraki/api-v1/get-network-switch-stacks/
+        if log and details:
+            log.info(f"Refreshing '{self.nom}'...")
+        save = self.pk is None
+        serial_change = self.pk is None
+        if self.nom != stack["name"]:
+            self.nom = stack["name"]
+            save = True
+        if self.meraki_id != stack["id"]:
+            self.meraki_id = stack["id"]
+            save = True
+        if self.net_id is None or self.net != smnet:  # type: ignore
+            self.net = smnet
+            save = True
+        if not ArrayUtils.equal_sets(self.serials, stack["serials"]):  # type: ignore
+            self.serials = stack["serials"]
+            serial_change = True
+            save = True
+        if not SopUtils.deep_equals_json_ic(self.members, stack["members"]):  # type: ignore
+            self.members = stack["members"]
+            serial_change = True
+            save = True
+
+        # only save if something changed
+        if save:
+            log.success(f"Saving SopMerakiSwitchStack '[{self.nom}]'.")
+            self.full_clean()
+            self.save()
+
+        # Always rewire the stack elements
+        mems: list[SopMerakiDevice] = list()
+        mems.extend(self.meraki_devices.all())
+        for ser in self.serials:
+            dev = SopMerakiDevice.get_by_serial(ser)
+            if dev is None:
+                raise Exception("Error : the device should exist at that point")
+            if not dev in mems:
+                if dev.stack!=self:
+                    dev.snapshot()
+                    dev.stack = self
+                    dev.full_clean()
+                    dev.save()
+            if dev in mems:
+                mems.remove(dev)
+        # devices still in mems have been removed from the stack -> cleanup
+        for mem in mems:
+            self.meraki_devices.remove(mem)
+
+        return save
+
+
 class SopMerakiDevice(NetBoxModel):
 
     nom = models.CharField(max_length=150, null=False, blank=False, verbose_name="Name")
@@ -805,12 +1007,20 @@ class SopMerakiDevice(NetBoxModel):
         verbose_name="Device Type",
         related_name="meraki_devices",
     )
-    netbox_device = models.ForeignKey(
+    netbox_device = models.OneToOneField(
         to=Device,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name="Device",
+        related_name="meraki_device",
+    )
+    # switch stack
+    stack = models.ForeignKey(
+        to=SopMerakiSwitchStack,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="meraki_devices",
     )
 
@@ -823,6 +1033,11 @@ class SopMerakiDevice(NetBoxModel):
     class Meta(NetBoxModel.Meta):
         verbose_name = "Meraki Device"
         verbose_name_plural = "Meraki Devices"
+
+    @staticmethod
+    def get_by_serial(serial: str):
+        devs = SopMerakiDevice.objects.filter(serial=serial)
+        return devs[0] if devs.exists() else None
 
     def refresh_from_meraki(
         self,
@@ -897,15 +1112,18 @@ class SopMerakiDevice(NetBoxModel):
 
         # Serial <-> device
         if self.serial is not None:
-            ds = Device.objects.filter(
-                device_type__manufacturer__slug__exact="cisco"
-            ).filter(serial__exact=self.serial)
+            ds = Device.objects.filter(device_type__manufacturer__slug__exact="cisco").filter(serial__exact=self.serial).order_by('created')
             d = None
             if ds.exists():
+                for d in ds[1:]:
+                    log.warning(f"Deleting duplicate of '[{ds[0].name}]' Netbox Device : '[{d.name}]({d.serial})' ")
+                    d.delete()
                 d = ds[0]
             if self.netbox_device != d:
                 self.netbox_device = d
                 save = True
+                if self.netbox_device is not None:
+                    SopMerakiUtils.check_create_sopdevicesetting(self.netbox_device)
         else:
             if self.netbox_device is not None:
                 self.netbox_device = None
@@ -936,7 +1154,7 @@ class SopMerakiDevice(NetBoxModel):
                 self.site = None
                 save = True
 
-        # Prepare Meraki site update
+        # Prepare Meraki device update
         update_meraki: dict = {}
 
         # push if needed
@@ -967,3 +1185,26 @@ class SopMerakiDevice(NetBoxModel):
         self.site = None
         self.full_clean()
         self.save()
+
+
+class SopMerakiSwitchSettings(NetBoxModel):
+
+    nom = models.CharField(
+        max_length=50, null=False, blank=False, unique=True, verbose_name="Name"
+    )
+    uplinkClientSampling_enabled = models.BooleanField(
+        null=False, blank=True, default=False
+    )
+    macBlocklist_enabled = models.BooleanField(null=False, blank=True, default=False)
+
+    def __str__(self):
+        return f"{self.nom}"
+
+    def get_absolute_url(self) -> str:
+        return reverse(
+            "plugins:sop_infra:sopmerakiswitchsettings_detail", args=[self.pk]
+        )
+
+    class Meta(NetBoxModel.Meta):
+        verbose_name = "Meraki Switch Settings"
+        verbose_name_plural = "Meraki Switches Settings"

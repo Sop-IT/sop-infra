@@ -7,15 +7,14 @@ from django.conf import settings
 
 from netbox.plugins import PluginTemplateExtension
 from netbox.context import current_request
-from dcim.models import Site
+from dcim.models import Site, Device, DeviceType
 
 from sop_infra.models import SopInfra
-from sop_infra.models.sopmeraki import SopMerakiDash
+from sop_infra.models.infra import SopDeviceSetting
+from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiUtils
 
 
-# _________SITE_POST_SAVE
-
-
+# AUTO CREATE SOPINFRA WHEN A SITE IS SAVED
 @receiver(post_save, sender=Site)
 def create_or_update_sopinfra(sender, instance, created, **kwargs):
     """
@@ -47,6 +46,18 @@ def create_or_update_sopinfra(sender, instance, created, **kwargs):
         messages.success(request, f"Updated {infra}")
     except:
         pass
+
+
+# AUTO CREATE SOPDEVICESETTING WHEN SOME DEVICES ARE SAVED
+@receiver(post_save, sender=Device)
+def create_or_update_sopdevicesetting(sender, instance, created, **kwargs):
+    """
+    when creating or updating a Device
+    create or update its related SopDeviceSettings instance
+    IIF it's a device that supports setting via this system
+    """
+    SopMerakiUtils.check_create_sopdevicesetting(instance)
+
 
 
 class SopInfraPluginExtension(PluginTemplateExtension):

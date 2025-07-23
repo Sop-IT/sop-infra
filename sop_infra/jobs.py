@@ -8,12 +8,12 @@ from core.choices import JobIntervalChoices
 from netbox.jobs import JobRunner, Job, system_job
 
 from dcim.models import Site
-from sop_infra.models.sopmeraki import SopMerakiDash
+from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
 from sop_infra.utils.ad_utils import ADCountersUpd, user_info, user_infos
 from sop_infra.utils.mixins import JobRunnerLogMixin
 from tenancy.models import Contact, Tenant
 
-from sop_infra.models import SopMerakiUtils
+from sop_infra.models.sopmeraki import SopMerakiUtils
 from sop_infra.utils.sop_utils import  SopUtils
 
 
@@ -44,6 +44,32 @@ class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
     
 
 @system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY*10)
+class SopMerakiDashAutoRefreshJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Auto refresh Meraki dashboards, only in prod"
+
+    def run(self, *args, **kwargs):
+        
+        if settings.DEBUG:
+            self.log_success("DEBUG MODE -> NO AUTO RUN")
+            return
+        
+        job:Job=self.job
+        obj = job.object
+        try:
+            SopMerakiUtils.refresh_dashboards(self, settings.DEBUG, kwargs.pop('dashs', None), kwargs.pop('details', False))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        finally:
+            self.job.data = self.get_job_data()       
+
+
+
 class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
@@ -68,7 +94,60 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
         if settings.DEBUG:
             return SopMerakiDashRefreshJob.enqueue(immediate=True, dashs=dashs, details=details)
         return SopMerakiDashRefreshJob.enqueue(dashs=dashs, details=details)
-    
+
+
+class SopMerakiOrgRefreshJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Refresh Meraki organisation"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            SopMerakiUtils.refresh_organizations(self, settings.DEBUG, kwargs.pop('orgs', None), kwargs.pop('details', False))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        finally:
+            self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(orgs:list[SopMerakiOrg], details:bool)->Job:
+        if settings.DEBUG:
+            return SopMerakiOrgRefreshJob.enqueue(immediate=True, orgs=orgs, details=details)
+        return SopMerakiOrgRefreshJob.enqueue(orgs=orgs, details=details)
+
+
+class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Refresh Meraki network"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            SopMerakiUtils.refresh_networks(self, settings.DEBUG, kwargs.pop('nets', None), kwargs.pop('details', False))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        finally:
+            self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(nets:list[SopMerakiNet], details:bool)->Job:
+        if settings.DEBUG:
+            return SopMerakiNetRefreshJob.enqueue(immediate=True, nets=nets, details=details)
+        return SopMerakiNetRefreshJob.enqueue(nets=nets, details=details)
+
+
 
 @system_job(interval=JobIntervalChoices.INTERVAL_HOURLY)
 class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):

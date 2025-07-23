@@ -3,15 +3,9 @@ from django.db.models import Count
 from netbox.api.viewsets import NetBoxModelViewSet
 from netbox.api.metadata import ContentTypeMetadata
 
+from sop_infra.api.serializers import SopDeviceSettingSerializer
 from sop_infra.models import *
-from sop_infra.filtersets import (
-    SopInfraFilterset,
-    PrismaEndpointFilterset,
-    SopMerakiDashFilterSet,
-    SopMerakiDeviceFilterSet,
-    SopMerakiNetFilterSet,
-    SopMerakiOrgFilterSet,
-)
+from sop_infra.filtersets import *
 from sop_infra.api.serializers import *
 
 
@@ -23,7 +17,10 @@ __all__ = (
     "SopMerakiDashViewSet",
     "SopMerakiOrgViewSet",
     "SopMerakiNetViewSet",
+    "SopMerakiSwitchStackViewSet",
     "SopMerakiDeviceViewSet",
+    "SopSwitchTemplateViewSet",
+    "SopDeviceSettingViewSet",
 )
 
 
@@ -75,7 +72,25 @@ class SopMerakiNetViewSet(NetBoxModelViewSet):
     filterset_class = SopMerakiNetFilterSet
 
 
+class SopMerakiSwitchStackViewSet(NetBoxModelViewSet):
+    queryset = SopMerakiSwitchStack.objects.all()
+    serializer_class = SopMerakiSwitchStackSerializer
+    filterset_class = SopMerakiSwitchStackFilterSet
+
+
 class SopMerakiDeviceViewSet(NetBoxModelViewSet):
     queryset = SopMerakiDevice.objects.all()
     serializer_class = SopMerakiDeviceSerializer
     filterset_class = SopMerakiDeviceFilterSet
+
+
+class SopSwitchTemplateViewSet(NetBoxModelViewSet):
+    queryset = SopSwitchTemplate.objects.all()
+    serializer_class = SopSwitchTemplateSerializer
+    filterset_class = SopSwitchTemplateFilterset
+
+
+class SopDeviceSettingViewSet(NetBoxModelViewSet):
+    queryset = SopDeviceSetting.objects.all()
+    serializer_class = SopDeviceSettingSerializer
+    filterset_class = SopDeviceSettingFilterset

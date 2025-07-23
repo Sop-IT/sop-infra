@@ -21,7 +21,7 @@
                 {% if object.netbox_device %}
                 <a href="{{ object.netbox_device.get_absolute_url }}">{{ object.netbox_device }}</a>
                 {% else %}
-                - 
+                &mdash; 
                 {% endif %}
               </td>
             </tr> 
@@ -35,7 +35,7 @@
                 {% if object.netbox_dev_type %}
                 <a href="{{ object.netbox_dev_type.get_absolute_url }}">{{ object.netbox_dev_type }}</a>
                 {% else %}
-                - 
+                &mdash; 
                 {% endif %}
               </td>
             </tr> 
@@ -69,7 +69,7 @@
                 {% if object.org %}
                 <a href="{{ object.org.get_absolute_url }}">{{ object.org }}</a>
                 {% else %}
-                - 
+                &mdash;
                 {% endif %}
               </td>
             </tr>   
@@ -83,7 +83,7 @@
                 {% if object.meraki_network %}
                 <a href="{{ object.meraki_network.get_absolute_url }}">{{ object.meraki_network }}</a>
                 {% else %}
-                - 
+                &mdash; 
                 {% endif %}
               </td>
             </tr> 
@@ -93,7 +93,17 @@
                 {% if object.site %}
                 <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
                 {% else %}
-                - 
+                &mdash; 
+                {% endif %}
+              </td>
+            </tr> 
+            <tr>
+              <th scope="row">Switch stack</th>
+              <td>
+                {% if object.stack %}
+                <a href="{{ object.stack.get_absolute_url }}">{{ object.stack }}</a>
+                {% else %}
+                &mdash;
                 {% endif %}
               </td>
             </tr> 

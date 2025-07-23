@@ -7,7 +7,7 @@ from netbox.tables import NetBoxTable, ChoiceFieldColumn
 from dcim.models import Site
 from dcim.choices import SiteStatusChoices
 
-from sop_infra.models import SopInfra
+from sop_infra.models import *
 
 
 __all__ = (
@@ -15,6 +15,7 @@ __all__ = (
     "SopInfraSizingTable",
     "SopInfraMerakiTable",
     "SopInfraClassificationTable",
+    "SopSwitchTemplateTable",
 )
 
 
@@ -275,4 +276,22 @@ class SopInfraTable(NetBoxTable):
 
         return record.get_criticity_stars()
 
+
+
+# ======================================================================
+#  SWITCH TEMPLATES TABLES
+
+class SopSwitchTemplateTable(NetBoxTable):
+    
+    class Meta(NetBoxTable.Meta):
+        model = SopSwitchTemplate
+        fields = (
+            "nom",
+            "stp_prio",
+        )
+        default_columns = (
+            "nom",
+            "stp_prio",
+        )
+        order_by = ("nom",)
 

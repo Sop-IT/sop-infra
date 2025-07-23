@@ -25,6 +25,7 @@ from extras.reports import Report
 
 from sop_infra.models import SopInfra
 
+from utilities.permissions import get_permission_for_model
 
 class SopRegExps:
     date_str = r"20[0-2][0-9]-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])"
@@ -416,6 +417,10 @@ class SopUtils:
 
         return job
 
+    @staticmethod
+    def check_permission(user, instance, action):
+        permission = get_permission_for_model(instance, action)
+        return user.has_perm(perm=permission, obj=instance)
 
 class NetboxUtils:
 
