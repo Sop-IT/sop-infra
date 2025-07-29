@@ -101,4 +101,12 @@
       {% include 'inc/panels/comments.html' %}
     </div>
   </div>
+  <div class="row">
+    <div class="col col-md-12">
+      <div class="card">
+        <h2 class="card-header">Switch stacks</h2>
+          {% htmx_table 'plugins:sop_infra:sopmerakiswitchstack_list' net_id=object.pk %}
+      </div>
+    </div>
+  </div>
 {% endblock content %}

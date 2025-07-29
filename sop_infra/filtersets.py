@@ -96,6 +96,8 @@ class SopMerakiSwitchStackFilterSet(NetBoxModelFilterSet):
             "id",
             "nom",
             "meraki_id",
+            "net",
+            "net_id",
         )
         filter_overrides = {
             models.JSONField: {
