@@ -618,3 +618,13 @@ class SopDeviceSetting(NetBoxModel):
 
     def get_absolute_url(self) -> str:
         return reverse("plugins:sop_infra:sopdevicesetting_detail", args=[self.pk])
+
+    # ===================================
+    # SOP UTILS
+
+    def make_compliant(self):
+        """ Just to fix things on the go """
+        if self.switch_template is None:
+            ssts=SopSwitchTemplate.objects.filter(nom__iexact='default')
+            if ssts.exists():
+                self.switch_template=ssts[0]
