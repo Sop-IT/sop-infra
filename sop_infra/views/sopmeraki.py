@@ -351,12 +351,6 @@ class SopMerakiNetRefreshView(AccessMixin, View):
 
 class SopMerakiSwitchStackView(generic.ObjectView):
     queryset = SopMerakiSwitchStack.objects.all()
-    def get_extra_context(self, request, instance) -> dict:
-        context = super().get_extra_context(request, instance)
-        if not instance:
-            raise Http404("No instance given.")
-        context["members_table"] = instance.meraki_devices.all()
-        return context
     
 class SopMerakiSwitchStackListView(generic.ObjectListView):
     queryset = SopMerakiSwitchStack.objects.all()
