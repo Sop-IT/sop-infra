@@ -131,7 +131,10 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
         job:Job=self.job
         obj = job.object
         try:
-            SopMerakiUtils.refresh_networks(self, settings.DEBUG, kwargs.pop('nets', None), kwargs.pop('details', False))
+            nets=kwargs.pop('nets', None)
+            details=kwargs.pop('details', False)
+            SopMerakiUtils.refresh_networks(self, settings.DEBUG, nets, details)
+            SopMerakiUtils.refresh_networks_devices(self, settings.DEBUG, nets, details)
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
