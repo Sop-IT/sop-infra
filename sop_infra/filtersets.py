@@ -137,6 +137,8 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             "site_id",
             "netbox_dev_type",
             "netbox_dev_type_id",
+            "stack",
+            "stack_id",
         )
         filter_overrides = {
             models.JSONField: {
