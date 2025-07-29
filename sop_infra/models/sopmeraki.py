@@ -142,6 +142,27 @@ class SopMerakiUtils:
             smn.refresh_from_meraki(conn, smo, log, details)
 
     @classmethod
+    def refresh_networks_devices(
+        cls, log: JobRunnerLogMixin, simulate: bool, nets: list, details: bool = False
+    ):
+        if nets is None or len(nets) == 0:
+            nets = SopMerakiNet.objects.all()  # type: ignore
+        smn:SopMerakiNet
+        for smn in nets:
+            smo:SopMerakiOrg=smn.org
+            smd:SopMerakiDash=smo.dash
+            if log:
+                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+            conn = cls.connect(smd.nom, smd.api_url, simulate)
+            if log:
+                log.info(f"Trying to refresh '{smn.nom}'")
+            for dev in conn.organizations.getOrganizationInventoryDevices(
+                smo.meraki_id, networkIds=[smn.meraki_id], total_pages=-1
+            ):
+                smdev = SopMerakiDevice.get_by_serial_or_create(dev['serial'])
+                smdev.refresh_from_meraki_data(conn, dev, smo, log, details)
+
+    @classmethod
     def create_meraki_networks(
         cls, log: JobRunnerLogMixin, simulate: bool, site: Site, details: bool = False
     ):
@@ -383,11 +404,16 @@ class SopMerakiUtils:
 
         sdss = SopDeviceSetting.objects.filter(device=instance)
 
+        sds:SopDeviceSetting    
         if sdss.exists():
+            sds=sdss[0]
+            sds.make_compliant()
+            sds.save()    
             return
 
-        sds:SopDeviceSetting = SopDeviceSetting.objects.create(device=instance)
+        sds = SopDeviceSetting.objects.create(device=instance)
         sds.snapshot()
+        sds.make_compliant()
         sds.full_clean()
         sds.save()
         try:
@@ -565,15 +591,8 @@ class SopMerakiOrg(NetBoxModel):
             org_data["id"], total_pages=-1
         ):
             serials.append(dev["serial"])
-            if not SopMerakiDevice.objects.filter(serial=dev["serial"]).exists():
-                if log:
-                    log.info(
-                        f"Creating new DEVICE for '{dev['serial']}' on ORG '{self.nom}'..."
-                    )
-                smd = SopMerakiDevice()
-            else:
-                smd = SopMerakiDevice.objects.get(serial=dev["serial"])
-            smd.refresh_from_meraki(conn, dev, self, log, details)
+            smd = SopMerakiDevice.get_by_serial_or_create(dev['serial'])
+            smd.refresh_from_meraki_data(conn, dev, self, log, details)
         if log:
             log.info(f"Done looping on '{self.nom}' devices, starting cleanup...")
         for smd in self.devices.filter(org__meraki_id=org_data["id"]):  # type: ignore
@@ -1039,10 +1058,15 @@ class SopMerakiDevice(NetBoxModel):
         devs = SopMerakiDevice.objects.filter(serial=serial)
         return devs[0] if devs.exists() else None
 
-    def refresh_from_meraki(
+    @staticmethod
+    def get_by_serial_or_create(serial:str):
+        ret=SopMerakiDevice.get_by_serial(serial)
+        return SopMerakiDevice() if ret is None else ret
+
+    def refresh_from_meraki_data(
         self,
         conn: meraki.DashboardAPI,
-        dev,
+        dev_data:dict,
         org: SopMerakiOrg,
         log: JobRunnerLogMixin,
         details: bool,
@@ -1054,41 +1078,41 @@ class SopMerakiDevice(NetBoxModel):
         if self.org_id is None or self.org != org:  # type: ignore
             self.org = org
             save = True
-        nameval = dev.get("name", None)
+        nameval = dev_data.get("name", None)
         if nameval is None or nameval.strip() == "":
-            nameval = dev.get("mac", None)
+            nameval = dev_data.get("mac", None)
         if self.nom != nameval:
             self.nom = nameval
             save = True
-        if self.model != dev.get("model", None):
-            self.model = dev.get("model", None)
+        if self.model != dev_data.get("model", None):
+            self.model = dev_data.get("model", None)
             save = True
-        if self.serial != dev.get("serial", None):
-            self.serial = dev.get("serial", None)
+        if self.serial != dev_data.get("serial", None):
+            self.serial = dev_data.get("serial", None)
             save = True
-        if self.mac != dev.get("mac", None):
-            self.mac = dev.get("mac", None)
+        if self.mac != dev_data.get("mac", None):
+            self.mac = dev_data.get("mac", None)
             save = True
-        if self.meraki_netid != dev.get("networkId", None):
-            self.meraki_netid = dev.get("networkId", None)
+        if self.meraki_netid != dev_data.get("networkId", None):
+            self.meraki_netid = dev_data.get("networkId", None)
             save = True
-        if self.meraki_notes != dev.get("notes", None):
-            self.meraki_notes = dev.get("notes", None)
+        if self.meraki_notes != dev_data.get("notes", None):
+            self.meraki_notes = dev_data.get("notes", None)
             save = True
-        if self.ptype != dev.get("productType", None):
-            self.ptype = dev.get("productType", None)
+        if self.ptype != dev_data.get("productType", None):
+            self.ptype = dev_data.get("productType", None)
             save = True
-        if self.firmware != dev.get("firmware", None):
-            self.firmware = dev.get("firmware", None)
+        if self.firmware != dev_data.get("firmware", None):
+            self.firmware = dev_data.get("firmware", None)
             save = True
 
-        if not ArrayUtils.equal_sets(self.meraki_tags, dev.get("firmware", list())):  # type: ignore
-            self.meraki_tags = dev.get("meraki_tags", list())
+        if not ArrayUtils.equal_sets(self.meraki_tags, dev_data.get("firmware", list())):  # type: ignore
+            self.meraki_tags = dev_data.get("meraki_tags", list())
             save = True
         if not SopUtils.deep_equals_json_ic(
-            self.meraki_details, dev.get("details", dict())
+            self.meraki_details, dev_data.get("details", dict())
         ):
-            self.meraki_details = dev.get("details", dict())
+            self.meraki_details = dev_data.get("details", dict())
             save = True
 
         # -----------------------------------------------
@@ -1122,8 +1146,8 @@ class SopMerakiDevice(NetBoxModel):
             if self.netbox_device != d:
                 self.netbox_device = d
                 save = True
-                if self.netbox_device is not None:
-                    SopMerakiUtils.check_create_sopdevicesetting(self.netbox_device)
+            if self.netbox_device is not None:
+                SopMerakiUtils.check_create_sopdevicesetting(self.netbox_device)
         else:
             if self.netbox_device is not None:
                 self.netbox_device = None
