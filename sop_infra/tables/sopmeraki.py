@@ -23,10 +23,20 @@ class SopMerakiDashTable(NetBoxTable):
 
     nom = tables.Column(linkify=True)
     orgs_count = tables.Column()
+    nets_count = columns.LinkedCountColumn(
+        viewname="plugins:sop_infra:sopmerakinet_list",
+        url_params={"org__dash_id": "pk"},
+        verbose_name="Nets count",
+    )
+    devs_count = columns.LinkedCountColumn(
+        viewname="plugins:sop_infra:sopmerakidevice_list",
+        url_params={"org__dash_id": "pk"},
+        verbose_name="Devices count",
+    )
 
     class Meta(NetBoxTable.Meta):
         model = SopMerakiDash
-        fields = ("pk", "id", "nom", "api_url", "description", "orgs_count")
+        fields = ("pk", "id", "nom", "api_url", "description", "orgs_count", "nets_count", "devs_count")
         default_columns = ("nom", "description", "api_url", "orgs_count")
 
 
@@ -39,7 +49,7 @@ class SopMerakiOrgTable(NetBoxTable):
         url_params={"org_id": "pk"},
         verbose_name="Nets count",
     )
-    devices_count = columns.LinkedCountColumn(
+    devs_count = columns.LinkedCountColumn(
         viewname="plugins:sop_infra:sopmerakidevice_list",
         url_params={"org_id": "pk"},
         verbose_name="Devices count",
@@ -56,7 +66,7 @@ class SopMerakiOrgTable(NetBoxTable):
             "meraki_id",
             "meraki_url",
             "nets_count",
-            "devices_count",
+            "devs_count",
         )
         default_columns = (
             "dash",
@@ -64,7 +74,7 @@ class SopMerakiOrgTable(NetBoxTable):
             "description",
             "meraki_url",
             "nets_count",
-            "devices_count",
+            "devs_count",
         )
 
 
@@ -74,6 +84,11 @@ class SopMerakiNetTable(NetBoxTable):
     org = tables.Column(linkify=True)
     site = tables.Column(linkify=True)
     bound_to_template = tables.Column(verbose_name="Bound")
+    devs_count = columns.LinkedCountColumn(
+        viewname="plugins:sop_infra:sopmerakidevice_list",
+        url_params={"org_id": "pk"},
+        verbose_name="Devices count",
+    )
 
     class Meta(NetBoxTable.Meta):
         model = SopMerakiNet
@@ -90,6 +105,7 @@ class SopMerakiNetTable(NetBoxTable):
             "ptypes",
             "meraki_tags",
             "timezone",
+            "devs_count",
         )
         default_columns = (
             "nom",
@@ -98,6 +114,7 @@ class SopMerakiNetTable(NetBoxTable):
             "org",
             "bound_to_template",
             "meraki_notes",
+            "devs_count",
         )
 
 

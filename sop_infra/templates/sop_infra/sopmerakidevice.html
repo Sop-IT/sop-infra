@@ -1,4 +1,5 @@
 {% extends 'generic/object.html' %}
+{% load l10n %}
 
 {% block content %}
   <div class="row mb-3">
@@ -12,9 +13,98 @@
               <td>{{ object.nom }}</td>
             </tr>
             <tr>
+              <th scope="row">Product type</th>
+              <td>{{ object.ptype }}</td>
+            </tr>               
+            <tr>
+              <th scope="row">Model</th>
+              <td>{{ object.model_name }}</td>
+            </tr>           
+            <tr>
               <th scope="row">Serial</th>
               <td>{{ object.serial }}</td>
             </tr>           
+            <tr>
+              <th scope="row">MAC Address</th>
+              <td>{{ object.mac }}</td>
+            </tr>    
+            <tr>
+              <th scope="row">firmware</th>
+              <td>{{ object.firmware }}</td>
+            </tr>  
+            <tr>
+              <th scope="row">Meraki Notes</th>
+              <td>{{ object.meraki_notes }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Meraki tags</th>
+              <td>{{ object.meraki_tags }}</td>
+            </tr>   
+            <tr>
+              <th scope="row">meraki_details</th>
+              <td>{{ object.meraki_details }}</td>
+            </tr>    
+            <tr>
+              <th scope="row">Meraki Network ID</th>
+              <td>{{ object.meraki_netid }}</td>
+            </tr> 
+            <tr>
+              <th scope="row">Meraki URL</th>
+              <td>
+                {% if object.meraki_url %}
+                <a href="{{ object.meraki_url }}" target="blank">{{ object.meraki_url }}</a>
+                {% else %}
+                - 
+                {% endif %}
+              </td>
+            </tr>   
+            <tr>
+              <th scope="row">Config Updated At</th>
+              <td>{{ object.cfg_updated_at|isodatetime:"minutes" }}</td>
+            </tr>   
+            <tr>
+              <th scope="row">LAN IP</th>
+              <td>{{ object.lan_ip }}</td>
+            </tr> 
+            <tr>
+              <th scope="row">GPS Coordinates</th>
+              <td class="position-relative">
+                {% if object.latitude and object.longitude %}
+                  {% if config.MAPS_URL %}
+                    <div class="position-absolute top-50 end-0 me-2 translate-middle-y d-print-none">
+                      <a href="{{ config.MAPS_URL }}{{ object.latitude|unlocalize }},{{ object.longitude|unlocalize }}" target="_blank" class="btn btn-primary btn-sm">
+                        <i class="mdi mdi-map-marker"></i>Map
+                      </a>
+                    </div>
+                    {% endif %}
+                  <span>{{ object.latitude }}, {{ object.longitude }}</span>
+                {% else %}
+                  {{ ''|placeholder }}
+                {% endif %}
+              </td>
+            </tr>   
+          </table>
+        </div>
+      </div>
+      {% include 'inc/panels/custom_fields.html' %}
+    </div>
+    <div class="col col-md-6">
+      {% include 'inc/panels/tags.html' %}
+      {% include 'inc/panels/comments.html' %}
+      <div class="card">
+        <h5 class="card-header">Netbox</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Site</th>
+              <td>
+                {% if object.site %}
+                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
+                {% else %}
+                &mdash; 
+                {% endif %}
+              </td>
+            </tr>             
             <tr>
               <th scope="row">Netbox Device</th>
               <td>
@@ -26,10 +116,6 @@
               </td>
             </tr> 
             <tr>
-              <th scope="row">Model</th>
-              <td>{{ object.model }}</td>
-            </tr>           
-            <tr>
               <th scope="row">Netbox Device Type</th>
               <td>
                 {% if object.netbox_dev_type %}
@@ -39,30 +125,23 @@
                 {% endif %}
               </td>
             </tr> 
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h5 class="card-header">SOP MERAKI</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
             <tr>
-              <th scope="row">MAC Address</th>
-              <td>{{ object.mac }}</td>
-            </tr>    
-            <tr>
-              <th scope="row">Meraki Notes</th>
-              <td>{{ object.meraki_notes }}</td>
-            </tr>
-            <tr>
-              <th scope="row">Meraki tags</th>
-              <td>{{ object.meraki_tags }}</td>
+              <th scope="row">Meraki Dashboard</th>
+              <td>
+                {% if object.org.dash %}
+                <a href="{{ object.org.dash.get_absolute_url }}">{{ object.org.dash }}</a>
+                {% else %}
+                &mdash;
+                {% endif %}
+              </td>
             </tr>   
-            <tr>
-              <th scope="row">Product type</th>
-              <td>{{ object.ptype }}</td>
-            </tr>               
-            <tr>
-              <th scope="row">firmware</th>
-              <td>{{ object.firmware }}</td>
-            </tr>  
-            <tr>
-              <th scope="row">meraki_details</th>
-              <td>{{ object.meraki_details }}</td>
-            </tr>    
             <tr>
               <th scope="row">Meraki Organization</th>
               <td>
@@ -74,10 +153,6 @@
               </td>
             </tr>   
             <tr>
-              <th scope="row">Meraki Network ID</th>
-              <td>{{ object.meraki_netid }}</td>
-            </tr>           
-            <tr>
               <th scope="row">Meraki Network</th>
               <td>
                 {% if object.meraki_network %}
@@ -87,16 +162,7 @@
                 {% endif %}
               </td>
             </tr> 
-            <tr>
-              <th scope="row">Site</th>
-              <td>
-                {% if object.site %}
-                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
-                {% else %}
-                &mdash; 
-                {% endif %}
-              </td>
-            </tr> 
+
             <tr>
               <th scope="row">Switch stack</th>
               <td>
@@ -109,12 +175,7 @@
             </tr> 
           </table>
         </div>
-      </div>
-      {% include 'inc/panels/custom_fields.html' %}
-    </div>
-    <div class="col col-md-6">
-      {% include 'inc/panels/tags.html' %}
-      {% include 'inc/panels/comments.html' %}
+      </div>    
     </div>
   </div>
 {% endblock content %}

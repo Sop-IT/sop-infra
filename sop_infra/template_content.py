@@ -60,7 +60,10 @@ def create_or_update_sopdevicesetting(sender, instance, created, **kwargs):
 
 
 
-class SopInfraPluginExtension(PluginTemplateExtension):
+class RefreshBtnPluginExtension(PluginTemplateExtension):
+
+    models = ['sop_infra.sopmerakidash', 'sop_infra.sopinfra']
+
     def list_buttons(self):
         if self.context.get("object"):
             if isinstance(self.context.get("object"), SopMerakiDash):
@@ -70,11 +73,25 @@ class SopInfraPluginExtension(PluginTemplateExtension):
         return ""
 
 
+class NetboxDevicePluginExtension(PluginTemplateExtension):
+
+    models = ['dcim.device']
+    
+    def right_page(self):
+        if self.context.get("object"):
+            if isinstance(self.context.get("object"), Device):
+                return self.render("sop_infra/inc/cards/sopmerakinet_on_device.html", extra_context={})
+        return ""
+
+
+
 class TrigramSearch(PluginTemplateExtension):
+    
     def navbar(self):
         return self.render("sop_infra/inc/trisearch.html", extra_context={})
 
 
 template_extensions = list()
-template_extensions.append(SopInfraPluginExtension)
-template_extensions.append(TrigramSearch)  # type: ignore
+template_extensions.append(RefreshBtnPluginExtension)
+template_extensions.append(NetboxDevicePluginExtension)
+template_extensions.append(TrigramSearch)  

@@ -4,7 +4,7 @@ from django.urls import reverse
 from utilities.forms.fields import DynamicModelChoiceField
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 from netbox.context import current_request
-from dcim.models import Site
+from dcim.models import Site, DeviceType, Device
 from sop_infra.models import (
     SopMerakiDash,
     SopMerakiOrg,
@@ -93,6 +93,21 @@ class SopMerakiSwitchStackFilterForm(NetBoxModelFilterSetForm):
 class SopMerakiDeviceFilterForm(NetBoxModelFilterSetForm):
     model = SopMerakiDevice
     nom = forms.CharField(required=False)
+    serial = forms.CharField(required=False)
+    model_name = forms.CharField(required=False)
+    mac = forms.CharField(required=False)
+    meraki_netid = forms.CharField(required=False)
+    meraki_network = DynamicModelChoiceField(queryset=SopMerakiNet.objects.all(), required=False)
+    meraki_notes = forms.CharField(required=False)
+    # TODO COSMETIQUE : liste de choix
+    ptype = forms.CharField(required=False)
+    meraki_tags = forms.CharField(required=False)
+    meraki_details = forms.CharField(required=False)
+    firmware = forms.CharField(required=False)
+    site = DynamicModelChoiceField(queryset=Site.objects.all(), required=False)
+    org = DynamicModelChoiceField(queryset=SopMerakiOrg.objects.all(), required=False)
+    netbox_device_type = DynamicModelChoiceField(queryset=DeviceType.objects.all(), required=False)
+    netbox_device = DynamicModelChoiceField(queryset=Device.objects.all(), required=False)
     stack = DynamicModelChoiceField(
         queryset=SopMerakiSwitchStack.objects.all(), required=False
     )

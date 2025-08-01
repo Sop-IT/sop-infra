@@ -1,0 +1,32 @@
+{% load helpers %}
+{% load plugins %}
+{% load buttons %}
+{% load perms %}
+{% load l10n %}
+
+      <div class="card">
+        <h5 class="card-header">SOP Meraki Device</h5>
+        <div class="card-body">
+{% if object.meraki_device %}
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Name</th>
+              <td><a href="{{ object.meraki_device.get_absolute_url }}">{{ object.meraki_device.nom }}</a></td>
+            </tr>
+            <tr>
+              <th scope="row">URL</th>
+              <td>
+                {% if object.meraki_device.meraki_url %}
+                <a href="{{ object.meraki_device.meraki_url }}" target="blank">View in dashboard</a>
+                {% else %}
+                - 
+                {% endif %}
+              </td>
+            </tr>
+          </table>
+
+{% else %}
+          NO MERAKI DEVICE LINKED TO THIS NETBOX DEVICE
+        </div>
+      </div>
+{% endif %}

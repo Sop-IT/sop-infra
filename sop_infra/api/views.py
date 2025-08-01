@@ -51,23 +51,25 @@ class SopInfraViewSet(NetBoxModelViewSet):
 
 
 class SopMerakiDashViewSet(NetBoxModelViewSet):
-    queryset = SopMerakiDash.objects.prefetch_related("tags").annotate(
-        orgs_count=Count("orgs")
-    )
+    queryset = SopMerakiDash.objects.prefetch_related("tags")\
+        .annotate(orgs_count=Count("orgs"))\
+        .annotate(nets_count=Count("orgs__nets", distinct=True))\
+        .annotate(devs_count=Count("orgs__devices", distinct=True))
     serializer_class = SopMerakiDashSerializer
     filterset_class = SopMerakiDashFilterSet
 
 
 class SopMerakiOrgViewSet(NetBoxModelViewSet):
-    queryset = SopMerakiOrg.objects.annotate(
-        nets_count=Count("nets", distinct=True)
-    ).annotate(devices_count=Count("devices", distinct=True))
+    queryset = SopMerakiOrg.objects\
+        .annotate(nets_count=Count("nets", distinct=True))\
+        .annotate(devs_count=Count("devices", distinct=True))
     serializer_class = SopMerakiOrgSerializer
     filterset_class = SopMerakiOrgFilterSet
 
 
 class SopMerakiNetViewSet(NetBoxModelViewSet):
-    queryset = SopMerakiNet.objects.all()
+    queryset = SopMerakiNet.objects.all()\
+        .annotate(devs_count=Count("devices", distinct=True))
     serializer_class = SopMerakiNetSerializer
     filterset_class = SopMerakiNetFilterSet
 

@@ -39,7 +39,7 @@ class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = SopMerakiOrg
-        fields = ("id", "dash", "dash_id", "nom", "meraki_id", "meraki_url")
+        fields = ("id", "dash", "dash_id", "nom", "meraki_id", "meraki_url",)
 
     def search(self, queryset, name, value):
         if not value.strip():
@@ -68,6 +68,8 @@ class SopMerakiNetFilterSet(NetBoxModelFilterSet):
             "meraki_notes",
             "ptypes",
             "meraki_tags",
+            "org__dash",
+            "org__dash_id",
         )
         filter_overrides = {
             models.JSONField: {
@@ -126,21 +128,25 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             "id",
             "nom",
             "serial",
-            "org",
-            "org_id",
-            "model",
+            "model_name",
+            "mac",
             "meraki_netid",
-            "firmware",
-            "meraki_details",
+            "meraki_network",
             "meraki_notes",
             "ptype",
             "meraki_tags",
+            "meraki_details",
+            "firmware",
             "site",
             "site_id",
+            "org",
+            "org_id",
             "netbox_dev_type",
             "netbox_dev_type_id",
             "stack",
             "stack_id",
+            "org__dash",
+            "org__dash_id",
         )
         filter_overrides = {
             models.JSONField: {

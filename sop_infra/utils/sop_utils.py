@@ -51,7 +51,7 @@ class DateUtils:
         return datetime.now(timezone.utc)
 
     @staticmethod
-    def parse_date(txt: str) -> datetime:
+    def parse_date(txt: str|None) -> datetime:
         if txt is None:
             return None
         dt: datetime = dateutil.parser.isoparse(txt).astimezone(timezone.utc)

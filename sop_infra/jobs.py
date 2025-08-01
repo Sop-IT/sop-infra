@@ -43,7 +43,7 @@ class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
         return SopMerakiCreateNetworkJob.enqueue(site=site, details=details)
     
 
-@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY*10)
+@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY*60)
 class SopMerakiDashAutoRefreshJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
@@ -134,7 +134,6 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
             nets=kwargs.pop('nets', None)
             details=kwargs.pop('details', False)
             SopMerakiUtils.refresh_networks(self, settings.DEBUG, nets, details)
-            SopMerakiUtils.refresh_networks_devices(self, settings.DEBUG, nets, details)
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"

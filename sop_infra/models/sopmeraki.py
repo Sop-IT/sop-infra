@@ -100,6 +100,7 @@ class SopMerakiUtils:
     ):
         if dashs is None or len(dashs) == 0:
             dashs = SopMerakiDash.objects.all()  # type: ignore
+        smd:SopMerakiDash
         for smd in dashs:
             if log:
                 log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
@@ -156,7 +157,7 @@ class SopMerakiUtils:
             conn = cls.connect(smd.nom, smd.api_url, simulate)
             if log:
                 log.info(f"Trying to refresh '{smn.nom}'")
-            for dev in conn.organizations.getOrganizationInventoryDevices(
+            for dev in conn.organizations.getOrganizationDevices(
                 smo.meraki_id, networkIds=[smn.meraki_id], total_pages=-1
             ):
                 smdev = SopMerakiDevice.get_by_serial_or_create(dev['serial'])
@@ -508,6 +509,24 @@ class SopMerakiOrg(NetBoxModel):
         verbose_name="Meraki OrgID",
     )
     meraki_url = models.URLField(null=True, blank=True)
+    meraki_api = models.JSONField(
+        verbose_name="API",
+        default=dict,
+        blank=True,
+        null=True,
+    )
+    meraki_cloud = models.JSONField(
+        verbose_name="Cloud",
+        default=dict,
+        blank=True,
+        null=True,
+    )    
+    meraki_licensing = models.JSONField(
+        verbose_name="Licensing",
+        default=dict,
+        blank=True,
+        null=True,
+    )  
 
     def __str__(self):
         return f"{self.nom}"
@@ -560,10 +579,43 @@ class SopMerakiOrg(NetBoxModel):
         if self.meraki_url != org_data["url"]:
             self.meraki_url = org_data["url"]
             save = True
+        if not SopUtils.deep_equals_json_ic(self.meraki_api, org_data["api"]):  # type: ignore
+            self.meraki_api = org_data["api"]
+            save = True
+        if not SopUtils.deep_equals_json_ic(self.meraki_cloud, org_data["cloud"]):  # type: ignore
+            self.meraki_cloud = org_data["cloud"]
+            save = True
+        if not SopUtils.deep_equals_json_ic(self.meraki_licensing, org_data["licensing"]):  # type: ignore
+            self.meraki_licensing = org_data["licensing"]
+            save = True
 
         if save:
             self.full_clean()
             self.save()
+
+        # refresh devices that are *NOT* in networks (inventory only)
+        serials = []
+        smd: SopMerakiDevice
+        if log:
+            log.info(f"Looping on '{self.nom}' devices...")
+        for dev in conn.organizations.getOrganizationInventoryDevices(
+            org_data["id"], total_pages=-1
+        ):
+            # save serial for orphanaton
+            serials.append(dev["serial"])
+            # do not refresh devices with networks, will be done when refreshing networks recursibvely
+            if dev.get("networkId", None) is not None:
+                continue
+            # refresh "no net" devices
+            smd = SopMerakiDevice.get_by_serial_or_create(dev['serial'])
+            smd.refresh_from_meraki_data(conn, dev, self, log, details)
+        # Remove devices that are not in this org anymore
+        if log:
+            log.info(f"Done looping on '{self.nom}' devices, starting cleanup...")
+        for smd in self.devices.filter(org__meraki_id=org_data["id"]):  # type: ignore
+            if smd.serial not in serials:
+                log.info(f"Orphaning '{smd.nom}'/'{smd.serial}'...")
+                smd.orphan_device()
 
         # refresh nets
         net_ids = []
@@ -581,24 +633,6 @@ class SopMerakiOrg(NetBoxModel):
             if smn.meraki_id not in net_ids:
                 log.info(f"Deleting '{smn.nom}'...")
                 smn.delete()
-
-        # refresh devices
-        serials = []
-        smd: SopMerakiDevice
-        if log:
-            log.info(f"Looping on '{self.nom}' devices...")
-        for dev in conn.organizations.getOrganizationInventoryDevices(
-            org_data["id"], total_pages=-1
-        ):
-            serials.append(dev["serial"])
-            smd = SopMerakiDevice.get_by_serial_or_create(dev['serial'])
-            smd.refresh_from_meraki_data(conn, dev, self, log, details)
-        if log:
-            log.info(f"Done looping on '{self.nom}' devices, starting cleanup...")
-        for smd in self.devices.filter(org__meraki_id=org_data["id"]):  # type: ignore
-            if smd.serial not in serials:
-                log.info(f"Orphaning '{smd.nom}'/'{smd.serial}'...")
-                smd.orphan_device()
 
         # refresh stacks
         smn: SopMerakiNet
@@ -787,6 +821,13 @@ class SopMerakiNet(NetBoxModel):
             self.full_clean()
             self.save()
 
+
+        for dev in conn.organizations.getOrganizationDevices(
+            org.meraki_id, networkIds=[self.meraki_id], total_pages=-1
+        ):
+            smdev = SopMerakiDevice.get_by_serial_or_create(dev['serial'])
+            smdev.refresh_from_meraki_data(conn, dev, org, log, details)
+
         return save
 
     @staticmethod
@@ -954,7 +995,7 @@ class SopMerakiDevice(NetBoxModel):
         verbose_name="Serial",
         # "Q234-ABCD-5678",
     )
-    model = models.CharField(
+    model_name = models.CharField(
         max_length=16,
         null=False,
         blank=False,
@@ -995,6 +1036,7 @@ class SopMerakiDevice(NetBoxModel):
         blank=True,
         null=True,
     )
+    meraki_url = models.URLField(null=True, blank=True)
     firmware = models.CharField(
         max_length=50,
         null=True,
@@ -1018,6 +1060,7 @@ class SopMerakiDevice(NetBoxModel):
         verbose_name="Organization",
         related_name="devices",
     )
+    # Netbox
     netbox_dev_type = models.ForeignKey(
         to=DeviceType,
         on_delete=models.SET_NULL,
@@ -1041,6 +1084,31 @@ class SopMerakiDevice(NetBoxModel):
         null=True,
         blank=True,
         related_name="meraki_devices",
+    )
+    lan_ip=models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=False,
+    )
+    cfg_updated_at=models.DateTimeField(null=True, 
+        blank=True,
+        unique=False,)
+    latitude = models.DecimalField(
+        verbose_name=_('latitude'),
+        max_digits=8,
+        decimal_places=6,
+        blank=True,
+        null=True,
+        help_text=_('GPS coordinate in decimal format (xx.yyyyyy)')
+    )
+    longitude = models.DecimalField(
+        verbose_name=_('longitude'),
+        max_digits=9,
+        decimal_places=6,
+        blank=True,
+        null=True,
+        help_text=_('GPS coordinate in decimal format (xx.yyyyyy)')
     )
 
     def __str__(self):
@@ -1084,8 +1152,8 @@ class SopMerakiDevice(NetBoxModel):
         if self.nom != nameval:
             self.nom = nameval
             save = True
-        if self.model != dev_data.get("model", None):
-            self.model = dev_data.get("model", None)
+        if self.model_name != dev_data.get("model", None):
+            self.model_name = dev_data.get("model", None)
             save = True
         if self.serial != dev_data.get("serial", None):
             self.serial = dev_data.get("serial", None)
@@ -1105,9 +1173,31 @@ class SopMerakiDevice(NetBoxModel):
         if self.firmware != dev_data.get("firmware", None):
             self.firmware = dev_data.get("firmware", None)
             save = True
+        if self.lan_ip != dev_data.get("lanIp", None):
+            self.lan_ip = dev_data.get("lanIp", None)
+            save = True
+        from sop_infra.utils.sop_utils import DateUtils
+        dt=DateUtils.parse_date(dev_data.get("configurationUpdatedAt"))
+        if self.cfg_updated_at != dt:
+            self.cfg_updated_at = dt
+            save = True
+        if self.meraki_url != dev_data.get("url", None):
+            self.meraki_url = dev_data.get("url", None)
+            save = True
+        from decimal import Decimal
+        r=dev_data.get("lat")
+        d=round(Decimal(r),6) if r is not None else None
+        if self.latitude != d:
+            self.latitude = d
+            save = True
+        r=dev_data.get("lng")
+        d=round(Decimal(r),6) if r is not None else None
+        if self.longitude != d:
+            self.longitude = d
+            save = True
 
-        if not ArrayUtils.equal_sets(self.meraki_tags, dev_data.get("firmware", list())):  # type: ignore
-            self.meraki_tags = dev_data.get("meraki_tags", list())
+        if not ArrayUtils.equal_sets(self.meraki_tags, dev_data.get("tags", list())):  # type: ignore
+            self.meraki_tags = dev_data.get("tags", list())
             save = True
         if not SopUtils.deep_equals_json_ic(
             self.meraki_details, dev_data.get("details", dict())
@@ -1119,13 +1209,14 @@ class SopMerakiDevice(NetBoxModel):
         # Rattachement/maintenance d'objets dépendants
 
         # Model <-> device type
-        if self.model is not None:
-            dts = DeviceType.objects.filter(manufacturer__slug__exact="cisco").filter(
-                slug=self.model.lower()
-            )
+        if self.model_name is not None:
+            slug=f"cisco-{self.model_name}".lower()
+            dts = DeviceType.objects.filter(manufacturer__slug__exact="cisco").filter(slug__iexact=slug)
             dt = None
             if dts.exists():
                 dt = dts[0]
+            else:
+                log.warning(f"Unable to match {self.nom} device type {self.model_name} (lookup slug={slug})")
             if self.netbox_dev_type != dt:
                 self.netbox_dev_type = dt
                 save = True

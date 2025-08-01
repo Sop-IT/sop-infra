@@ -1,30 +1,14 @@
 {% extends 'generic/object.html' %}
-{% load perms %}
-{% load buttons %}
 {% load sop_perms %}
 {% load sop_buttons %}
-{% load plugins %}
 {% load infra_custom_tags %}
 {% load i18n %}
-{% load render_table from django_tables2 %}
 
-{% block control-buttons %}
+{% block extra_controls %}
   {% if request.user|can_refresh:object %}
     {% refresh_button object %}
   {% endif %}
-  {% if perms.extras.add_bookmark and object.bookmarks %}
-    {% bookmark_button object %}
-  {% endif %}
-  {% if perms.extras.add_subscription and object.subscriptions %}
-    {% subscribe_button object %}
-  {% endif %}
-  {% if request.user|can_change:object %}
-    {% edit_button object %}
-  {% endif %}
-  {% if request.user|can_delete:object %}
-    {% delete_button object %}
-  {% endif %}
-{% endblock control-buttons %}
+{% endblock extra_controls %}
 
 {% block content %}
   <div class="row mb-3">
@@ -36,26 +20,6 @@
             <tr>
               <th scope="row">Name</th>
               <td>{{ object.nom }}</td>
-            </tr>
-            <tr>
-              <th scope="row">Organization</th>
-              <td>
-                {% if object.org %}
-                <a href="{{ object.org.get_absolute_url }}">{{ object.org }}</a>
-                {% else %}
-                - 
-                {% endif %}
-              </td>
-            </tr>   
-            <tr>
-              <th scope="row">Site</th>
-              <td>
-                {% if object.site %}
-                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
-                {% else %}
-                - 
-                {% endif %}
-              </td>
             </tr> 
             <tr>
               <th scope="row">Bound to template</th>
@@ -91,6 +55,7 @@
               <th scope="row">Timezone</th>
               <td>{{ object.timezone }}</td>
             </tr>    
+
           </table>
         </div>
       </div>
@@ -99,13 +64,71 @@
     <div class="col col-md-6">
       {% include 'inc/panels/tags.html' %}
       {% include 'inc/panels/comments.html' %}
+      <div class="card">
+        <h5 class="card-header">Netbox</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Site</th>
+              <td>
+                {% if object.site %}
+                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
+                {% else %}
+                &mdash; 
+                {% endif %}
+              </td>
+            </tr>             
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h5 class="card-header">SOP MERAKI</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Meraki Dashboard</th>
+              <td>
+                {% if object.org.dash %}
+                <a href="{{ object.org.dash.get_absolute_url }}">{{ object.org.dash }}</a>
+                {% else %}
+                &mdash;
+                {% endif %}
+              </td>
+            </tr>   
+            <tr>
+              <th scope="row">Meraki Organization</th>
+              <td>
+                {% if object.org %}
+                <a href="{{ object.org.get_absolute_url }}">{{ object.org }}</a>
+                {% else %}
+                &mdash;
+                {% endif %}
+              </td>
+            </tr>   
+            <tr>
+              <th scope="row">Devices</th>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakidevice_list' %}?meraki_network={{object.pk}}">{{ object.devices.count }}</a></td>
+            </tr>  
+          </table>
+        </div>
+      </div>    
     </div>
   </div>
+  {% if object.switch_stacks.count %}
   <div class="row">
     <div class="col col-md-12">
       <div class="card">
         <h2 class="card-header">Switch stacks</h2>
           {% htmx_table 'plugins:sop_infra:sopmerakiswitchstack_list' net_id=object.pk %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="row">
+    <div class="col col-md-12">
+      <div class="card">
+        <h2 class="card-header">Devices</h2>
+          {% htmx_table 'plugins:sop_infra:sopmerakidevice_list' meraki_network=object.pk %}
       </div>
     </div>
   </div>

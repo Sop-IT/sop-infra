@@ -1,5 +1,12 @@
 {% extends 'generic/object.html' %}
-{% load render_table from django_tables2 %}
+{% load sop_perms %}
+{% load sop_buttons %}
+
+{% block extra_controls %}
+  {% if request.user|can_refresh:object %}
+    {% refresh_button object %}
+  {% endif %}
+{% endblock extra_controls %}
 
 {% block content %}
   <div class="row mb-3">
@@ -20,10 +27,6 @@
               <th scope="row">API URL</th>
               <td><a href="{{ object.api_url }}" target="blank">{{ object.api_url }}</a></td>
             </tr>            
-            <tr>
-              <th scope="row">Organizations</th>
-              <td><a href="{% url 'plugins:sop_infra:sopmerakiorg_list' %}?dash={{object.pk}}">{{ object.orgs.count }}</a></td>
-            </tr>
           </table>
         </div>
       </div>
@@ -32,6 +35,25 @@
     <div class="col col-md-6">
       {% include 'inc/panels/tags.html' %}
       {% include 'inc/panels/comments.html' %}
+      <div class="card">
+        <h5 class="card-header">SOP MERAKI</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Organizations</th>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakiorg_list' %}?dash_id={{object.pk}}">{{ object.orgs.count }}</a></td>
+            </tr>   
+            <tr>
+              <th scope="row">Networks</th>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakinet_list' %}?org__dash_id={{object.pk}}">{{ object.nets_count }}</a></td>
+            </tr>   
+            <tr>
+              <th scope="row">Devices</th>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakidevice_list' %}?org__dash_id={{object.pk}}">{{ object.devs_count }}</a></td>
+            </tr>  
+          </table>
+        </div>
+      </div>    
     </div>
   </div>
   <div class="row">
@@ -39,7 +61,7 @@
       <div class="card">
         <h5 class="card-header">Meraki Organizations</h5>
         <div class="card-body table-responsive">
-          {% render_table orgs_table %}
+          {% htmx_table 'plugins:sop_infra:sopmerakiorg_list' dash_id=object.pk %}
         </div>
       </div>
     </div>
