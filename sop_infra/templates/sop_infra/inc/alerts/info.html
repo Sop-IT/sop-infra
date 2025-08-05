@@ -1,4 +1,4 @@
-{% if len(messages)>0 %}
+{% if messages|length > 0 %}
 <div class="alert alert-info bg-info-subtle mx-3 my-2" role="alert">
   <div class="d-flex">
     <div>
@@ -7,9 +7,9 @@
     <div>
       <h4 class="alert-title">{{ title }}</h4>
       {% for message in messages %}
-        <div class="text-secondary">{{ message }}</div>
+        <div class="text-secondary">{{ message|safe }}</div>
       {% endfor %}
     </div>
   </div>
 </div>
-{% end if %}
+{% endif %}
