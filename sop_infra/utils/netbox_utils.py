@@ -1,4 +1,5 @@
 import netaddr
+from typing import Any
 
 from django.utils.text import slugify
 from django.db.models import Q
@@ -14,6 +15,92 @@ class NetboxConstants():
     base_adm_ip_addr=netaddr.IPAddress('10.40.0.0')
     spokes_root_id=11
     sopit_id=386    
+
+
+class NetboxUtils:
+
+    @staticmethod
+    def __get_std_nets()->dict[int, dict[str,Any]]:
+        return {
+            1:   { 'name':'USR',                    'nature':'IT', 'start':netaddr.IPAddress('10.24.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            20:  { 'name':'LXC',                    'nature':'IT', 'start':netaddr.IPAddress('10.20.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':240, 'vlan_cidr':28},
+            201: { 'name':'LXM',                    'nature':'IT', 'start':netaddr.IPAddress('10.20.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':224, 'vlan_cidr':28},
+            32:  { 'name':'IND',                    'nature':'IT', 'start':netaddr.IPAddress('10.32.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            36:  { 'name':'STR',                    'nature':'IT', 'start':netaddr.IPAddress('10.36.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            44:  { 'name':'WMS',                    'nature':'IT', 'start':netaddr.IPAddress('10.44.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            48:  { 'name':'ALA',                    'nature':'IT', 'start':netaddr.IPAddress('10.48.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            52:  { 'name':'SOL',                    'nature':'IT', 'start':netaddr.IPAddress('10.52.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            56:  { 'name':'CAM',                    'nature':'IT', 'start':netaddr.IPAddress('10.56.0.0'),     'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            64:  { 'name':'GTB',                    'nature':'IT', 'start':netaddr.IPAddress('10.64.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            68:  { 'name':'ACS',                    'nature':'IT', 'start':netaddr.IPAddress('10.68.0.0'),     'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            76:  { 'name':'RED',                    'nature':'IT', 'start':netaddr.IPAddress('10.76.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            80:  { 'name':'TMR',                    'nature':'IT', 'start':netaddr.IPAddress('10.80.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            101: { 'name':'MOB',                    'nature':'IT', 'start':netaddr.IPAddress('10.192.0.0'),    'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24},
+            102: { 'name':'GST',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.100.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
+            104: { 'name':'EVC',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.104.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
+            105: { 'name':'AGV',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.105.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
+            106: { 'name':'VND',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.106.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
+            401: { 'name':'IMM',                    'nature':'IT', 'start':netaddr.IPAddress('10.18.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':27},
+            402: { 'name':'ESX',                    'nature':'IT', 'start':netaddr.IPAddress('10.19.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':27},
+            #403: { 'name':'ST2',                    'nature':'IT', 'start':netaddr.IPAddress('10.18.128.0'),   'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':27},
+            404: { 'name':'BRK',                    'nature':'IT', 'start':netaddr.IPAddress('10.19.128.0'),   'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':27},
+            405: { 'name':'BKP',                    'nature':'IT', 'start':netaddr.IPAddress('10.17.0.0'),     'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'disabled', 'dhcp_mandatory_dhcp':'unset', 'slice_cidr':27},
+            406: { 'name':'ADM-EXT', 'role':'ADM',  'nature':'IT', 'start':netaddr.IPAddress('10.84.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
+            720: { 'name':'PTC',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':0,   'vlan_cidr':28},
+            721: { 'name':'BRC',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':16,  'vlan_cidr':29},
+            722: { 'name':'DRK',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':24,  'vlan_cidr':29},
+            723: { 'name':'TPE',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':32,  'vlan_cidr':29},
+            724: { 'name':'DRD',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':40,  'vlan_cidr':29},
+            729: { 'name':'AFF',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':80,  'vlan_cidr':29},
+            730: { 'name':'AIS',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':88,  'vlan_cidr':29},
+            731: { 'name':'RED',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':96,  'vlan_cidr':28},
+            732: { 'name':'GOV',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':112, 'vlan_cidr':28},
+            733: { 'name':'PRF',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':128, 'vlan_cidr':27},
+            3999:{ 'name':'STP',                    'nature':'IT', 'start':netaddr.IPAddress('127.99.0.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'disabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':30, 'fixed':True, 'local_vrf':True, 'force_fix':True},
+        }
+
+    @staticmethod
+    def get_site_sopinfra(site: Site):
+        try:
+            return site.sopinfra  # type: ignore
+        except:
+            return None
+
+    @staticmethod
+    def get_sopinfra_site_master_site_id(site: Site) -> int | None:
+        sopinfra = NetboxUtils.get_site_sopinfra(site)
+        if sopinfra is not None and sopinfra.master_site is not None:
+            return site.sopinfra.master_site.id  # type: ignore
+        return None
+
+    @staticmethod
+    def get_sopinfra_ad_direct_users(site: Site) -> int | None:
+        sopinfra = NetboxUtils.get_site_sopinfra(site)
+        if sopinfra is not None:
+            return site.sopinfra.ad_direct_users  # type: ignore
+        return None
+    
+    @staticmethod
+    def check_if_vlan_naming_is_compliant(vl:VLAN) -> bool:
+        if vl is None or not isinstance(vl, VLAN):
+            raise Exception(f"vl must be a VLAN instance")
+        std_nets=NetboxUtils.__get_std_nets()
+        # First check if we have an exact match
+        if vl.vid is std_nets.keys():
+            std_vl:dict[str,Any]=std_nets.get(vl.vid) # type: ignore
+            std_vl_name=std_vl.get("name")
+            return vl.name == std_vl_name
+        short_name=vl.name.lower()[:3]
+        # Then check for OBS MPLS vlans
+        if vl.vid == 50:
+            return short_name in ("obs", "int")
+        # Then check for INTERNET vlans
+        if short_name=="int":
+            return vl.vid >50 and vl.vid<=59
+        # Then check for INDUSTRIAL vlans
+        if short_name=="ind":
+            return True
+        return False
 
 
 class NetboxHelpers():
@@ -112,43 +199,7 @@ class NetboxHelpers():
         if net_num is None:
             raise Exception("Cannot calculate std networks without an ADM prefix on site !")
         # TODO : ça devrait être de vrais objets, probablement des modèles
-        std_nets = {
-            1:   { 'name':'USR',                    'nature':'IT', 'start':netaddr.IPAddress('10.24.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            20:  { 'name':'LXC',                    'nature':'IT', 'start':netaddr.IPAddress('10.20.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':240, 'vlan_cidr':28},
-            201: { 'name':'LXM',                    'nature':'IT', 'start':netaddr.IPAddress('10.20.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':224, 'vlan_cidr':28},
-            32:  { 'name':'IND',                    'nature':'IT', 'start':netaddr.IPAddress('10.32.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            36:  { 'name':'STR',                    'nature':'IT', 'start':netaddr.IPAddress('10.36.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            44:  { 'name':'WMS',                    'nature':'IT', 'start':netaddr.IPAddress('10.44.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            48:  { 'name':'ALA',                    'nature':'IT', 'start':netaddr.IPAddress('10.48.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            52:  { 'name':'SOL',                    'nature':'IT', 'start':netaddr.IPAddress('10.52.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            56:  { 'name':'CAM',                    'nature':'IT', 'start':netaddr.IPAddress('10.56.0.0'),     'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            64:  { 'name':'GTB',                    'nature':'IT', 'start':netaddr.IPAddress('10.64.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            68:  { 'name':'ACS',                    'nature':'IT', 'start':netaddr.IPAddress('10.68.0.0'),     'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            76:  { 'name':'RED',                    'nature':'IT', 'start':netaddr.IPAddress('10.76.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            80:  { 'name':'TMR',                    'nature':'IT', 'start':netaddr.IPAddress('10.80.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            101: { 'name':'MOB',                    'nature':'IT', 'start':netaddr.IPAddress('10.192.0.0'),    'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24},
-            102: { 'name':'GST',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.100.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
-            104: { 'name':'EVC',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.104.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
-            105: { 'name':'AGV',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.105.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
-            106: { 'name':'VND',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.106.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
-            401: { 'name':'IMM',                    'nature':'IT', 'start':netaddr.IPAddress('10.18.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':27},
-            402: { 'name':'ESX',                    'nature':'IT', 'start':netaddr.IPAddress('10.19.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':27},
-            #403: { 'name':'ST2',                    'nature':'IT', 'start':netaddr.IPAddress('10.18.128.0'),   'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':27},
-            404: { 'name':'BRK',                    'nature':'IT', 'start':netaddr.IPAddress('10.19.128.0'),   'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':27},
-            405: { 'name':'BKP',                    'nature':'IT', 'start':netaddr.IPAddress('10.17.0.0'),     'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'disabled', 'dhcp_mandatory_dhcp':'unset', 'slice_cidr':27},
-            406: { 'name':'ADM-EXT', 'role':'ADM',  'nature':'IT', 'start':netaddr.IPAddress('10.84.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
-            720: { 'name':'PTC',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':0,   'vlan_cidr':28},
-            721: { 'name':'BRC',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':16,  'vlan_cidr':29},
-            722: { 'name':'DRK',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':24,  'vlan_cidr':29},
-            723: { 'name':'TPE',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':32,  'vlan_cidr':29},
-            724: { 'name':'DRD',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':40,  'vlan_cidr':29},
-            729: { 'name':'AFF',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':80,  'vlan_cidr':29},
-            730: { 'name':'AIS',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':88,  'vlan_cidr':29},
-            731: { 'name':'RED',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':96,  'vlan_cidr':28},
-            732: { 'name':'GOV',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':112, 'vlan_cidr':28},
-            733: { 'name':'PRF',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':128, 'vlan_cidr':27},
-            3999:{ 'name':'STP',                    'nature':'IT', 'start':netaddr.IPAddress('127.99.0.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'disabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':30, 'fixed':True, 'local_vrf':True, 'force_fix':True},
-        }
+        std_nets=NetboxUtils.__get_std_nets()
         ret={}
         for k,v in std_nets.items():
             start:netaddr.IPAddress=v.get('start') # type: ignore
