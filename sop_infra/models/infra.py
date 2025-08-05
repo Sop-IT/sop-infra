@@ -7,10 +7,10 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
 from dcim.models import Site, Location, Device
+from ipam.models import VLAN, VLANGroup
 
-from sop_infra.validators import (
-    SopInfraSlaveValidator,
-)
+from sop_infra.validators import SopInfraSlaveValidator
+
 from .prisma import *
 from .choices import *
 
@@ -558,6 +558,13 @@ class SopInfra(NetBoxModel):
 
 
 # ======================================================================
+#  PREFIXES AND VLANS
+
+
+
+
+
+# ======================================================================
 #  DEVICE SETTINGS AND TEMPLATES 
 
 class SopSwitchTemplate(NetBoxModel):
@@ -590,6 +597,76 @@ class SopSwitchTemplate(NetBoxModel):
         return reverse("plugins:sop_infra:sopswitchtemplate_detail", args=[self.pk])
 
 
+class SopSwitchPortTemplate(NetBoxModel):
+
+    nom = models.CharField(
+        max_length=50, null=False, blank=False, unique=True, verbose_name="Name",
+    )
+    switchport_name = models.CharField(
+        max_length=50, null=False, blank=False, verbose_name="Port name",
+    )
+    switchport_enabled=models.BooleanField(
+        null=False, blank=False, default=False, 
+    )
+    switchport_mode = models.CharField(
+        choices=SwitchPortModeChoices,
+        max_length=20, null=False, blank=False,
+    )
+    vlan_role_name = models.IntegerField(
+        null=True, blank=True, 
+    )
+    voice_vlan_role_name = models.IntegerField(
+        null=True, blank=True, 
+    )
+    
+    allowed_vlan_group_name = models.CharField(
+        choices=SwitchPortAllowedVlansChoices,
+        max_length=250, null=True, blank=True, unique=True, 
+    )
+    rstp_enabled = models.BooleanField(null=False, blank=False, default=False,)
+    bpdu_guard = models.CharField(
+        choices=SwitchPortBpduFilterChoices,
+        null=False, blank=False, default="disabled",
+    )
+    
+    # ===================================
+    # DJANGO STD
+
+    class Meta(NetBoxModel.Meta):
+        verbose_name = "SOP Switch Port Template"
+        verbose_name_plural = "SOP Switch Port Templates"
+
+    def __str__(self):
+        return f"{self.nom}"
+
+    def get_absolute_url(self) -> str:
+        return reverse("plugins:sop_infra:sopswitchporttemplate_detail", args=[self.pk])
+
+    # TODO CLEAN pour checker que c'est logique la combo
+    
+    # ===================================
+    # PROPERTIES
+    
+    # ===================================
+    # METHODS
+
+    def get_vlan(self, site:Site):
+        # Si ambigu, raise exception
+        raise NotImplementedError("TODO IMPLEMENT THAT")
+
+    def get_voice_vlan(self, site:Site):
+        # Si ambigu, raise exception
+        raise NotImplementedError("TODO IMPLEMENT THAT")
+
+    def get_allowed_vlans(self, site:Site):
+        # Le groupe n'a pas un nom fixe ==> passer sur des résolvers (it_vlans, ot_vlans, lxc_vlans) ? 
+        raise NotImplementedError("TODO IMPLEMENT THAT")
+
+    def check_is_ambiguous(self, site:Site) -> bool:
+        raise NotImplementedError("TODO IMPLEMENT THAT")
+        # Renvoyer vrai si plusieurs vlan avec ce nom existent pour ce site
+
+
 class SopDeviceSetting(NetBoxModel):
     device = models.OneToOneField(
         to=Device,
@@ -597,6 +674,13 @@ class SopDeviceSetting(NetBoxModel):
         unique=True,
         verbose_name=_("Device"),
         editable=False,
+    )
+    manage_in_netbox =  models.BooleanField(
+        null=False,
+        blank=False,
+        default=False,
+        verbose_name=_("Manage in Netbox"),
+        help_text=_("Manage this device in netbox or sync the netbox device from the real device ?"),
     )
     switch_template = models.ForeignKey(
         to=SopSwitchTemplate,
@@ -620,6 +704,15 @@ class SopDeviceSetting(NetBoxModel):
         return reverse("plugins:sop_infra:sopdevicesetting_detail", args=[self.pk])
 
     # ===================================
+    # PROPERTIES
+
+    @property
+    def needs_fix_before_mgmt_switch(self):
+        # TODO 
+        return True
+
+
+    # ===================================
     # SOP UTILS
 
     def make_compliant(self):
@@ -628,3 +721,4 @@ class SopDeviceSetting(NetBoxModel):
             ssts=SopSwitchTemplate.objects.filter(nom__iexact='default')
             if ssts.exists():
                 self.switch_template=ssts[0]
+

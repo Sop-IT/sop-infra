@@ -7,6 +7,7 @@ from django.contrib import messages
 from netbox.models import NetBoxModel
 from netbox.context import current_request
 from dcim.models import Site, SiteGroup, Region, DeviceType, Device
+from sop_infra.models.choices import SopMerakiStpGuardChoices
 from sop_infra.models.infra import SopDeviceSetting
 from sop_infra.utils.mixins import JobRunnerLogMixin
 from tenancy.models import Tenant, TenantGroup
@@ -1323,3 +1324,46 @@ class SopMerakiSwitchSettings(NetBoxModel):
     class Meta(NetBoxModel.Meta):
         verbose_name = "Meraki Switch Settings"
         verbose_name_plural = "Meraki Switches Settings"
+
+
+class SopMerakiSwitchPortSettings(NetBoxModel):
+
+    port_id = models.CharField(
+        max_length=20, null=False, blank=False, unique=True, verbose_name="Port ID",
+    )
+    nom = models.CharField(
+        max_length=50, null=False, blank=False, unique=True, verbose_name="Name",
+    )
+    port_enabled=models.BooleanField(
+        null=False, blank=False, default=False, 
+    )
+    switchport_mode = models.CharField(
+        max_length=20, null=False, blank=False,
+    )
+    vlan = models.IntegerField(
+        null=True, blank=True, 
+    )
+    voice_vlan = models.IntegerField(
+        null=True, blank=True, 
+    )
+    allowed_vlans = models.CharField(
+        max_length=250, null=True, blank=True, unique=True, 
+    )
+    rstp_enabled = models.BooleanField(null=False, blank=False, default=False,)
+    stp_guard = models.CharField(
+        choices=SopMerakiStpGuardChoices,
+        null=False, blank=False, default="disabled",
+    )
+
+
+    def __str__(self):
+        return f"{self.port_id}-{self.nom}"
+
+    def get_absolute_url(self) -> str:
+        return reverse(
+            "plugins:sop_infra:sopmerakiswitchportsettings_detail", args=[self.pk]
+        )
+
+    class Meta(NetBoxModel.Meta):
+        verbose_name = "Meraki Switch Port Settings"
+        verbose_name_plural = "Meraki Switch Ports Settings"

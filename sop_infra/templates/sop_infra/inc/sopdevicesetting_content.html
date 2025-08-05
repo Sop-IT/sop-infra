@@ -8,10 +8,29 @@
 
   <div class="col col-md-6">
     {% if object %}
+
+    <!-- PUSH DIRECTION CARD -->
+    <div class="card">
+      <h2 class="card-header">Management source</h2>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">Manage in Netbox</th>
+          <td>
+            {{ object.manage_in_netbox }}
+          </td>
+        </tr>   
+      </table>
+    </div>    
     <!-- SPANNING TREE CARD -->
     <div class="card">
-      <h2 class="card-header">Switch settings  ----&gt; TEMPLATE = {{ object.switch_template }}</h2>
+      <h2 class="card-header">Switch settings</h2>
       <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">Switch template</th>
+          <td>
+            {{ object.switch_template }}
+          </td>
+        </tr>   
         <tr>
           <th scope="row">STP prio</th>
           <td>

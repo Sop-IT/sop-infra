@@ -9,6 +9,12 @@ __all__ = (
     "InfraTypeIndusChoices",
     "InfraHubOrderChoices",
     "InfraSdwanhaChoices",
+
+    "SwitchPortModeChoices", 
+    "SwitchPortAllowedVlansChoices",
+    "SwitchPortBpduFilterChoices",
+
+    "SopMerakiStpGuardChoices",
 )
 
 
@@ -68,4 +74,41 @@ class InfraSdwanhaChoices(ChoiceSet):
         ("-NO NETWORK-", _("-NO NETWORK-")),
         ("-SLAVE SITE-", _("-SLAVE SITE-")),
         ("-DC-", _("-DC-")),
+    )
+
+
+class SwitchPortModeChoices(ChoiceSet):
+
+    CHOICES = (
+        ("access", _("access")),
+        ("trunk", _("trunk")),
+    )
+
+
+class SwitchPortAllowedVlansChoices(ChoiceSet):
+
+    CHOICES = (
+        ("it_vlans", _("it_vlans")),
+        ("ot_vlans", _("ot_vlans")),
+        ("lxc_vlans", _("lxc_vlans")),
+    )
+
+
+class SwitchPortBpduFilterChoices(ChoiceSet):
+
+    CHOICES = (
+        ("disabled", _("disabled")),
+        ("root guard", _("root guard")),
+        ("bpdu guard", _("bpdu guard")),
+    )
+
+
+
+class SopMerakiStpGuardChoices(ChoiceSet):
+
+    CHOICES = (
+        ("disabled", _("disabled")),
+        ("root guard", _("root guard")),
+        ("bpdu guard", _("bpdu guard")),
+        ("loop guard", _("loop guard")),
     )
