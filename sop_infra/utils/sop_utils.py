@@ -422,29 +422,6 @@ class SopUtils:
         permission = get_permission_for_model(instance, action)
         return user.has_perm(perm=permission, obj=instance)
 
-class NetboxUtils:
-
-    @staticmethod
-    def get_site_sopinfra(site: Site):
-        try:
-            return site.sopinfra  # type: ignore
-        except:
-            return None
-
-    @staticmethod
-    def get_sopinfra_site_master_site_id(site: Site) -> int | None:
-        sopinfra = NetboxUtils.get_site_sopinfra(site)
-        if sopinfra is not None and sopinfra.master_site is not None:
-            return site.sopinfra.master_site.id  # type: ignore
-        return None
-
-    @staticmethod
-    def get_sopinfra_ad_direct_users(site: Site) -> int | None:
-        sopinfra = NetboxUtils.get_site_sopinfra(site)
-        if sopinfra is not None:
-            return site.sopinfra.ad_direct_users  # type: ignore
-        return None
-
 
 #
 # Job Handling
