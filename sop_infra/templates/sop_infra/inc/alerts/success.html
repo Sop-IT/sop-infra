@@ -1,0 +1,15 @@
+{% if len(messages)>0 %}
+<div class="alert alert-success bg-success-subtle mx-3 my-2" role="alert">
+  <div class="d-flex">
+    <div>
+      <i class="mdi mdi-check-bold p-2"></i>
+    </div>
+    <div>
+      <h4 class="alert-title">{{ title }}</h4>
+      {% for message in messages %}
+        <div class="text-secondary">{{ message }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% end if %}

@@ -8,10 +8,12 @@ from django.conf import settings
 from netbox.plugins import PluginTemplateExtension
 from netbox.context import current_request
 from dcim.models import Site, Device, DeviceType
+from ipam.models import VLAN
 
 from sop_infra.models import SopInfra
 from sop_infra.models.infra import SopDeviceSetting
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiUtils
+from sop_infra.utils.netbox_utils import NetboxUtils
 
 
 # AUTO CREATE SOPINFRA WHEN A SITE IS SAVED
@@ -84,6 +86,17 @@ class NetboxDevicePluginExtension(PluginTemplateExtension):
         return ""
 
 
+class NetboxSitePluginExtension(PluginTemplateExtension):
+
+    models = ['dcim.site']
+    
+    def alerts(self):
+        ret=""
+        warning_messages:list[str]=NetboxUtils.get_site_compliance_warning_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT SITE", "messages":warning_messages})
+        # TODO : INFO and ALERT MESSAGES
+        return ret        
+
 
 class TrigramSearch(PluginTemplateExtension):
     
@@ -94,4 +107,6 @@ class TrigramSearch(PluginTemplateExtension):
 template_extensions = list()
 template_extensions.append(RefreshBtnPluginExtension)
 template_extensions.append(NetboxDevicePluginExtension)
+template_extensions.append(NetboxSitePluginExtension)
 template_extensions.append(TrigramSearch)  
+
