@@ -85,12 +85,15 @@ class NetboxUtils:
         if vl is None or not isinstance(vl, VLAN):
             raise Exception(f"vl must be a VLAN instance")
         std_nets=NetboxUtils.__get_std_nets()
-        # First check if we have an exact match
-        if vl.vid is std_nets.keys():
+        # First check if we have an exact match in "user" vlans
+        if vl.vid in std_nets.keys():
             std_vl:dict[str,Any]=std_nets.get(vl.vid) # type: ignore
             std_vl_name=std_vl.get("name")
             return vl.name == std_vl_name
         short_name=vl.name.lower()[:3]
+        # Then check for the VOICE Vlan
+        if vl.vid==300:
+            return short_name in ("voi")
         # Then check for OBS MPLS vlans
         if vl.vid == 50:
             return short_name in ("obs", "int")
@@ -101,6 +104,25 @@ class NetboxUtils:
         if short_name=="ind":
             return True
         return False
+
+    @staticmethod
+    def list_non_compliant_vlan_namings(site:Site) -> list[VLAN]:
+        ret:list[VLAN]=list()
+        vls=VLAN.objects.filter(site_id=site.pk)
+        for vl in vls:
+            if not NetboxUtils.check_if_vlan_naming_is_compliant(vl):
+                ret.append(vl)
+        return ret
+
+    @staticmethod
+    def get_site_compliance_warning_messages(site:Site)->list[str]:
+        ret:list[str]=list()
+        lst:list[VLAN]=NetboxUtils.list_non_compliant_vlan_namings(site)
+        if len(lst) > 0:
+            vl_msgs=[ f"{v.vid}/{v.name}" for v in lst ]
+            msg=f"Non compliant vlan ID/name : "+ ", ".join(vl_msgs)
+            ret.append(msg)
+        return ret
 
 
 class NetboxHelpers():
