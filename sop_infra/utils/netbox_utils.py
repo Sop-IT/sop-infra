@@ -91,15 +91,15 @@ class NetboxUtils:
             std_vl_name=std_vl.get("name")
             return vl.name == std_vl_name
         short_name=vl.name.lower()[:3]
+        # Then check for the ADM Vlan
+        if vl.vid>=40 and vl.vid<50:
+            return short_name in ("adm")
+        # Then check for INTERNET vlans
+        if vl.vid>=50 and vl.vid<=59:
+            return short_name in ("obs", "int")
         # Then check for the VOICE Vlan
         if vl.vid==300:
             return short_name in ("voi")
-        # Then check for OBS MPLS vlans
-        if vl.vid == 50:
-            return short_name in ("obs", "int")
-        # Then check for INTERNET vlans
-        if short_name=="int":
-            return vl.vid >50 and vl.vid<=59
         # Then check for INDUSTRIAL vlans
         if short_name=="ind":
             return True
@@ -119,7 +119,7 @@ class NetboxUtils:
         ret:list[str]=list()
         lst:list[VLAN]=NetboxUtils.list_non_compliant_vlan_namings(site)
         if len(lst) > 0:
-            vl_msgs=[ f"{v.vid}/{v.name}" for v in lst ]
+            vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.vid}/{v.name}</a>' for v in lst ]
             msg=f"Non compliant vlan ID/name : "+ ", ".join(vl_msgs)
             ret.append(msg)
         return ret
