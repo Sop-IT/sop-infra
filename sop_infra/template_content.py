@@ -98,6 +98,41 @@ class NetboxSitePluginExtension(PluginTemplateExtension):
         return ret        
 
 
+class NetboxVlanPluginExtension(PluginTemplateExtension):
+
+    models = ['ipam.vlan']
+    
+    def alerts(self):
+        ret=""
+        warning_messages:list[str]=NetboxUtils.get_vlan_compliance_warning_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT VLAN", "messages":warning_messages})
+        # TODO : INFO and ALERT MESSAGES
+        return ret   
+
+
+class NetboxPrefixPluginExtension(PluginTemplateExtension):
+
+    models = ['ipam.prefix']
+    
+    def alerts(self):
+        ret=""
+        warning_messages:list[str]=NetboxUtils.get_prefix_compliance_warning_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT PREFIX", "messages":warning_messages})
+        # TODO : INFO and ALERT MESSAGES
+        return ret   
+
+
+class NetboxVlanGroupPluginExtension(PluginTemplateExtension):
+
+    models = ['ipam.vlangroup']
+    
+    def alerts(self):
+        ret=""
+        warning_messages:list[str]=NetboxUtils.get_vlan_group_compliance_warning_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT VLAN GROUP", "messages":warning_messages})
+        # TODO : INFO and ALERT MESSAGES
+        return ret   
+
 class TrigramSearch(PluginTemplateExtension):
     
     def navbar(self):
@@ -108,5 +143,8 @@ template_extensions = list()
 template_extensions.append(RefreshBtnPluginExtension)
 template_extensions.append(NetboxDevicePluginExtension)
 template_extensions.append(NetboxSitePluginExtension)
+template_extensions.append(NetboxVlanPluginExtension)
+template_extensions.append(NetboxPrefixPluginExtension)
+template_extensions.append(NetboxVlanGroupPluginExtension)
 template_extensions.append(TrigramSearch)  
 

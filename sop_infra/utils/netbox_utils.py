@@ -1,3 +1,4 @@
+import re
 import netaddr
 from typing import Any
 
@@ -20,7 +21,7 @@ class NetboxConstants():
 class NetboxUtils:
 
     @staticmethod
-    def __get_std_nets()->dict[int, dict[str,Any]]:
+    def get_std_nets()->dict[int, dict[str,Any]]:
         return {
             1:   { 'name':'USR',                    'nature':'IT', 'start':netaddr.IPAddress('10.24.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24},
             20:  { 'name':'LXC',                    'nature':'IT', 'start':netaddr.IPAddress('10.20.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':240, 'vlan_cidr':28},
@@ -58,7 +59,14 @@ class NetboxUtils:
             733: { 'name':'PRF',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':128, 'vlan_cidr':27},
             3999:{ 'name':'STP',                    'nature':'IT', 'start':netaddr.IPAddress('127.99.0.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'disabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':30, 'fixed':True, 'local_vrf':True, 'force_fix':True},
         }
-
+    
+    @staticmethod
+    def get_std_conts()->dict[str, dict[str,Any]]:
+        return {
+            "lxc":             { 'start':netaddr.IPAddress('10.20.0.0'), 'slice_cidr':24},
+            "site-utilities":  { 'start':netaddr.IPAddress('10.72.0.0'), 'slice_cidr':24},
+        }
+    
     @staticmethod
     def get_site_sopinfra(site: Site):
         try:
@@ -79,12 +87,18 @@ class NetboxUtils:
         if sopinfra is not None:
             return site.sopinfra.ad_direct_users  # type: ignore
         return None
-    
+
+    # --------------------  VLAN CHECKS --------------------------------
+       
     @staticmethod
     def check_if_vlan_naming_is_compliant(vl:VLAN) -> bool:
         if vl is None or not isinstance(vl, VLAN):
             raise Exception(f"vl must be a VLAN instance")
-        std_nets=NetboxUtils.__get_std_nets()
+        # Ignore retired vlans
+        if vl.status=="retired":
+            return True
+        # festch standard user vlans
+        std_nets=NetboxUtils.get_std_nets()
         # First check if we have an exact match in "user" vlans
         if vl.vid in std_nets.keys():
             std_vl:dict[str,Any]=std_nets.get(vl.vid) # type: ignore
@@ -113,16 +127,160 @@ class NetboxUtils:
             if not NetboxUtils.check_if_vlan_naming_is_compliant(vl):
                 ret.append(vl)
         return ret
+        
+    @staticmethod
+    def check_if_vlan_vlan_group_is_compliant(vl:VLAN) -> bool:
+        if vl is None or not isinstance(vl, VLAN):
+            raise Exception(f"vl must be a VLAN instance")
+        # Ignore retired vlans
+        if vl.status=="retired":
+            return True
+        # check if we have a vlan group
+        if vl.group is None:
+            return False
+        # vlan group needs a scope of type site
+        if vl.group.scope is None or vl.group.scope_type!=ObjectType.objects.get_by_natural_key('dcim', 'site'):
+            return False
+        # check that the vlan site is the same as the vlan grourp scope
+        # extract site
+        s:Site=vl.group.scope # type: ignore
+        if vl.site!=s:
+            return False
+        # OK for now
+        return True
+
+    @staticmethod
+    def list_non_compliant_vlan_vlan_groups(site:Site) -> list[VLAN]:
+        ret:list[VLAN]=list()
+        vls=VLAN.objects.filter(site_id=site.pk)
+        for vl in vls:
+            if not NetboxUtils.check_if_vlan_vlan_group_is_compliant(vl):
+                ret.append(vl)
+        return ret
+
+    @staticmethod
+    def get_vlan_compliance_warning_messages(vl:VLAN)->list[str]:
+        ret:list[str]=list()
+        if not NetboxUtils.check_if_vlan_naming_is_compliant(vl):
+            msg=f"Vlan <b>ID/name</b> is not compliant with Soprema standards."
+            ret.append(msg)
+        if not NetboxUtils.check_if_vlan_vlan_group_is_compliant(vl):
+            msg=f"Vlan <b>VLAN GROUP</b> is missing or not compliant with Soprema standards."
+            ret.append(msg)
+        return ret
+    
+    # --------------------  PREFIX CHECKS --------------------------------
+       
+    @staticmethod
+    def check_if_prefix_role_is_compliant(pfx:Prefix) -> bool:
+        # Ignore Retired prefixes
+        if pfx.status == 'retired':
+            return True
+        # check for a defined role
+        if pfx.role is None or pfx.role.slug is None:
+            return False
+        # OK for now
+        return True
+
+    @staticmethod
+    def list_non_compliant_prefix_roles(site:Site) -> list[Prefix]:
+        ret:list[Prefix]=list()
+        pfxs=Prefix.objects.filter(scope_type=ObjectType.objects.get_by_natural_key('dcim', 'site'), scope_id=site.pk)
+        for pfx in pfxs:
+            if not NetboxUtils.check_if_prefix_role_is_compliant(pfx):
+                ret.append(pfx)
+        return ret
+
+    @staticmethod
+    def get_prefix_compliance_warning_messages(pfx:Prefix)->list[str]:
+        ret:list[str]=list()
+        if not NetboxUtils.check_if_prefix_role_is_compliant(pfx):
+            msg=f"Prefix role is missing or otherwise not compliant with Soprema standards."
+            ret.append(msg)
+        return ret
+    
+    # --------------------  VLAN GROUP CHECKS --------------------------------
+
+    @staticmethod
+    def check_if_vlan_group_name_is_compliant(vlg:VLANGroup) -> bool:
+        # VlanGroups have to be attached to a site, but this is handled by a saparate check
+        if vlg.scope_type != ObjectType.objects.get_by_natural_key('dcim', 'site') :
+            return True
+        # extract site
+        s:Site=vlg.scope # type: ignore
+        # Match site name with vlan group name
+        m=re.match(f"^{s.name.lower().strip()} (indus |)vlans$", vlg.name.lower().strip())
+        return m is not None
+
+    @staticmethod
+    def list_non_compliant_vlan_group_names(site:Site) -> list[VLANGroup]:
+        ret:list[VLANGroup]=list()
+        vlgs=VLANGroup.objects.filter(scope_type=ObjectType.objects.get_by_natural_key('dcim', 'site'), scope_id=site.pk)
+        for vlg in vlgs:
+            if not NetboxUtils.check_if_vlan_group_name_is_compliant(vlg):
+                ret.append(vlg)
+        return ret
+   
+    @staticmethod
+    def check_if_vlan_group_scope_is_compliant(vlg:VLANGroup) -> bool:
+        # VlanGroups have to be attached to a site
+        if vlg.scope_type != ObjectType.objects.get_by_natural_key('dcim', 'site') :
+            return False
+        # ok for now, perhaps we'll implement tenant checks later
+        return True
+
+    @staticmethod
+    def list_non_compliant_vlan_group_scopes(site:Site) -> list[VLANGroup]:
+        ret:list[VLANGroup]=list()
+        vlgs=VLANGroup.objects.filter(scope_type=ObjectType.objects.get_by_natural_key('dcim', 'site'), scope_id=site.pk)
+        for vlg in vlgs:
+            if not NetboxUtils.check_if_vlan_group_scope_is_compliant(vlg):
+                ret.append(vlg)
+        return ret 
+
+    @staticmethod
+    def get_vlan_group_compliance_warning_messages(vg:VLANGroup)->list[str]:
+        ret:list[str]=list()
+        if not NetboxUtils.check_if_vlan_group_name_is_compliant(vg):
+            msg=f"VLAN Group <b>NAME</b> is not compliant with Soprema standards."
+            ret.append(msg)
+        if not NetboxUtils.check_if_vlan_group_scope_is_compliant(vg):
+            msg=f"VLAN Group <b>SCOPE</b> is not compliant with Soprema standards."
+            ret.append(msg)
+        return ret        
+
+    # --------------------  SITE SUM UP --------------------------------
 
     @staticmethod
     def get_site_compliance_warning_messages(site:Site)->list[str]:
         ret:list[str]=list()
-        lst:list[VLAN]=NetboxUtils.list_non_compliant_vlan_namings(site)
-        if len(lst) > 0:
-            vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.vid}/{v.name}</a>' for v in lst ]
-            msg=f"Non compliant vlan ID/name : "+ ", ".join(vl_msgs)
+        lstv:list[VLAN]=NetboxUtils.list_non_compliant_vlan_namings(site)
+        if len(lstv) > 0:
+            vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.vid}/{v.name}</a>' for v in lstv ]
+            msg=f"Non compliant VLAN ID/name(s) : "+ ", ".join(vl_msgs)
+            ret.append(msg)
+        lstv:list[VLAN]=NetboxUtils.list_non_compliant_vlan_vlan_groups(site)
+        if len(lstv) > 0:
+            vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.vid}/{v.name}</a>' for v in lstv ]
+            msg=f"Non compliant VLAN vlan group(s) : "+ ", ".join(vl_msgs)
+            ret.append(msg)
+        lstp:list[Prefix]=NetboxUtils.list_non_compliant_prefix_roles(site)
+        if len(lstp) > 0:
+            pfx_msgs=[ f'<a href="{p.get_absolute_url()}">{p.prefix}</a>' for p in lstp ]
+            msg=f"Non compliant PREFIX role(s) : "+ ", ".join(pfx_msgs)
+            ret.append(msg)
+        lstvg:list[VLANGroup]=NetboxUtils.list_non_compliant_vlan_group_names(site)
+        if len(lstvg) > 0:
+            vg_msgs=[ f'<a href="{vg.get_absolute_url()}">{vg}</a>' for vg in lstvg ]
+            msg=f"Non compliant VLANGROUP name(s) : "+ ", ".join(vg_msgs)
+            ret.append(msg)
+        lstvg:list[VLANGroup]=NetboxUtils.list_non_compliant_vlan_group_scopes(site)
+        if len(lstvg) > 0:
+            vg_msgs=[ f'<a href="{vg.get_absolute_url()}">{vg}</a>' for vg in lstvg ]
+            msg=f"Non compliant VLANGROUP scope(s) : "+ ", ".join(vg_msgs)
             ret.append(msg)
         return ret
+
 
 
 class NetboxHelpers():
@@ -171,9 +329,9 @@ class NetboxHelpers():
         start_ip=netaddr.IPAddress(start_val)
         return start_ip
     
-    def _calc_std_network(self, net_num:int, base:netaddr.IPAddress, slice_cidr:int, cidr_shift:int, offset_alloc:int, vlan_cidr:int) -> netaddr.IPNetwork:
+    def _calc_std_network(self, net_num:int, base:netaddr.IPAddress, slice_cidr:int, cidr_shift:int, offset_alloc:int|None, vlan_cidr:int|None) -> netaddr.IPNetwork:
         if cidr_shift<0:
-            raise Exception("cidr_shift cannot be nagative !")
+            raise Exception("cidr_shift cannot be negative !")
         start_ip=self._calc_std_network_start(net_num, base, slice_cidr)
         shifted_slice_cidr=slice_cidr-cidr_shift
         shifted_alloc_cidr=shifted_slice_cidr
@@ -221,7 +379,7 @@ class NetboxHelpers():
         if net_num is None:
             raise Exception("Cannot calculate std networks without an ADM prefix on site !")
         # TODO : ça devrait être de vrais objets, probablement des modèles
-        std_nets=NetboxUtils.__get_std_nets()
+        std_nets=NetboxUtils.get_std_nets()
         ret={}
         for k,v in std_nets.items():
             start:netaddr.IPAddress=v.get('start') # type: ignore
@@ -233,12 +391,8 @@ class NetboxHelpers():
             if v.get('fixed', False):
                 p=netaddr.IPNetwork(f"{start}/{slice_cidr-shift}")
             else:
-                offset_alloc:int=v.get('offset_alloc') # type: ignore
-                if offset_alloc is None:
-                    raise Exception("Configuration error : offset_alloc must be defined ")
-                vlan_cidr:int=v.get('vlan_cidr') # type: ignore
-                if vlan_cidr is None:
-                    raise Exception("Configuration error : vlan_cidr must be defined ")               
+                offset_alloc:int|None=v.get('offset_alloc')
+                vlan_cidr:int|None=v.get('vlan_cidr')
                 p=self._calc_std_network(net_num, start, slice_cidr, shift, offset_alloc, vlan_cidr)
             x={'name':v.get('name'), 'role':v.get('role', v.get('name')), 'nature':v.get('nature'), 'prefix':p, 'sdw_vpn_enable':v.get('sdw_vpn_enable'),\
                'dhcp_dhcp_mode':v.get('dhcp_dhcp_mode'), 'dhcp_mandatory_dhcp':v.get('dhcp_mandatory_dhcp'), 'local_vrf':v.get('local_vrf')}
@@ -294,7 +448,7 @@ class NetboxHelpers():
         vgname:str
         # TODO : vid_ranges ?
         if nature=="OT":
-            vgname="{slug_upper} IND vlans".format(slug_upper=site.slug.upper())
+            vgname="{slug_upper} indus vlans".format(slug_upper=site.slug.upper())
         elif nature=="IT":
             vgname="{slug_upper} vlans".format(slug_upper=site.slug.upper())
         else:
