@@ -176,6 +176,9 @@ class NetboxUtils:
         # Ignore Retired prefixes
         if pfx.status == 'retired':
             return True
+        # Ignore containers
+        if pfx.status == 'container':
+            return True
         # check for a defined role
         if pfx.role is None or pfx.role.slug is None:
             return False
