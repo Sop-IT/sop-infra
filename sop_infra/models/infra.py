@@ -717,10 +717,11 @@ class SopDeviceSetting(NetBoxModel):
 
     def make_compliant(self):
         """ Just to fix things on the go """
-        if self.switch_template is None:
-            ssts=SopSwitchTemplate.objects.filter(nom__iexact='default')
-            if ssts.exists():
-                self.switch_template=ssts[0]
+        pass
+        # if self.switch_template is None:
+        #     ssts=SopSwitchTemplate.objects.filter(nom__iexact='default')
+        #     if ssts.exists():
+        #         self.switch_template=ssts[0]
 
     def enable_netbox_management(self) -> bool:
         """ Switch to netbox management """
