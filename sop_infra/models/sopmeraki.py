@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 
 from netbox.models import NetBoxModel
+from netbox.models.features import *
 from netbox.context import current_request
 from dcim.models import Site, SiteGroup, Region, DeviceType, Device
 from sop_infra.models.choices import SopMerakiStpGuardChoices
@@ -12,6 +13,7 @@ from sop_infra.models.infra import SopDeviceSetting
 from sop_infra.utils.mixins import JobRunnerLogMixin
 from tenancy.models import Tenant, TenantGroup
 from timezone_field import TimeZoneField
+from utilities.querysets import RestrictedQuerySet
 
 import meraki
 
@@ -985,7 +987,21 @@ class SopMerakiSwitchStack(NetBoxModel):
         return save
 
 
-class SopMerakiDevice(NetBoxModel):
+class SopMerakiDevice(
+    BookmarksMixin,
+    ChangeLoggingMixin,
+    #CloningMixin,
+    #CustomFieldsMixin,
+    #CustomLinksMixin,
+    #CustomValidationMixin,
+    #ExportTemplatesMixin,
+    #JournalingMixin,
+    NotificationsMixin,
+    TagsMixin,
+    #EventRulesMixin, 
+    models.Model):
+
+    objects = RestrictedQuerySet.as_manager()
 
     nom = models.CharField(max_length=150, null=False, blank=False, verbose_name="Name")
     serial = models.CharField(
@@ -1116,7 +1132,7 @@ class SopMerakiDevice(NetBoxModel):
         return f"{self.nom}"
 
     def get_absolute_url(self) -> str:
-        return reverse("plugins:sop_infra:sopmerakidevice_detail", args=[self.pk])
+        return reverse("plugins:sop_infra:sopmerakidevice", args=[self.pk])
 
     class Meta(NetBoxModel.Meta):
         verbose_name = "Meraki Device"

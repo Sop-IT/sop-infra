@@ -18,7 +18,7 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import AccessMixin
 from sop_infra.utils.sop_utils import SopUtils
-from utilities.views import ObjectPermissionRequiredMixin
+from utilities.views import ObjectPermissionRequiredMixin, register_model_view
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
 
@@ -384,11 +384,12 @@ class SopMerakiSwitchStackDeleteView(generic.ObjectDeleteView):
 # ========================================================================
 # SopMerakiDevice
 
-
+@register_model_view(SopMerakiDevice)
 class SopMerakiDeviceView(generic.ObjectView):
     queryset = SopMerakiDevice.objects.all()
 
 
+@register_model_view(SopMerakiDevice, 'list', path='', detail=False)
 class SopMerakiDeviceListView(generic.ObjectListView):
     queryset = SopMerakiDevice.objects.all()
     table = SopMerakiDeviceTable
@@ -396,10 +397,13 @@ class SopMerakiDeviceListView(generic.ObjectListView):
     filterset_form = SopMerakiDeviceFilterForm
 
 
+@register_model_view(SopMerakiDevice, 'add', detail=False)
+@register_model_view(SopMerakiDevice, 'edit')
 class SopMerakiDeviceEditView(generic.ObjectEditView):
     queryset = SopMerakiDevice.objects.all()
     form = SopMerakiDeviceForm
 
 
+@register_model_view(SopMerakiDevice, 'delete')
 class SopMerakiDeviceDeleteView(generic.ObjectDeleteView):
     queryset = SopMerakiDevice.objects.all()
