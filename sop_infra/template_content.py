@@ -12,7 +12,7 @@ from ipam.models import VLAN
 
 from sop_infra.models import SopInfra
 from sop_infra.models.infra import SopDeviceSetting
-from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiUtils
+from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiDevice, SopMerakiUtils
 from sop_infra.utils.netbox_utils import NetboxUtils
 
 
@@ -84,6 +84,25 @@ class NetboxDevicePluginExtension(PluginTemplateExtension):
             if isinstance(self.context.get("object"), Device):
                 return self.render("sop_infra/inc/cards/sopmerakinet_on_device.html", extra_context={})
         return ""
+    
+    def alerts(self):
+        ret=""
+        # TODO : INFO and ALERT MESSAGES
+        return ret        
+
+
+class SopMerakiDevicePluginExtension(PluginTemplateExtension):
+
+    models = ['sop_infra.sopmerakidevice']
+    
+    def alerts(self):
+        ret=""
+        danger_messages:list[str]=NetboxUtils.get_device_compliance_alert_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
+        warning_messages:list[str]=NetboxUtils.get_device_compliance_warning_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT DEVICE", "messages":warning_messages})
+        # TODO : INFO  MESSAGES
+        return ret          
 
 
 class NetboxSitePluginExtension(PluginTemplateExtension):
@@ -92,9 +111,11 @@ class NetboxSitePluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
+        danger_messages:list[str]=NetboxUtils.get_site_compliance_danger_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
         warning_messages:list[str]=NetboxUtils.get_site_compliance_warning_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT SITE", "messages":warning_messages})
-        # TODO : INFO and ALERT MESSAGES
+        # TODO : INFO  MESSAGES
         return ret        
 
 
@@ -146,5 +167,6 @@ template_extensions.append(NetboxSitePluginExtension)
 template_extensions.append(NetboxVlanPluginExtension)
 template_extensions.append(NetboxPrefixPluginExtension)
 template_extensions.append(NetboxVlanGroupPluginExtension)
+template_extensions.append(SopMerakiDevicePluginExtension)
 template_extensions.append(TrigramSearch)  
 

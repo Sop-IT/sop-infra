@@ -1,0 +1,47 @@
+{% extends "dcim/site.html" %}
+{% load helpers %}
+{% load plugins %}
+{% load buttons %}
+{% load perms %}
+{% load i18n %}
+
+
+
+{% block controls %}
+  <div class="btn-list justify-content-end mb-2">
+  {% if sopdevicesetting and request.user|can_change:sopdevicesetting and sopdevicesetting.pk %}
+    <a href="{% url 'plugins:sop_infra:sopdevicesetting_edit' pk=sopdevicesetting.pk %}?return_url={{ request.get_full_path }}" type="button" class="btn btn-yellow">
+      <i class="mdi mdi-pencil"></i>{% trans "Edit settings" %}
+    </a>
+  {% endif %}
+  </div>
+{% endblock controls %}
+
+
+{% block content %}
+  {% include "sop_infra/inc/sopdevicesetting_content.html" with object=sopdevicesetting %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function()
+  {
+    const all_tabs = document.querySelectorAll('ul.nav.nav-tabs li.nav-item a');
+    update_current_tab_color(all_tabs, 'SOP Device Settings')
+
+    /*
+     * update tab front background color
+     */
+    function update_current_tab_color(all_tabs, tab_name)
+    {
+      all_tabs.forEach(tab => {
+        if (tab.innerText.trim() == "Site") {
+          tab.classList.remove('active');
+        } else if (tab.innerText.trim() == tab_name) {
+          tab.classList.add('active');
+        }
+      });
+    }
+  });
+</script>
+
+{% endblock content %}
+
