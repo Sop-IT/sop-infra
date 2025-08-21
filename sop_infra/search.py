@@ -5,6 +5,11 @@ from sop_infra.models import *
 
 __all__ = (
     "SopInfraSearchIndex",
+    "SopMerakiDashSearchIndex",
+    "SopMerakiOrgSearchIndex",
+    "SopMerakiNetSearchIndex",
+    "SopMerakiSwitchStackSearchIndex",
+    "SopMerakiDeviceSearchIndex",
     "PrismaEndpointSearchIndex",
     "PrismaAccessLocationSearchIndex",
     "PrismaComputedAccessLocationSearchIndex",
@@ -54,6 +59,92 @@ class SopInfraSearchIndex(SearchIndex):
 
 
 @register_search
+class SopMerakiDashSearchIndex(SearchIndex):
+
+    model = SopMerakiDash
+    fields = (
+        ("nom", 100),
+        ("description", 500),
+        ("api_url", 1000),
+    )
+
+
+@register_search
+class SopMerakiOrgSearchIndex(SearchIndex):
+
+    model = SopMerakiOrg
+    fields = (
+        ("nom", 100),
+        ("meraki_id", 100),
+        ("meraki_url", 1000),
+        ("meraki_api", 1000),
+        ("meraki_cloud", 1000),
+        ("meraki_licensing", 1000),
+    )
+    display_attrs = ("dash",)
+
+
+@register_search
+class SopMerakiNetSearchIndex(SearchIndex):
+
+    model = SopMerakiNet
+    fields = (
+        ("nom", 100),
+        ("meraki_id", 100),
+        ("meraki_tags", 200),
+        ("meraki_url", 1000),
+        ("meraki_notes", 1700),
+    )
+    display_attrs = (
+        "site",
+        "org",
+        "ptypes",
+        "timezone",
+    )
+
+
+@register_search
+class SopMerakiSwitchStackSearchIndex(SearchIndex):
+
+    model = SopMerakiSwitchStack
+    fields = (
+        ("nom", 100),
+        ("meraki_id", 100),
+        ("members", 700),
+        ("serials", 600),
+    )
+    display_attrs = (
+        "net",
+        "site",
+    )
+
+
+@register_search
+class SopMerakiDeviceSearchIndex(SearchIndex):
+
+    model = SopMerakiDevice
+    fields = (
+        ("nom", 100),
+        ("serial", 100),
+        ("mac", 100),
+        ("meraki_notes", 500),
+        ("meraki_tags", 400),
+        ("meraki_details", 600),
+        ("meraki_url", 1000),
+        ("firmware", 300),
+    )
+    display_attrs = (
+        "model_name",
+        "meraki_network",
+        "ptype",
+        "site",
+        "org",
+        "netbox_dev_type",
+        "netbox_device",
+    )
+
+
+@register_search
 class PrismaEndpointSearchIndex(SearchIndex):
 
     model = PrismaEndpoint
@@ -91,3 +182,12 @@ class PrismaComputedAccessLocationSearchIndex(SearchIndex):
         ("strata_name", 100),
         ("bandwidth", 100),
     )
+
+
+# indexes = [
+#     SopMerakiDashSearchIndex,
+#     SopMerakiOrgSearchIndex,
+#     SopMerakiNetSearchIndex,
+#     SopMerakiSwitchStackSearchIndex,
+#     SopMerakiDeviceSearchIndex,
+# ]
