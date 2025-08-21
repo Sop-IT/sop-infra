@@ -9,18 +9,6 @@
   <div class="col col-md-6">
     {% if object %}
 
-    <!-- PUSH DIRECTION CARD -->
-    <div class="card">
-      <h2 class="card-header">Management source</h2>
-      <table class="table table-hover attr-table">
-        <tr>
-          <th scope="row">Manage in Netbox</th>
-          <td>
-            {{ object.manage_in_netbox }}
-          </td>
-        </tr>   
-      </table>
-    </div>    
     <!-- SPANNING TREE CARD -->
     <div class="card">
       <h2 class="card-header">Switch settings</h2>
@@ -39,11 +27,34 @@
         </tr>   
       </table>
     </div>
+   
+    <!-- PUSH DIRECTION CARD -->
+    <div class="card">
+      <h2 class="card-header">Management source</h2>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">Manage settings in Netbox</th>
+          <td>
+            {% if True %}
+            COMING SOON !
+            {% else %}
+              {% if object.manage_in_netbox %}
+              ENABLED
+              {% else %}
+              <a href="{% url 'plugins:sop_infra:sopdevicesetting_try_manage_in_netbox' pk=object.pk %}?return_url={{ request.get_full_path }}" type="button" class="btn btn-primary">
+                <i class="mdi mdi-plus-thick" title="Enable Netbox management"></i>
+                Enable
+              </a>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>   
+      </table>
+    </div>    
+    
     {% else %}
     UNAVAILABLE for this device
     {% endif %}
-   
-   
   </div>
 
 
