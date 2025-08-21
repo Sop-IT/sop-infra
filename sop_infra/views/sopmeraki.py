@@ -38,7 +38,7 @@ class SopMerakiTriSearchView(View):
         sites = Site.objects.filter(slug=tri.strip().lower())
         if sites.count() == 1:
             # TODO rechercher l'url pour la vue détails du site
-            return redirect(to=f"/dcim/sites/{sites[0].id}")
+            return redirect(to=f"/dcim/sites/{sites[0].pk}")
         # TODO message si pas trouvé
         return redirect(to=f"/dcim/sites/?slug__ic={tri.strip()}")
 
@@ -360,11 +360,12 @@ class SopMerakiNetRefreshView(AccessMixin, View):
 # ========================================================================
 # SopMerakiSwitchStack
 
-
+@register_model_view(SopMerakiSwitchStack)
 class SopMerakiSwitchStackView(generic.ObjectView):
     queryset = SopMerakiSwitchStack.objects.all()
 
 
+@register_model_view(SopMerakiSwitchStack, 'list', path='', detail=False)
 class SopMerakiSwitchStackListView(generic.ObjectListView):
     queryset = SopMerakiSwitchStack.objects.all()
     table = SopMerakiSwitchStackTable
@@ -372,11 +373,14 @@ class SopMerakiSwitchStackListView(generic.ObjectListView):
     filterset_form = SopMerakiSwitchStackFilterForm
 
 
+@register_model_view(SopMerakiSwitchStack, 'add', detail=False)
+@register_model_view(SopMerakiSwitchStack, 'edit')
 class SopMerakiSwitchStackEditView(generic.ObjectEditView):
     queryset = SopMerakiSwitchStack.objects.all()
     form = SopMerakiSwitchStackForm
 
 
+@register_model_view(SopMerakiSwitchStack, 'delete')
 class SopMerakiSwitchStackDeleteView(generic.ObjectDeleteView):
     queryset = SopMerakiSwitchStack.objects.all()
 
