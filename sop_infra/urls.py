@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import include, path
+from utilities.urls import get_model_urls
 
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
 from sop_infra.views.infra import SopInfraSyncAdUsers, SopMerakiClaimView, SopMerakiCreateNetworksView, SopMerakiEditView
@@ -6,9 +7,7 @@ from sop_infra.views.infra import SopInfraSyncAdUsers, SopMerakiClaimView, SopMe
 from .views import *
 from .models import *
 
-
 app_name = 'sop_infra'
-
 
 urlpatterns = [
 
@@ -133,12 +132,8 @@ urlpatterns = [
 
     # ========================================================================
     # SopMerakiDevice
-    path('sopmerakidevice/', SopMerakiDeviceListView.as_view(), name='sopmerakidevice_list'),
-    path('sopmerakidevice/add/', SopMerakiDeviceEditView.as_view(), name='sopmerakidevice_add'),
-    path('sopmerakidevice/<int:pk>/', SopMerakiDeviceView.as_view(), name='sopmerakidevice_detail'),
-    path('sopmerakidevice/<int:pk>/edit/', SopMerakiDeviceEditView.as_view(), name='sopmerakidevice_edit'),
-    path('sopmerakidevice/<int:pk>/delete/', SopMerakiDeviceDeleteView.as_view(), name='sopmerakidevice_delete'),
-    path('sopmerakidevice/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakidevice_changelog', kwargs={'model': SopMerakiDevice}),
+    path('sopmerakidevice/', include(get_model_urls('sop_infra', 'sopmerakidevice', detail=False))),
+    path('sopmerakidevice/<int:pk>/', include(get_model_urls('sop_infra', 'sopmerakidevice'))),
 
 ]
 

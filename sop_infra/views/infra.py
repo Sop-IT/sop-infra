@@ -325,7 +325,7 @@ class SopDeviceSettingEditView(generic.ObjectEditView):
 
 
 @register_model_view(Device, name="sopdevicesetting", detail=True)
-class DeviceSopDeviceSettingTabView(generic.ObjectView):
+class DeviceSopDeviceSettingTabViewOnDevice(generic.ObjectView):
     """
     creates a "sopdevicesetting" tab on the device page
     """
@@ -347,6 +347,42 @@ class DeviceSopDeviceSettingTabView(generic.ObjectView):
         except SopDeviceSetting.DoesNotExist:
             context["sopdevicesetting"] =  None
         return context
+
+
+@register_model_view(SopMerakiDevice, name="sopdevicesetting", detail=True)
+class DeviceSopDeviceSettingTabViewOnMerakiDevice(generic.ObjectView):
+    """
+    creates a "sopdevicesetting" tab on the SopMerakiDevice detail page
+    """
+
+    tab = ViewTab(
+        label="SOP Device Settings", permission=get_permission_for_model(SopDeviceSetting, "view")
+    )
+    template_name: str = "sop_infra/tab/sopdevicesetting_on_meraki_device.html"
+    # On s'affiche sur un site
+    queryset = SopMerakiDevice.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        nd:Device|None
+        if not isinstance(instance, SopMerakiDevice):
+            raise Exception(f"instance must be either a SopMerakiDevice instance")
+        try:
+            nd = instance.netbox_device
+        except Device.DoesNotExist:
+            nd =  None
+        if nd is None:
+            context["device"] = None
+            context["sopdevicesetting"] =  None
+        else :
+            context["device"] = nd
+            try:
+                context["sopdevicesetting"] = nd.sopdevicesetting
+            except SopDeviceSetting.DoesNotExist:
+                context["sopdevicesetting"] =  None
+        return context    
 
 
 # ======================================================================

@@ -7,8 +7,10 @@ from django.db.models import Q
 
 from core.models import ObjectType
 
-from dcim.models import Site
+from dcim.models import Site, Device
 from ipam.models import Prefix, VLANGroup, VLAN, vlans, Role, VRF, IPAddress
+from sop_infra.models.infra import SopDeviceSetting, SopSwitchTemplate
+from sop_infra.models.sopmeraki import SopMerakiDevice, SopMerakiNet
 
 
 class NetboxConstants():
@@ -88,6 +90,91 @@ class NetboxUtils:
             return site.sopinfra.ad_direct_users  # type: ignore
         return None
 
+    # --------------------  DEVICE CHECKS --------------------------------
+       
+    @staticmethod
+    def check_if_meraki_device_push_would_succeed(sd:SopMerakiDevice) -> bool:
+        if sd is None or not isinstance(sd, SopMerakiDevice):
+            raise Exception(f"sd must be a SopMerakiDevice instance")
+        if sd.ptype not in ['switch']:
+            return True
+        mn:SopMerakiNet|None 
+        try:
+            mn = sd.meraki_network
+        except Device.DoesNotExist:
+            mn =  None
+        if mn is None:
+            return True
+        if mn.bound_to_template:
+            return True
+        nd:Device|None
+        try:
+            nd = sd.netbox_device
+        except Device.DoesNotExist:
+            nd =  None
+        if nd is None :
+            return False
+        sds:SopDeviceSetting|None
+        try:
+            sds=nd.sopdevicesetting # type: ignore
+        except SopDeviceSetting.DoesNotExist:
+            sds =  None
+        if sds is None :
+            return False
+        swt:SopSwitchTemplate|None
+        try:
+            swt=sds.switch_template
+        except SopSwitchTemplate.DoesNotExist:
+            swt =  None
+        if swt is None :
+            return False
+        return True
+
+    @staticmethod
+    def list_meraki_devices_where_push_would_not_success(site:Site) -> list[SopMerakiDevice]:
+        ret:list[SopMerakiDevice]=list()
+        sds=SopMerakiDevice.objects.filter(site_id=site.pk)
+        for sd in sds:
+            if not NetboxUtils.check_if_meraki_device_push_would_succeed(sd):
+                ret.append(sd)
+        return ret
+           
+    @staticmethod
+    def check_if_meraki_device_has_netbox_device(sd:SopMerakiDevice) -> bool:
+        if sd is None or not isinstance(sd, SopMerakiDevice):
+            raise Exception(f"sd must be a SopMerakiDevice instance")
+        nd:Device|None
+        try:
+            nd = sd.netbox_device
+        except Device.DoesNotExist:
+            nd =  None
+        return nd is not None
+
+    @staticmethod
+    def list_meraki_devices_without_netbox_device(site:Site) -> list[SopMerakiDevice]:
+        ret:list[SopMerakiDevice]=list()
+        sds=SopMerakiDevice.objects.filter(site_id=site.pk)
+        for sd in sds:
+            if not NetboxUtils.check_if_meraki_device_has_netbox_device(sd):
+                ret.append(sd)
+        return ret
+    
+    @staticmethod
+    def get_device_compliance_alert_messages(sd:SopMerakiDevice)->list[str]:
+        ret:list[str]=list()
+        if not NetboxUtils.check_if_meraki_device_push_would_succeed(sd):
+            msg=f"Meraki PUSH would not succeed for this device due to configuration issues"
+            ret.append(msg)
+        return ret
+
+    @staticmethod
+    def get_device_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
+        ret:list[str]=list()
+        if not NetboxUtils.check_if_meraki_device_has_netbox_device(sd):
+            msg=f"Meraki Device has no matching Netbox Device"
+            ret.append(msg)
+        return ret
+
     # --------------------  VLAN CHECKS --------------------------------
        
     @staticmethod
@@ -97,26 +184,27 @@ class NetboxUtils:
         # Ignore retired vlans
         if vl.status=="retired":
             return True
-        # festch standard user vlans
-        std_nets=NetboxUtils.get_std_nets()
-        # First check if we have an exact match in "user" vlans
-        if vl.vid in std_nets.keys():
-            std_vl:dict[str,Any]=std_nets.get(vl.vid) # type: ignore
-            std_vl_name=std_vl.get("name")
-            return vl.name == std_vl_name
+        # First check special cases
         short_name=vl.name.lower()[:3]
         # Then check for the ADM Vlan
-        if vl.vid>=40 and vl.vid<50:
+        if vl.vid>=40 and vl.vid<44:
             return short_name in ("adm")
         # Then check for INTERNET vlans
-        if vl.vid>=50 and vl.vid<=59:
+        if vl.vid>=50 and vl.vid<=51:
             return short_name in ("obs", "int")
         # Then check for the VOICE Vlan
         if vl.vid==300:
             return short_name in ("voi")
         # Then check for INDUSTRIAL vlans
-        if short_name=="ind":
-            return True
+        if short_name in ("ind", "red"):
+            return True 
+        # fetch standard user vlans
+        std_nets=NetboxUtils.get_std_nets()
+        # Check if we have an exact match in "user" vlans
+        if vl.vid in std_nets.keys():
+            std_vl:dict[str,Any]=std_nets.get(vl.vid) # type: ignore
+            std_vl_name=std_vl.get("name")
+            return vl.name == std_vl_name
         return False
 
     @staticmethod
@@ -282,8 +370,18 @@ class NetboxUtils:
             vg_msgs=[ f'<a href="{vg.get_absolute_url()}">{vg}</a>' for vg in lstvg ]
             msg=f"Non compliant VLANGROUP scope(s) : "+ ", ".join(vg_msgs)
             ret.append(msg)
+        lstsd:list[SopMerakiDevice]=NetboxUtils.list_meraki_devices_without_netbox_device(site)
+        if len(lstsd) > 0:
+            sd_msgs=[ f'<a href="{sd.get_absolute_url()}">{sd.nom}</a>' for sd in lstsd ]
+            msg=f"Missing netbox devices : "+ ", ".join(sd_msgs)
+            ret.append(msg)
         return ret
 
+    @staticmethod
+    def get_site_compliance_danger_messages(site:Site)->list[str]:
+        ret:list[str]=list()
+
+        return ret
 
 
 class NetboxHelpers():
