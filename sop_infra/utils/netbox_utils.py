@@ -10,7 +10,7 @@ from core.models import ObjectType
 from dcim.models import Site, Device
 from ipam.models import Prefix, VLANGroup, VLAN, vlans, Role, VRF, IPAddress
 from sop_infra.models.infra import SopDeviceSetting, SopSwitchTemplate
-from sop_infra.models.sopmeraki import SopMerakiDevice, SopMerakiNet
+from sop_infra.models.sopmeraki import SopMerakiDevice, SopMerakiNet, SopMerakiSwitchStack
 
 
 class NetboxConstants():
@@ -93,10 +93,72 @@ class NetboxUtils:
     # --------------------  DEVICE CHECKS --------------------------------
        
     @staticmethod
+    def check_if_meraki_switch_stack_push_would_succeed(ss:SopMerakiSwitchStack) -> bool:
+        if ss is None or not isinstance(ss, SopMerakiSwitchStack):
+            raise Exception(f"ss must be a SopMerakiSwitchStack instance")
+        mds=ss.meraki_devices # type: ignore
+        if not mds.exists():
+            return True
+        sd:SopMerakiDevice
+        for sd in mds.all():
+            if sd.ptype not in ['switch']:
+                continue
+            mn:SopMerakiNet|None 
+            try:
+                mn = sd.meraki_network
+            except Device.DoesNotExist:
+                mn =  None
+            if mn is None:
+                continue
+            if mn.bound_to_template:
+                continue
+            nd:Device|None
+            try:
+                nd = sd.netbox_device
+            except Device.DoesNotExist:
+                nd =  None
+            if nd is None :
+                continue
+            sds:SopDeviceSetting|None
+            try:
+                sds=nd.sopdevicesetting # type: ignore
+            except SopDeviceSetting.DoesNotExist:
+                sds =  None
+            if sds is None :
+                continue
+            swt:SopSwitchTemplate|None
+            try:
+                swt=sds.switch_template
+            except SopSwitchTemplate.DoesNotExist:
+                swt =  None
+            if swt is None :
+                continue
+            if (swt.stp_prio % 4096) != 0:
+                continue
+            return True
+        return False
+
+    @staticmethod
+    def list_meraki_switch_stacks_where_push_would_not_success(site:Site) -> list[SopMerakiSwitchStack]:
+        ret:list[SopMerakiSwitchStack]=list()
+        sws=SopMerakiSwitchStack.objects.filter(site_id=site.pk)
+        for ss in sws:
+            if not NetboxUtils.check_if_meraki_switch_stack_push_would_succeed(ss):
+                ret.append(ss)
+        return ret
+       
+    @staticmethod
     def check_if_meraki_device_push_would_succeed(sd:SopMerakiDevice) -> bool:
         if sd is None or not isinstance(sd, SopMerakiDevice):
             raise Exception(f"sd must be a SopMerakiDevice instance")
         if sd.ptype not in ['switch']:
+            return True
+        ss:SopMerakiSwitchStack|None
+        try:
+            ss=sd.stack
+        except SopMerakiSwitchStack.DoesNotExist:
+            ss=None
+        if ss is not None:
             return True
         mn:SopMerakiNet|None 
         try:
@@ -128,6 +190,8 @@ class NetboxUtils:
             swt =  None
         if swt is None :
             return False
+        if (swt.stp_prio % 4096) != 0:
+            return False
         return True
 
     @staticmethod
@@ -138,7 +202,7 @@ class NetboxUtils:
             if not NetboxUtils.check_if_meraki_device_push_would_succeed(sd):
                 ret.append(sd)
         return ret
-           
+                      
     @staticmethod
     def check_if_meraki_device_has_netbox_device(sd:SopMerakiDevice) -> bool:
         if sd is None or not isinstance(sd, SopMerakiDevice):
@@ -163,10 +227,10 @@ class NetboxUtils:
     def get_device_compliance_alert_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
         if not NetboxUtils.check_if_meraki_device_push_would_succeed(sd):
-            msg=f"Meraki PUSH would not succeed for this device due to configuration issues"
+            msg=f"Meraki PUSH would NOT succeed for this device due to configuration issues"
             ret.append(msg)
         return ret
-
+    
     @staticmethod
     def get_device_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
@@ -174,7 +238,15 @@ class NetboxUtils:
             msg=f"Meraki Device has no matching Netbox Device"
             ret.append(msg)
         return ret
-
+    
+    @staticmethod
+    def get_switch_stack_alert_messages(ss:SopMerakiSwitchStack)->list[str]:
+        ret:list[str]=list()
+        if not NetboxUtils.check_if_meraki_switch_stack_push_would_succeed(ss):
+            msg=f"Meraki PUSH would NOT succeed for this switch stack due to configuration issues"
+            ret.append(msg) 
+        return ret
+    
     # --------------------  VLAN CHECKS --------------------------------
        
     @staticmethod
@@ -380,7 +452,16 @@ class NetboxUtils:
     @staticmethod
     def get_site_compliance_danger_messages(site:Site)->list[str]:
         ret:list[str]=list()
-
+        lstss:list[SopMerakiSwitchStack]=NetboxUtils.list_meraki_switch_stacks_where_push_would_not_success(site)
+        if len(lstss) > 0:
+            ss_msgs=[ f'<a href="{ss.get_absolute_url()}">{ss.nom}</a>' for ss in lstss ]
+            msg=f"Switch stacks BLOCKING PUSH : "+ ", ".join(ss_msgs)
+            ret.append(msg)        
+        lstsd:list[SopMerakiDevice]=NetboxUtils.list_meraki_devices_where_push_would_not_success(site)
+        if len(lstsd) > 0:
+            sd_msgs=[ f'<a href="{sd.get_absolute_url()}">{sd.nom}</a>' for sd in lstsd ]
+            msg=f"Devices BLOCKING PUSH : "+ ", ".join(sd_msgs)
+            ret.append(msg)
         return ret
 
 
