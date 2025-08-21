@@ -53,6 +53,23 @@
     <div class="col col-md-6">
       {% include 'inc/panels/tags.html' %}
       {% include 'inc/panels/comments.html' %}
+      <div class="card">
+        <h5 class="card-header">Netbox</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Site</th>
+              <td>
+                {% if object.site %}
+                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
+                {% else %}
+                &mdash; 
+                {% endif %}
+              </td>
+            </tr>             
+          </table>
+        </div>
+      </div>
     </div>
   </div>
   <div class="row">

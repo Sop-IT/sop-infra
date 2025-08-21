@@ -11,6 +11,7 @@ from django.contrib.auth.mixins import AccessMixin
 
 from sop_infra.forms.infra import SopMerakiClaimForm
 from sop_infra.jobs import SopMerakiCreateNetworkJob, SopSyncAdUsers
+from sop_infra.models.sopmeraki import SopMerakiUtils
 from utilities.views import register_model_view, ViewTab
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
@@ -29,6 +30,7 @@ from sop_infra.utils.sop_utils import  SopInfraRelatedModelsMixin
 from django.contrib import messages
 
 __all__ = (
+    "SopDeviceSettingTryManageInNetbox",
     "SopInfraSiteTabView",
     "SopMerakiSiteTabView",
     # "SopInfraAddView",
@@ -49,6 +51,47 @@ __all__ = (
     "SopDeviceSettingDetailView",
     "SopDeviceSettingEditView",
 )
+
+
+class SopDeviceSettingTryManageInNetbox(View):
+    """
+    Try to change the device settings management to Netbox
+    """
+
+    def get(self, request, pk, *args, **kwargs):
+
+        # TODO permissions
+        # if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
+        #    return self.handle_no_permission()
+
+        # restrict_form_fields(self.form(), request.user)
+
+        return_url = reverse("plugins:sop_infra:sopdevicesetting_detail", args=(pk,))
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        
+        sdss = SopDeviceSetting.objects.filter(pk=pk)
+        if not sdss.exists():
+            messages.error(request, f"Cannot find SopDeviceSetting !")
+            return redirect(return_url)
+        
+        sds:SopDeviceSetting=sdss[0]
+               
+        if sds.manage_in_netbox:
+            messages.error(request, f"Device management already done via Netbox !")
+            return redirect(return_url)            
+        
+        if sds.needs_fix_before_mgmt_switch:
+            messages.error(request, f"Cannot enable the device management via Netbox !")
+            return redirect(return_url)            
+
+        if sds.enable_netbox_management():
+            messages.success(request, f"Device management via Netbox enbaled !")
+        else:
+            messages.error(request, "Could not enable the device management via Netbox !")
+            
+        return redirect(return_url)        
+        
 
 
 class SopInfraSyncAdUsers(View):

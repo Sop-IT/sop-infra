@@ -105,6 +105,18 @@ class SopMerakiDevicePluginExtension(PluginTemplateExtension):
         return ret          
 
 
+class SopMerakiSwitchStackPluginExtension(PluginTemplateExtension):
+
+    models = ['sop_infra.sopmerakiswitchstack']
+    
+    def alerts(self):
+        ret=""
+        danger_messages:list[str]=NetboxUtils.get_switch_stack_alert_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
+        # TODO : INFO  MESSAGES
+        return ret          
+
+
 class NetboxSitePluginExtension(PluginTemplateExtension):
 
     models = ['dcim.site']
@@ -114,7 +126,7 @@ class NetboxSitePluginExtension(PluginTemplateExtension):
         danger_messages:list[str]=NetboxUtils.get_site_compliance_danger_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
         warning_messages:list[str]=NetboxUtils.get_site_compliance_warning_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT SITE", "messages":warning_messages})
+        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
         # TODO : INFO  MESSAGES
         return ret        
 
@@ -163,10 +175,11 @@ class TrigramSearch(PluginTemplateExtension):
 template_extensions = list()
 template_extensions.append(RefreshBtnPluginExtension)
 template_extensions.append(NetboxDevicePluginExtension)
+template_extensions.append(SopMerakiDevicePluginExtension)
+template_extensions.append(SopMerakiSwitchStackPluginExtension)
 template_extensions.append(NetboxSitePluginExtension)
 template_extensions.append(NetboxVlanPluginExtension)
 template_extensions.append(NetboxPrefixPluginExtension)
 template_extensions.append(NetboxVlanGroupPluginExtension)
-template_extensions.append(SopMerakiDevicePluginExtension)
 template_extensions.append(TrigramSearch)  
 

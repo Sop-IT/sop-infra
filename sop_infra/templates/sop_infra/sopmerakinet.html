@@ -109,6 +109,10 @@
               <th scope="row">Devices</th>
               <td><a href="{% url 'plugins:sop_infra:sopmerakidevice_list' %}?meraki_network={{object.pk}}">{{ object.devices.count }}</a></td>
             </tr>  
+            <tr>
+              <th scope="row">Switch stacks</th>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakiswitchstack_list' %}?net={{object.pk}}">{{ object.switch_stacks.count }}</a></td>
+            </tr>  
           </table>
         </div>
       </div>    

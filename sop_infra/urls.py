@@ -43,6 +43,7 @@ urlpatterns = [
     # SOP INFRA - DEVICE SETTINGS VIEWS
     path('sopdevicesettings/<int:pk>/', SopDeviceSettingDetailView.as_view(), name='sopdevicesetting_detail'),
     path('sopdevicesettings/edit/<int:pk>/', SopDeviceSettingEditView.as_view(), name='sopdevicesetting_edit'),
+    path('sopdevicesettings/try_manage_in_netbox/<int:pk>/', SopDeviceSettingTryManageInNetbox.as_view(), name='sopdevicesetting_try_manage_in_netbox'),
  
 
     # ========================================================================
@@ -123,12 +124,8 @@ urlpatterns = [
 
     # ========================================================================
     # SopMerakiSwitchStack
-    path('sopmerakiswitchstack/', SopMerakiSwitchStackListView.as_view(), name='sopmerakiswitchstack_list'),
-    path('sopmerakiswitchstack/add/', SopMerakiSwitchStackEditView.as_view(), name='sopmerakiswitchstack_add'),
-    path('sopmerakiswitchstack/<int:pk>/', SopMerakiSwitchStackView.as_view(), name='sopmerakiswitchstack_detail'),
-    path('sopmerakiswitchstack/<int:pk>/edit/', SopMerakiSwitchStackEditView.as_view(), name='sopmerakiswitchstack_edit'),
-    path('sopmerakiswitchstack/<int:pk>/delete/', SopMerakiSwitchStackDeleteView.as_view(), name='sopmerakiswitchstack_delete'),
-    path('sopmerakiswitchstack/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakiswitchstack_changelog', kwargs={'model': SopMerakiSwitchStack}),
+    path('sopmerakiswitchstack/', include(get_model_urls('sop_infra', 'sopmerakiswitchstack', detail=False))),
+    path('sopmerakiswitchstack/<int:pk>/', include(get_model_urls('sop_infra', 'sopmerakiswitchstack'))),
 
     # ========================================================================
     # SopMerakiDevice
