@@ -637,14 +637,6 @@ class SopMerakiOrg(NetBoxModel):
                 log.info(f"Deleting '{smn.nom}'...")
                 smn.delete()
 
-        # refresh stacks
-        smn: SopMerakiNet
-        for smn in self.nets.filter(ptypes__contains="switch"):  # type: ignore
-            for st in conn.switch.getNetworkSwitchStacks(smn.meraki_id):
-                SopMerakiSwitchStack.create_or_refresh(conn, st, smn, log, details)
-        if log:
-            log.info(f"Done refreshing stacks for '{self.nom}'...")
-
         return save
 
 
@@ -824,12 +816,16 @@ class SopMerakiNet(NetBoxModel):
             self.full_clean()
             self.save()
 
-
+        # Refresh devices from this net
         for dev in conn.organizations.getOrganizationDevices(
             org.meraki_id, networkIds=[self.meraki_id], total_pages=-1
         ):
             smdev = SopMerakiDevice.get_by_serial_or_create(dev['serial'])
             smdev.refresh_from_meraki_data(conn, dev, org, log, details)
+
+        # Refresh stacks from this net
+        for st in conn.switch.getNetworkSwitchStacks(self.meraki_id):
+            SopMerakiSwitchStack.create_or_refresh(conn, st, self, log, details)
 
         return save
 
@@ -876,7 +872,21 @@ class SopMerakiNet(NetBoxModel):
         return ret
 
 
-class SopMerakiSwitchStack(NetBoxModel):
+class SopMerakiSwitchStack(
+    BookmarksMixin,
+    ChangeLoggingMixin,
+    #CloningMixin,
+    #CustomFieldsMixin,
+    #CustomLinksMixin,
+    #CustomValidationMixin,
+    #ExportTemplatesMixin,
+    #JournalingMixin,
+    NotificationsMixin,
+    TagsMixin,
+    #EventRulesMixin, 
+    models.Model):
+
+    objects = RestrictedQuerySet.as_manager()
 
     meraki_id = models.CharField(
         max_length=50, null=False, blank=False, verbose_name="Meraki Stack ID"
@@ -884,6 +894,14 @@ class SopMerakiSwitchStack(NetBoxModel):
     nom = models.CharField(max_length=50, null=False, blank=False, verbose_name="Name")
     net = models.ForeignKey(
         to=SopMerakiNet, on_delete=models.CASCADE, null=False, blank=False, related_name="switch_stacks"
+    )
+    site = models.ForeignKey(
+        to=Site,
+        related_name="meraki_switchstacks",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Site",
     )
     serials = models.JSONField(
         verbose_name="Serials",
@@ -903,10 +921,10 @@ class SopMerakiSwitchStack(NetBoxModel):
 
     def get_absolute_url(self) -> str:
         return reverse(
-            "plugins:sop_infra:sopmerakiswitchstack_detail", args=[self.pk]
+            "plugins:sop_infra:sopmerakiswitchstack", args=[self.pk]
         )
 
-    class Meta(NetBoxModel.Meta):
+    class Meta(NetBoxModel.Meta): # pyright: ignore[reportIncompatibleVariableOverride]
         verbose_name = "Meraki Switch Stack"
         verbose_name_plural = "Meraki Switch Stacks"
 
@@ -958,6 +976,20 @@ class SopMerakiSwitchStack(NetBoxModel):
             self.members = stack["members"]
             serial_change = True
             save = True
+
+        # -----------------------------------------------
+        # Rattachement/maintenance d'objets dépendants
+
+        # Sopmeraki net <-> netbox site
+        if self.net is not None:
+            st = self.net.site
+            if self.site != st:
+                self.site = st
+                save = True
+        else:
+            if self.site is not None:
+                self.site = None
+                save = True            
 
         # only save if something changed
         if save:
@@ -1134,7 +1166,7 @@ class SopMerakiDevice(
     def get_absolute_url(self) -> str:
         return reverse("plugins:sop_infra:sopmerakidevice", args=[self.pk])
 
-    class Meta(NetBoxModel.Meta):
+    class Meta(NetBoxModel.Meta): # pyright: ignore[reportIncompatibleVariableOverride]
         verbose_name = "Meraki Device"
         verbose_name_plural = "Meraki Devices"
 
