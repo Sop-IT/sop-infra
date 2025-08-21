@@ -722,3 +722,21 @@ class SopDeviceSetting(NetBoxModel):
             if ssts.exists():
                 self.switch_template=ssts[0]
 
+    def enable_netbox_management(self) -> bool:
+        """ Switch to netbox management """
+        self.snapshot()
+            
+        # TODO check qu'on a un réseau de MX hors template vers lequel migrer, 
+        # TODO dans la même orga !
+       
+        # TODO
+        # self.manage_in_netbox=True
+
+        # TODO migrer le device vers ce réseau
+
+        # TODO pousser la config en one shot
+
+ 
+
+        self.save()
+        return self.manage_in_netbox

@@ -43,6 +43,7 @@ urlpatterns = [
     # SOP INFRA - DEVICE SETTINGS VIEWS
     path('sopdevicesettings/<int:pk>/', SopDeviceSettingDetailView.as_view(), name='sopdevicesetting_detail'),
     path('sopdevicesettings/edit/<int:pk>/', SopDeviceSettingEditView.as_view(), name='sopdevicesetting_edit'),
+    path('sopdevicesettings/try_manage_in_netbox/<int:pk>/', SopDeviceSettingTryManageInNetbox.as_view(), name='sopdevicesetting_try_manage_in_netbox'),
  
 
     # ========================================================================

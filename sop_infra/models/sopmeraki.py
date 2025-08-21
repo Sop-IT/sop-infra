@@ -394,17 +394,17 @@ class SopMerakiUtils:
         return orgs[0]
 
     @staticmethod
-    def check_create_sopdevicesetting(instance: Device):
+    def check_create_sopdevicesetting(instance: Device)->SopDeviceSetting|None:
         """
         Create a SopDeviceSetting for the device if supported
         """
         if instance.device_type is None:
-            return 
+            return None
         dt:DeviceType=instance.device_type
         if not dt.model.startswith("Meraki "):
-            return
+            return None
         if not dt.model.startswith("Meraki MS"):
-            return
+            return None
 
         sdss = SopDeviceSetting.objects.filter(device=instance)
 
@@ -413,7 +413,7 @@ class SopMerakiUtils:
             sds=sdss[0]
             sds.make_compliant()
             sds.save()    
-            return
+            return sds
 
         sds = SopDeviceSetting.objects.create(device=instance)
         sds.snapshot()
@@ -425,7 +425,7 @@ class SopMerakiUtils:
             messages.success(request, f"Created {sds} SopDeviceSetting !") # type: ignore
         except:
             pass
-        return
+        return sds
 
 
 class SopMerakiDash(NetBoxModel):
