@@ -1,7 +1,11 @@
+import django_filters
 from django import forms
 from django.http import HttpRequest
 from django.urls import reverse
-from utilities.forms.fields import DynamicModelChoiceField
+from utilities.forms.fields import (
+    DynamicModelChoiceField,
+    DynamicModelMultipleChoiceField,
+)
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 from netbox.context import current_request
 from dcim.models import Site, DeviceType, Device
@@ -95,21 +99,48 @@ class SopMerakiDeviceFilterForm(NetBoxModelFilterSetForm):
     nom = forms.CharField(required=False)
     serial = forms.CharField(required=False)
     model_name = forms.CharField(required=False)
-    mac = forms.CharField(required=False)
-    meraki_netid = forms.CharField(required=False)
-    meraki_network = DynamicModelChoiceField(queryset=SopMerakiNet.objects.all(), required=False)
+    mac = forms.CharField(required=False, label="MAC Address")
+    org = DynamicModelMultipleChoiceField(
+        queryset=SopMerakiOrg.objects.all(), required=False, label="Meraki Oraganization",
+    )
+    meraki_netid = forms.CharField(required=False, label="Meraki network ID")
+    meraki_network = DynamicModelMultipleChoiceField(
+        queryset=SopMerakiNet.objects.all(), required=False, label="Meraki network",
+    )
     meraki_notes = forms.CharField(required=False)
-    # TODO COSMETIQUE : liste de choix
-    ptype = forms.CharField(required=False)
+    ptype = django_filters.MultipleChoiceFilter(
+        choices=(
+            ("appliance", "appliance"),
+            ("camera", "camera"),
+            ("cellularGateway", "cellularGateway"),
+            ("switch", "switch"),
+            ("wireless", "wireless"),
+        ),
+        null_value=None,
+    )
     meraki_tags = forms.CharField(required=False)
     meraki_details = forms.CharField(required=False)
     firmware = forms.CharField(required=False)
-    site = DynamicModelChoiceField(queryset=Site.objects.all(), required=False)
-    org = DynamicModelChoiceField(queryset=SopMerakiOrg.objects.all(), required=False)
-    netbox_device_type = DynamicModelChoiceField(queryset=DeviceType.objects.all(), required=False)
-    netbox_device = DynamicModelChoiceField(queryset=Device.objects.all(), required=False)
-    stack = DynamicModelChoiceField(
+    site = DynamicModelMultipleChoiceField(queryset=Site.objects.all(), required=False, label="Netbox Site")
+
+    netbox_device_type = DynamicModelMultipleChoiceField(
+        queryset=DeviceType.objects.all(), required=False
+    )
+    netbox_device = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(), required=False
+    )
+    stack = DynamicModelMultipleChoiceField(
         queryset=SopMerakiSwitchStack.objects.all(), required=False
+    )
+    has_netbox_device = forms.NullBooleanField(
+        required=False,
+        label="Netbox device exists ?",
+    )
+    has_netbox_device_in_same_site = forms.NullBooleanField(
+        required=False, label="On the same site ?"
+    )
+    has_netbox_device_of_same_type = forms.NullBooleanField(
+        required=False, label="With the same type/model ?"
     )
 
 

@@ -1,6 +1,6 @@
 import django_filters
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, F
 from django.utils.translation import gettext_lazy as _
 
 from ipam.models import Prefix
@@ -39,7 +39,14 @@ class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = SopMerakiOrg
-        fields = ("id", "dash", "dash_id", "nom", "meraki_id", "meraki_url",)
+        fields = (
+            "id",
+            "dash",
+            "dash_id",
+            "nom",
+            "meraki_id",
+            "meraki_url",
+        )
 
     def search(self, queryset, name, value):
         if not value.strip():
@@ -111,18 +118,45 @@ class SopMerakiSwitchStackFilterSet(NetBoxModelFilterSet):
                 },
             }
         }
-        
+
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        return queryset.filter(
-            Q(nom__icontains=value)
-            | Q(meraki_id__icontains=value)
-        )
-
+        return queryset.filter(Q(nom__icontains=value) | Q(meraki_id__icontains=value))
 
 
 class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
+
+    has_netbox_device = django_filters.BooleanFilter(method="filter_custom")
+    has_netbox_device_in_same_site = django_filters.BooleanFilter(
+        method="filter_custom"
+    )
+    has_netbox_device_of_same_type = django_filters.BooleanFilter(
+        method="filter_custom"
+    )
+
+    def filter_custom(self, queryset, name, value):
+        if value is None:
+            return queryset
+        q: Q
+        if name == "has_netbox_device":
+            q = Q(netbox_device_id=None)
+            if value:
+                return queryset.exclude(q)
+            return queryset.filter(q)
+        elif name == "has_netbox_device_in_same_site":
+            q = Q(netbox_device__site=F("site"))
+            if value:
+                return queryset.filter(q)
+            return queryset.exclude(q)
+        elif name == "has_netbox_device_of_same_type":
+            q = Q(netbox_device__device_type__part_number=F("model_name"))
+            if value:
+                return queryset.filter(q)
+            return queryset.exclude(q)
+        else:
+            raise Exception("unknown field name")
+        
 
     class Meta:
         model = SopMerakiDevice
@@ -149,6 +183,8 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             "stack_id",
             "org__dash",
             "org__dash_id",
+            "netbox_device",
+            "netbox_device_id",
         )
         filter_overrides = {
             models.JSONField: {
@@ -397,4 +433,6 @@ class SopDeviceSettingFilterset(NetBoxModelFilterSet):
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        return queryset.filter(Q(device__icontains=value) | Q(switch_template__icontains=value))
+        return queryset.filter(
+            Q(device__icontains=value) | Q(switch_template__icontains=value)
+        )

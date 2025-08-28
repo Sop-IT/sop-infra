@@ -137,6 +137,9 @@ class SopMerakiDeviceTable(NetBoxTable):
     meraki_network = tables.Column(linkify=True)
     netbox_device = tables.Column(linkify=True, verbose_name="Netbox Device")
     bound_to_template = tables.Column(verbose_name="Bound")
+    has_netbox_device = tables.Column(verbose_name="NB device ?", empty_values=(None, False), order_by="netbox_device_id")
+    has_netbox_device_in_same_site = tables.Column(verbose_name="Site match ?", empty_values=(None, False), orderable=False)
+    has_netbox_device_of_same_type = tables.Column(verbose_name="Type match ?", empty_values=(None, False), orderable=False)
 
     class Meta(NetBoxTable.Meta):
         model = SopMerakiDevice
@@ -158,6 +161,9 @@ class SopMerakiDeviceTable(NetBoxTable):
             "netbox_dev_type",
             "model",
             "mac",
+            "has_netbox_device",
+            "has_netbox_device_in_same_site",
+            "has_netbox_device_of_same_type",
         )
         default_columns = (
             "nom",

@@ -91,6 +91,17 @@ class NetboxDevicePluginExtension(PluginTemplateExtension):
         return ret        
 
 
+class NetboxContactPluginExtension(PluginTemplateExtension):
+
+    models = ['tenancy.contact']
+    
+    def alerts(self):
+        ret=""
+        warning_messages:list[str]=NetboxUtils.list_contact_compliance_issues(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
+        return ret        
+
+
 class SopMerakiDevicePluginExtension(PluginTemplateExtension):
 
     models = ['sop_infra.sopmerakidevice']
@@ -175,6 +186,7 @@ class TrigramSearch(PluginTemplateExtension):
 template_extensions = list()
 template_extensions.append(RefreshBtnPluginExtension)
 template_extensions.append(NetboxDevicePluginExtension)
+template_extensions.append(NetboxContactPluginExtension)
 template_extensions.append(SopMerakiDevicePluginExtension)
 template_extensions.append(SopMerakiSwitchStackPluginExtension)
 template_extensions.append(NetboxSitePluginExtension)

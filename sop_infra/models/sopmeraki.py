@@ -1170,6 +1170,61 @@ class SopMerakiDevice(
         verbose_name = "Meraki Device"
         verbose_name_plural = "Meraki Devices"
 
+    # ------------------ CHECKS
+    @property
+    def has_netbox_device(self) -> bool:
+        nd:Device|None
+        try:
+            nd = self.netbox_device
+        except Device.DoesNotExist:
+            nd =  None
+        return nd is not None
+
+    @property
+    def has_netbox_device_in_same_site(self) -> bool:
+        nd:Device|None
+        try:
+            nd = self.netbox_device
+        except Device.DoesNotExist:
+            nd =  None
+        if nd is None:
+            return False
+        ms:Site|None
+        try:
+            ms = self.site
+        except Site.DoesNotExist:
+            ms =  None
+        if ms is None:
+            # meraki device not in a site -> shortcircuit
+            return True
+        ns:Site|None
+        try:
+            ns = nd.site
+        except Site.DoesNotExist:
+            ns =  None
+        if ns is None:
+            return False
+        return ns==ms
+    
+    @property
+    def has_netbox_device_of_same_type(self) -> bool:
+        nd:Device|None
+        try:
+            nd = self.netbox_device
+        except Device.DoesNotExist:
+            nd =  None
+        if nd is None:
+            return False
+        ndt:DeviceType|None
+        try:
+            ndt = nd.device_type
+        except Device.DoesNotExist:
+            ndt =  None
+        if ndt is None:
+            return False
+        return self.model_name==ndt.part_number
+
+    # ------------------ UTILS
     @staticmethod
     def get_by_serial(serial: str):
         devs = SopMerakiDevice.objects.filter(serial=serial)
