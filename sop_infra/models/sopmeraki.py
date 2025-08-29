@@ -1362,9 +1362,9 @@ class SopMerakiDevice(
                 self.meraki_network = None
                 save = True
 
-        # Sopmeraki net <-> netbox site
-        if self.meraki_network is not None:
-            st = self.meraki_network.site
+        # Device net <-> netbox site
+        if self.netbox_device is not None:
+            st = self.netbox_device.site
             if self.site != st:
                 self.site = st
                 save = True
