@@ -3,7 +3,7 @@ import netaddr
 from typing import Any
 
 from django.utils.text import slugify
-from django.db.models import Q
+from django.db.models import Q, F
 from django.contrib.contenttypes.models import ContentType
 
 from core.models import ObjectType
@@ -98,54 +98,30 @@ class NetboxUtils:
     def check_if_meraki_switch_stack_push_would_succeed(ss:SopMerakiSwitchStack) -> bool:
         if ss is None or not isinstance(ss, SopMerakiSwitchStack):
             raise Exception(f"ss must be a SopMerakiSwitchStack instance")
-        mds=ss.meraki_devices # type: ignore
-        if not mds.exists():
-            return True
-        sd:SopMerakiDevice
-        for sd in mds.all():
-            if sd.ptype not in ['switch']:
-                continue
-            mn:SopMerakiNet|None 
-            try:
-                mn = sd.meraki_network
-            except Device.DoesNotExist:
-                mn =  None
-            if mn is None:
-                continue
-            if mn.bound_to_template:
-                continue
-            nd:Device|None
-            try:
-                nd = sd.netbox_device
-            except Device.DoesNotExist:
-                nd =  None
-            if nd is None :
-                continue
-            sds:SopDeviceSetting|None
-            try:
-                sds=nd.sopdevicesetting # type: ignore
-            except SopDeviceSetting.DoesNotExist:
-                sds =  None
-            if sds is None :
-                continue
-            swt:SopSwitchTemplate|None
-            try:
-                swt=sds.switch_template
-            except SopSwitchTemplate.DoesNotExist:
-                swt =  None
-            if swt is None :
-                continue
-            if (swt.stp_prio % 4096) != 0:
-                continue
-            return True
-        return False
+        # Filter for members of stacks push
+        sds=SopMerakiDevice.objects\
+            .filter(ptype='switch')\
+            .filter(stack=ss)\
+            .exclude(meraki_network=None)\
+            .filter(meraki_network__bound_to_template=False)\
+            .annotate(stp_prio_mod=F("netbox_device__sopdevicesetting__switch_template__stp_prio")%4096)\
+            .filter(stp_prio_mod=0)
+        return sds.count()>0
 
     @staticmethod
     def list_meraki_switch_stacks_where_push_would_not_success(site:Site) -> list[SopMerakiSwitchStack]:
         ret:list[SopMerakiSwitchStack]=list()
         sws=SopMerakiSwitchStack.objects.filter(site_id=site.pk)
         for ss in sws:
-            if not NetboxUtils.check_if_meraki_switch_stack_push_would_succeed(ss):
+            # Filter for members of stacks push
+            sds=SopMerakiDevice.objects\
+                .filter(ptype='switch')\
+                .filter(stack=ss)\
+                .exclude(meraki_network=None)\
+                .filter(meraki_network__bound_to_template=False)\
+                .annotate(stp_prio_mod=F("netbox_device__sopdevicesetting__switch_template__stp_prio")%4096)\
+                .exclude(stp_prio_mod=0)
+            if sds.count()>0:
                 ret.append(ss)
         return ret
        
@@ -199,7 +175,15 @@ class NetboxUtils:
     @staticmethod
     def list_meraki_devices_where_push_would_not_success(site:Site) -> list[SopMerakiDevice]:
         ret:list[SopMerakiDevice]=list()
-        sds=SopMerakiDevice.objects.filter(site_id=site.pk)
+        # Base filter for devices push to work
+        sds=SopMerakiDevice.objects\
+            .filter(site_id=site.pk)\
+            .filter(ptype='switch')\
+            .filter(stack=None)\
+            .exclude(meraki_network=None)\
+            .filter(meraki_network__bound_to_template=False)\
+            .annotate(stp_prio_mod=F("netbox_device__sopdevicesetting__switch_template__stp_prio")%4096)\
+            .exclude(stp_prio_mod=0)
         for sd in sds:
             if not NetboxUtils.check_if_meraki_device_push_would_succeed(sd):
                 ret.append(sd)
@@ -214,10 +198,9 @@ class NetboxUtils:
     @staticmethod
     def list_meraki_devices_without_netbox_device(site:Site) -> list[SopMerakiDevice]:
         ret:list[SopMerakiDevice]=list()
-        sds=SopMerakiDevice.objects.filter(site_id=site.pk)
+        sds=SopMerakiDevice.objects.filter(site_id=site.pk, netbox_device=None)
         for sd in sds:
-            if not NetboxUtils.check_if_meraki_device_has_netbox_device(sd):
-                ret.append(sd)
+            ret.append(sd)
         return ret
                           
     @staticmethod
@@ -229,10 +212,9 @@ class NetboxUtils:
     @staticmethod
     def list_meraki_devices_without_netbox_device_in_same_site(site:Site) -> list[SopMerakiDevice]:
         ret:list[SopMerakiDevice]=list()
-        sds=SopMerakiDevice.objects.filter(site_id=site.pk)
+        sds=SopMerakiDevice.objects.filter(site_id=site.pk).exclude(netbox_device=None).exclude(netbox_device__site_id=site.pk)
         for sd in sds:
-            if not NetboxUtils.check_if_meraki_device_has_netbox_device_in_same_site(sd):
-                ret.append(sd)
+            ret.append(sd)
         return ret
                           
     @staticmethod
@@ -244,10 +226,9 @@ class NetboxUtils:
     @staticmethod
     def list_meraki_devices_without_netbox_device_of_same_type(site:Site) -> list[SopMerakiDevice]:
         ret:list[SopMerakiDevice]=list()
-        sds=SopMerakiDevice.objects.filter(site_id=site.pk)
+        sds=SopMerakiDevice.objects.filter(site_id=site.pk).exclude(netbox_device=None).exclude(netbox_device__device_type__part_number=F("model_name"))
         for sd in sds:
-            if not NetboxUtils.check_if_meraki_device_has_netbox_device_of_same_type(sd):
-                ret.append(sd)
+            ret.append(sd)
         return ret
             
     @staticmethod
