@@ -824,8 +824,9 @@ class SopMerakiNet(NetBoxModel):
             smdev.refresh_from_meraki_data(conn, dev, org, log, details)
 
         # Refresh stacks from this net
-        for st in conn.switch.getNetworkSwitchStacks(self.meraki_id):
-            SopMerakiSwitchStack.create_or_refresh(conn, st, self, log, details)
+        if "switch" in self.ptypes :
+            for st in conn.switch.getNetworkSwitchStacks(self.meraki_id):
+                SopMerakiSwitchStack.create_or_refresh(conn, st, self, log, details)
 
         return save
 
