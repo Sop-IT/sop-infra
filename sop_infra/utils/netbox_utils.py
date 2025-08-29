@@ -480,7 +480,7 @@ class NetboxUtils:
         ret:list[str]=list()
         for ctc in mandatory_cts:
             if ctc not in ctass_combos:
-                ret.append(f"<{ctc[1]} {ctc[0]}>")
+                ret.append(f"[{ctc[1]} {ctc[0]}]")
         return ret
     
     @staticmethod
