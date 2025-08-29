@@ -5,7 +5,7 @@ class SopInfraConfig(PluginConfig):
     name = "sop_infra"
     verbose_name = "SOP Infra"
     description = "Manage infrastructure informations of each site"
-    version = "0.4.45"
+    version = "0.4.46"
     author = "Soprema NOC team"
     author_email = "noc@soprema.com"
     base_url = "sop-infra"
@@ -13,7 +13,7 @@ class SopInfraConfig(PluginConfig):
 
     def ready(self):
         super().ready()
-        from .jobs import SopMerakiDashRefreshJob
-        from .jobs import SopSyncAdUsers
+        from .auto_jobs.dash_ref_job import SopMerakiDashAutoRefreshJob
+        from .auto_jobs.sync_ad_users import SopAutoSyncAdUsers
 
 config = SopInfraConfig

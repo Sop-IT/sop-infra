@@ -43,33 +43,6 @@ class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
         return SopMerakiCreateNetworkJob.enqueue(site=site, details=details)
     
 
-@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY*60)
-class SopMerakiDashAutoRefreshJob(JobRunnerLogMixin, JobRunner):
-
-    class Meta: # type: ignore
-        name = "Auto refresh Meraki dashboards, only in prod"
-
-    def run(self, *args, **kwargs):
-        
-        if settings.DEBUG:
-            self.log_success("DEBUG MODE -> NO AUTO RUN")
-            return
-        
-        job:Job=self.job
-        obj = job.object
-        try:
-            SopMerakiUtils.refresh_dashboards(self, settings.DEBUG, kwargs.pop('dashs', None), kwargs.pop('details', False))
-        except Exception as e:
-            stacktrace = traceback.format_exc()
-            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
-            self.log_failure(text)
-            self.job.error = text
-            raise
-        finally:
-            self.job.data = self.get_job_data()       
-
-
-
 class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
@@ -150,8 +123,6 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
         return SopMerakiNetRefreshJob.enqueue(nets=nets, details=details)
 
 
-
-@system_job(interval=JobIntervalChoices.INTERVAL_HOURLY)
 class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
