@@ -41,7 +41,6 @@ class SopMerakiUtils:
 
     __parsed: bool = False
     __meraki_api_keys: dict[str, str] = {}
-    __no_auto_sched: bool = False
 
     @classmethod
     def try_parse_configuration(cls):
@@ -57,7 +56,6 @@ class SopMerakiUtils:
         cls.__meraki_api_keys = sopmeraki_config.get("api_keys")
         if cls.__meraki_api_keys is None:
             raise Exception("No sopmeraki/api_keys plugin config key !")
-        cls.__no_auto_sched = infra_config.get("no_auto_sched", False)
         cls.__parsed = True
 
     @classmethod
@@ -67,12 +65,6 @@ class SopMerakiUtils:
     @classmethod
     def get_rw_api_key_for_dash_name(cls, name: str) -> str:
         return cls.get_api_key_for_dash_name(name, "RW")
-
-    @classmethod
-    def get_no_auto_sched(cls) -> bool:
-        if not cls.__parsed:
-            cls.try_parse_configuration()
-        return cls.__no_auto_sched
 
     @classmethod
     def get_api_key_for_dash_name(cls, name: str, type: str) -> str:
