@@ -3,6 +3,7 @@ from django import forms
 from django.http import HttpRequest
 from django.urls import reverse
 from utilities.forms.fields import (
+    CommentField,
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
 )
@@ -20,12 +21,16 @@ from sop_infra.models import (
 
 class SopMerakiDashForm(NetBoxModelForm):
 
+    comments = CommentField()
+    
     class Meta:
         model = SopMerakiDash
         fields = ("nom", "description", "api_url")
 
 
 class SopMerakiOrgForm(NetBoxModelForm):
+
+    comments = CommentField()
 
     class Meta:
         model = SopMerakiOrg
@@ -34,12 +39,16 @@ class SopMerakiOrgForm(NetBoxModelForm):
 
 class SopMerakiNetForm(NetBoxModelForm):
 
+    comments = CommentField()
+
     class Meta:
         model = SopMerakiNet
         fields = ("nom", "site", "org", "meraki_id", "bound_to_template", "meraki_url")
 
 
 class SopMerakiSwitchStackForm(NetBoxModelForm):
+
+    comments = CommentField()
 
     class Meta:
         model = SopMerakiSwitchStack
@@ -51,6 +60,8 @@ class SopMerakiSwitchStackForm(NetBoxModelForm):
 
 
 class SopMerakiDeviceForm(NetBoxModelForm):
+
+    comments = CommentField()
 
     class Meta:
         model = SopMerakiDevice
