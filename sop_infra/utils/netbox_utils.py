@@ -274,13 +274,31 @@ class NetboxUtils:
         return ret
     
     # --------------------  VLAN CHECKS --------------------------------
-       
+    
     @staticmethod
-    def check_if_vlan_naming_is_compliant(vl:VLAN) -> bool:
+    def is_exempted_vlan(vl:VLAN)->bool:
         if vl is None or not isinstance(vl, VLAN):
             raise Exception(f"vl must be a VLAN instance")
         # Ignore retired vlans
         if vl.status=="retired":
+            return True
+        # No site -> no exemption
+        if vl.site is None:
+            return False
+        # Tenant SOPIT -> exemption
+        if vl.site.tenant is not None and vl.site.tenant.slug=="sopit":
+            return True
+        # DC is a whitelisted site status
+        if vl.site.status=="dc":
+            return True
+        return False
+
+    @staticmethod
+    def check_if_vlan_naming_is_compliant(vl:VLAN) -> bool:
+        if vl is None or not isinstance(vl, VLAN):
+            raise Exception(f"vl must be a VLAN instance")
+        # Ignore exempted vlans
+        if NetboxUtils.is_exempted_vlan(vl):
             return True
         # First check special cases
         short_name=vl.name.lower()[:3]
@@ -309,26 +327,14 @@ class NetboxUtils:
     def check_if_vlan_vlan_group_is_compliant(vl:VLAN) -> bool:
         if vl is None or not isinstance(vl, VLAN):
             raise Exception(f"vl must be a VLAN instance")
-        # Ignore retired vlans
-        if vl.status=="retired":
-            return True
-        # Check if we have a site
-        if vl.site is None:
-            return False
-        # Check if we have a site and a site tenant
-        if vl.site is None or vl.site.tenant is None:
-            return False
-        # Sopit is a whitelisted tenant
-        if vl.site.tenant.slug=="sopit":
-            return True
-        # DC is a whitelsite site status
-        if vl.site.status=="dc":
+        # Ignore exempted vlans
+        if NetboxUtils.is_exempted_vlan(vl):
             return True
         # check if we have a vlan group
         if vl.group is None:
             return False
         # vlan group needs a scope of type site
-        if vl.group.scope is None or vl.group.scope_type!=ObjectType.objects.get_by_natural_key('dcim', 'site'):
+        if vl.group.scope is None or vl.group.scope_type!=NetboxConstants.get_ct_dcim_site():
             return False
         # check that the vlan site is the same as the vlan group scope
         # extract site
@@ -377,7 +383,7 @@ class NetboxUtils:
     @staticmethod
     def list_non_compliant_prefix_roles(site:Site) -> list[Prefix]:
         ret:list[Prefix]=list()
-        pfxs=Prefix.objects.filter(scope_type=ObjectType.objects.get_by_natural_key('dcim', 'site'), scope_id=site.pk)
+        pfxs=Prefix.objects.filter(scope_type=NetboxConstants.get_ct_dcim_site(), scope_id=site.pk)
         for pfx in pfxs:
             if not NetboxUtils.check_if_prefix_role_is_compliant(pfx):
                 ret.append(pfx)
@@ -413,12 +419,35 @@ class NetboxUtils:
 
     
     # --------------------  VLAN GROUP CHECKS --------------------------------
-
+    @staticmethod
+    def is_exempted_vlan_group(vlg:VLANGroup)->bool:
+        if vlg is None or not isinstance(vlg, VLANGroup):
+            raise Exception(f"vlg must be a VLANGroup instance")
+        # No scope -> no exemption
+        if vlg.scope_type != NetboxConstants.get_ct_dcim_site():
+            return False
+        # extract site
+        s:Site=vlg.scope # type: ignore  
+        # No site -> no exemption
+        if s is None:
+            return False
+        # Tenant SOPIT -> exemption
+        if s.tenant is not None and s.tenant.slug=="sopit":
+            return True
+        # DC is a whitelisted site status
+        if s.status=="dc":
+            return True
+        return False
+    
     @staticmethod
     def check_if_vlan_group_name_is_compliant(vlg:VLANGroup) -> bool:
         # VlanGroups have to be attached to a site, but this is handled by a saparate check
-        if vlg.scope_type != ObjectType.objects.get_by_natural_key('dcim', 'site') :
+        if vlg.scope_type != NetboxConstants.get_ct_dcim_site() :
             return True
+        if NetboxUtils.is_exempted_vlan_group(vlg):
+            return True
+        if vlg.name is None:
+            return False
         # extract site
         s:Site=vlg.scope # type: ignore
         # Match site name with vlan group name
@@ -428,7 +457,7 @@ class NetboxUtils:
     @staticmethod
     def list_non_compliant_vlan_group_names(site:Site) -> list[VLANGroup]:
         ret:list[VLANGroup]=list()
-        vlgs=VLANGroup.objects.filter(scope_type=ObjectType.objects.get_by_natural_key('dcim', 'site'), scope_id=site.pk)
+        vlgs=VLANGroup.objects.filter(scope_type=NetboxConstants.get_ct_dcim_site(), scope_id=site.pk)
         for vlg in vlgs:
             if not NetboxUtils.check_if_vlan_group_name_is_compliant(vlg):
                 ret.append(vlg)
@@ -437,15 +466,17 @@ class NetboxUtils:
     @staticmethod
     def check_if_vlan_group_scope_is_compliant(vlg:VLANGroup) -> bool:
         # VlanGroups have to be attached to a site
-        if vlg.scope_type != ObjectType.objects.get_by_natural_key('dcim', 'site') :
+        if vlg.scope_type != NetboxConstants.get_ct_dcim_site() :
             return False
+        if NetboxUtils.is_exempted_vlan_group(vlg):
+            return True
         # ok for now, perhaps we'll implement tenant checks later
         return True
 
     @staticmethod
     def list_non_compliant_vlan_group_scopes(site:Site) -> list[VLANGroup]:
         ret:list[VLANGroup]=list()
-        vlgs=VLANGroup.objects.filter(scope_type=ObjectType.objects.get_by_natural_key('dcim', 'site'), scope_id=site.pk)
+        vlgs=VLANGroup.objects.filter(scope_type=NetboxConstants.get_ct_dcim_site(), scope_id=site.pk)
         for vlg in vlgs:
             if not NetboxUtils.check_if_vlan_group_scope_is_compliant(vlg):
                 ret.append(vlg)
@@ -587,7 +618,7 @@ class NetboxHelpers():
         self.logger=logger
 
     def _get_adm_prefix_for_site(self, site:Site)->Prefix:
-        flt=Q(Q(scope_type=ObjectType.objects.get_by_natural_key('dcim', 'site'))&Q(scope_id=site.pk))
+        flt=Q(Q(scope_type=NetboxConstants.get_ct_dcim_site())&Q(scope_id=site.pk))
         # First try to find one vlan with VID 40 and status active
         pfs=Prefix.objects.filter(flt).filter(vlan__vid=40).filter(status='active')
         if pfs.count==1:
@@ -759,7 +790,7 @@ class NetboxHelpers():
         if details : 
             self.logger.log_info(f"Creating vlangroup {vgname}")
         vg=VLANGroup()
-        vg.scope_type=ObjectType.objects.get_by_natural_key('dcim', 'site') # type: ignore
+        vg.scope_type=NetboxConstants.get_ct_dcim_site() # type: ignore
         vg.scope_id=site.pk
         vg.name=vgname
         vg.slug=slugify(vgname)
@@ -843,7 +874,7 @@ class NetboxHelpers():
                     p=Prefix()
                     p.prefix=std.get('prefix')
                     p.status='reserved'
-                    p.scope_type=ObjectType.objects.get_by_natural_key('dcim', 'site') # type: ignore
+                    p.scope_type=NetboxConstants.get_ct_dcim_site() # type: ignore
                     p.scope=site
                     save=True
                 if force_status:
