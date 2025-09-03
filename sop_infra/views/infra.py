@@ -12,6 +12,7 @@ from django.contrib.auth.mixins import AccessMixin
 from sop_infra.forms.infra import SopMerakiClaimForm
 from sop_infra.jobs import SopMerakiCreateNetworkJob, SopSyncAdUsers
 from sop_infra.models.sopmeraki import SopMerakiUtils
+from sop_infra.utils.netbox_utils import NetboxConstants
 from utilities.views import register_model_view, ViewTab
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
@@ -154,7 +155,7 @@ class SopInfraJsonExportsAdSites(View):
         vlan: Q = ~Q(vlan_id=None)
         visible: Q = Q(custom_field_data__meraki_visible=True)
         scope_type: Q = Q(
-            scope_type_id=ContentType.objects.get_by_natural_key("dcim", "site").pk
+            scope_type_id=NetboxConstants.get_ct_dcim_site().pk
         )
         vlan_role: Q = Q(vlan__role__slug="usr")
         pfs = Prefix.objects.filter(

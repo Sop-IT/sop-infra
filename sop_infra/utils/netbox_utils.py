@@ -4,6 +4,7 @@ from typing import Any
 
 from django.utils.text import slugify
 from django.db.models import Q, F
+from django.db.models import Case, Value, When
 from django.contrib.contenttypes.models import ContentType
 
 from core.models import ObjectType
@@ -19,7 +20,16 @@ class NetboxConstants():
     # TODO : move that to config settings
     base_adm_ip_addr=netaddr.IPAddress('10.40.0.0')
     spokes_root_id=11
-    sopit_id=386    
+    sopit_id=386  
+
+    __ct_dcim_site:ContentType|None=None
+
+    @staticmethod
+    def get_ct_dcim_site()->ContentType:
+        if NetboxConstants.__ct_dcim_site is None:
+            NetboxConstants.__ct_dcim_site=ContentType.objects.get_by_natural_key("dcim", "site")
+        return NetboxConstants.__ct_dcim_site
+
 
 
 class NetboxUtils:
@@ -119,7 +129,9 @@ class NetboxUtils:
                 .filter(stack=ss)\
                 .exclude(meraki_network=None)\
                 .filter(meraki_network__bound_to_template=False)\
-                .annotate(stp_prio_mod=F("netbox_device__sopdevicesetting__switch_template__stp_prio")%4096)\
+                .annotate(stp_prio_mod=Case(
+                    When(netbox_device__sopdevicesetting__switch_template__stp_prio=None, then=Value(-1)),
+                    default=F("netbox_device__sopdevicesetting__switch_template__stp_prio")%4096))\
                 .exclude(stp_prio_mod=0)
             if sds.count()>0:
                 ret.append(ss)
@@ -300,13 +312,25 @@ class NetboxUtils:
         # Ignore retired vlans
         if vl.status=="retired":
             return True
+        # Check if we have a site
+        if vl.site is None:
+            return False
+        # Check if we have a site and a site tenant
+        if vl.site is None or vl.site.tenant is None:
+            return False
+        # Sopit is a whitelisted tenant
+        if vl.site.tenant.slug=="sopit":
+            return True
+        # DC is a whitelsite site status
+        if vl.site.status=="dc":
+            return True
         # check if we have a vlan group
         if vl.group is None:
             return False
         # vlan group needs a scope of type site
         if vl.group.scope is None or vl.group.scope_type!=ObjectType.objects.get_by_natural_key('dcim', 'site'):
             return False
-        # check that the vlan site is the same as the vlan grourp scope
+        # check that the vlan site is the same as the vlan group scope
         # extract site
         s:Site=vl.group.scope # type: ignore
         if vl.site!=s:
@@ -330,11 +354,20 @@ class NetboxUtils:
     @staticmethod
     def check_if_prefix_role_is_compliant(pfx:Prefix) -> bool:
         # Ignore Retired prefixes
-        if pfx.status == 'retired':
+        if pfx.status in ('retired', 'deprecated'):
             return True
         # Ignore containers
         if pfx.status == 'container':
             return True
+        # Sopit is OK 
+        if pfx.tenant is not None and pfx.tenant.slug=="sopit":
+            return True
+        # Check if we have a scope
+        if pfx.scope_type is None:
+            return True
+        if pfx.scope_type==NetboxConstants.get_ct_dcim_site():
+            if pfx.scope is not None and pfx.scope.status=="dc":
+                return True
         # check for a defined role
         if pfx.role is None or pfx.role.slug is None:
             return False
@@ -455,7 +488,7 @@ class NetboxUtils:
         except SopInfra.DoesNotExist:
             pass
         ctass_combos:list[tuple[ContactRole,str|None]]=list()
-        for cta in ContactAssignment.objects.filter(object_type_id=ContentType.objects.get_by_natural_key("dcim", "site"), object_id=site.pk):
+        for cta in ContactAssignment.objects.filter(object_type_id=NetboxConstants.get_ct_dcim_site(), object_id=site.pk):
             if NetboxUtils.check_if_contact_is_compliant(cta.contact):
                 ctass_combos.append((cta.role, cta.priority))
         ret:list[str]=list()
