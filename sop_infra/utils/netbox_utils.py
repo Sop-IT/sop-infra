@@ -71,6 +71,7 @@ class NetboxUtils:
             731: { 'name':'RED',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':96,  'vlan_cidr':28},
             732: { 'name':'GOV',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':112, 'vlan_cidr':28},
             733: { 'name':'PRF',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':128, 'vlan_cidr':27},
+            734: { 'name':'RDL',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':160, 'vlan_cidr':28},
             3999:{ 'name':'STP',                    'nature':'IT', 'start':netaddr.IPAddress('127.99.0.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'disabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':30, 'fixed':True, 'local_vrf':True, 'force_fix':True},
         }
     
@@ -687,7 +688,8 @@ class NetboxHelpers():
             (64,'64 - GTB'), (68,'68 - ACS'), (76,'76 - RED'), (80,'80 - TMR'), 
             (101, '101 - MOB'), (102, '102 - GST'), (104, '104 - EVC'), (105, '105 - AGV'), (106, '106 - VND'), 
             (401, '401 - IMM'), (402,'402 - ESX'),  (404,'404 - BRK'), (405,'405 - BKP'), (406,'406 - ADM-EXT'),
-            (720, '720 - PTC'), (721,'721 - BRC'), (722,'722 - DRK'), (723,'723 - TPE'), (724,'724 - DRD'), (729,'729 - AFF'), (730,'730 - AIS'), (731,'731 - RED'), (732,'732 - GOV'), (733,'733 - PRF')
+            (720, '720 - PTC'), (721,'721 - BRC'), (722,'722 - DRK'), (723,'723 - TPE'), (724,'724 - DRD'), (729,'729 - AFF'), 
+            (730,'730 - AIS'), (731,'731 - RED'), (732,'732 - GOV'), (733,'733 - PRF'), (734,'734 - RDL'), 
         )
         return std_nets
   
