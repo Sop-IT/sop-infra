@@ -30,7 +30,7 @@ class SopMerakiTriSearchView(View):
 
     def get(self, request: HttpRequest, *args, **kwargs):
 
-        tri: str = request.GET["q"]
+        tri: str|None = request.GET.get("q")
         if tri is None or tri.strip() == "":
             # TODO rechercher l'url pour la vue liste des sites
             return redirect(to="/dcim/sites/")
