@@ -269,7 +269,13 @@ class SopUtils:
     def send_simple_report_email(rep):
         if not isinstance(rep, (Script, Report)):
             raise TypeError("rep must be either a Script or a Report")
-        lsets = Script().load_json("local.json")
+        
+        from django.conf import settings
+        sop_utils_config = settings.PLUGINS_CONFIG.get("sop_utils")
+        if sop_utils_config is None:
+            return 
+        
+        lsets = sop_utils_config.get("MAIL_REPORT")
         BASE_URL = lsets.get("BASE_URL")
         CONTEXT = lsets.get("CONTEXT")
         if CONTEXT is None:
