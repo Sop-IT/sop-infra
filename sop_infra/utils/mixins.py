@@ -13,6 +13,13 @@ class SopBaseScriptMixin:
         self.raiseWarning = False
 
     def checkIsStaff(self, username=None):
+        if username is None:
+            try:
+                username = self.request.user.username # type: ignore
+            except:
+                pass
+        if username is None:
+            raise AbortScript("---- No username found !!  ----")
         return self.checkHasPerm(username, "ALL_ITA_Netbox_ADMIN")
 
     def checkHasPerm(self, username, groupToCheck):
