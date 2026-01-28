@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="sop-infra",
-    version="0.4.55",
+    version="0.4.56",
     packages=find_packages(),
     include_package_data=True,
     description="Manage infrastructure informations of each site.",
