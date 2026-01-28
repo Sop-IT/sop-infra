@@ -78,7 +78,7 @@ class SopMerakiUtils:
         return keys.get(type, "")
 
     @classmethod
-    def connect(cls, dash_name: str, api_url: str, simulate: bool = False):
+    def connect(cls, dash_name: str, api_url: str, simulate: bool = False) -> meraki.DashboardAPI:
         if simulate:
             api_key = cls.get_ro_api_key_for_dash_name(dash_name)
         else:
@@ -88,7 +88,14 @@ class SopMerakiUtils:
         return meraki.DashboardAPI(
             api_key=api_key, base_url=api_url, suppress_logging=True, simulate=simulate
         )
-
+    
+    @classmethod
+    def connect_by_name(cls, dash_name: str, simulate: bool = False) -> meraki.DashboardAPI:
+        smds=SopMerakiDash.objects.filter(nom=dash_name)
+        if not smds.exists():
+            raise Exception(f"Unknown dashboard name {dash_name} ! ")
+        return cls.connect(dash_name, smds[0].api_url)
+    
     @classmethod
     def refresh_dashboards(
         cls, log: JobRunnerLogMixin, simulate: bool, dashs: list, details: bool = False
