@@ -13,22 +13,7 @@ class SopBaseScriptMixin:
         self.raiseWarning = False
 
     def checkIsStaff(self, username=None):
-        if username is None:
-            try:
-                username = self.request.user.username # type: ignore
-            except:
-                pass
-        if username is None:
-            raise AbortScript("---- No username found !!  ----")
-        realUsers = User.objects.filter(username__exact=username)
-        if realUsers is None:
-            raise AbortScript("Looks like you do not exist...")
-        if len(realUsers) > 1:
-            raise AbortScript("Looks like you are ubiquitious...")
-        realUser = realUsers[0]
-        if realUser.is_staff:
-            return
-        raise AbortScript("---- Permission denied !!  ----")
+        return self.checkHasPerm(username, "ALL_ITA_Netbox_ADMIN")
 
     def checkHasPerm(self, username, groupToCheck):
         realUsers = User.objects.filter(username__exact=username)
@@ -37,7 +22,7 @@ class SopBaseScriptMixin:
         if len(realUsers) > 1:
             raise AbortScript("Looks like you are ubiquitious...")
         realUser = realUsers[0]
-        if realUser.is_staff:
+        if realUser.is_superuser:
             return
         lookupGroup = Group.objects.filter(name__exact=groupToCheck)
         if lookupGroup is None:
@@ -54,7 +39,7 @@ class SopBaseScriptMixin:
         if len(realUsers) > 1:
             raise AbortScript("Looks like you are ubiquitious...")
         realUser = realUsers[0]
-        if realUser.is_staff:
+        if realUser.is_superuser:
             return
         checkGroupMembership = realUser.groups.filter(name__in=groups)
         # self.log_info(f"values : {checkGroupMembership.values()}")
