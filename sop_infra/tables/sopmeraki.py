@@ -86,7 +86,7 @@ class SopMerakiNetTable(NetBoxTable):
     bound_to_template = tables.Column(verbose_name="Bound")
     devs_count = columns.LinkedCountColumn(
         viewname="plugins:sop_infra:sopmerakidevice_list",
-        url_params={"org_id": "pk"},
+        url_params={"meraki_network": "pk"},
         verbose_name="Devices count",
     )
 

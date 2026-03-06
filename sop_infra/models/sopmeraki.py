@@ -1049,14 +1049,12 @@ class SopMerakiDevice(
         null=False,
         blank=False,
         verbose_name="Model",
-        # "Q234-ABCD-5678",
     )
     mac = models.CharField(
         max_length=20,
         null=True,
         blank=True,
         verbose_name="MAC",
-        # "Q234-ABCD-5678",
     )
     meraki_netid = models.CharField(
         max_length=150, null=True, blank=True, verbose_name="Meraki Network ID"
