@@ -624,7 +624,7 @@ class user_infos:
         ):
             valCts.append(f"{s}")
         usrs = (
-            User.objects.exclude(is_staff=True)
+            User.objects.exclude(is_superuser=True)
             .exclude(username="admin")
             .exclude(username="abrand-tst")
             .filter(is_active=True)

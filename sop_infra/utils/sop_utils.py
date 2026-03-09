@@ -233,7 +233,8 @@ class SopUtils:
         if len(realUsers) > 1:
             raise AbortScript("Looks like you are ubiquitious...")
         realUser: User = realUsers[0]
-        return realUser.is_staff
+        checkGroupMembership = realUser.groups.filter(name__exact="ALL_ITA_Netbox_ADMIN")
+        return (len(checkGroupMembership.values()) == 1)
 
     @staticmethod
     def send_simple_email(
