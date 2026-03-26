@@ -283,10 +283,14 @@ class NetboxUtils:
         # Ignore retired vlans
         if vl.status=="retired":
             return True
+        # Tenant SOPIT -> exemption
+        if vl.tenant is not None and vl.tenant.slug=="sopit":
+            return True
+        # TODO : basculer sur les vlan groups
         # No site -> no exemption
         if vl.site is None:
             return False
-        # Tenant SOPIT -> exemption
+        # Site Tenant = SOPIT -> exemption
         if vl.site.tenant is not None and vl.site.tenant.slug=="sopit":
             return True
         # DC is a whitelisted site status
