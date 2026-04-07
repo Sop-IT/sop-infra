@@ -365,6 +365,7 @@ class SopInfraFilterset(NetBoxModelFilterSet):
             "master_site",
             "migration_sdwan",
             "endpoint",
+            "endpoint_id",
             "enabled",
             "valid",
         )
