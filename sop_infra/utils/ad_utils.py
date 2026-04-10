@@ -1,4 +1,4 @@
-import struct, re, ldap
+import struct, re, ldap, phonenumbers
 
 from sop_infra.utils.sop_utils import DateUtils
 from sop_infra.utils.netbox_utils import NetboxUtils
@@ -7,7 +7,6 @@ from django.core.exceptions import ValidationError
 from dcim.models import Site
 from users.models import User
 from tenancy.models import Contact
-
 
 def convertSid(binary):
     version = struct.unpack("B", binary[0:1])[0]
@@ -23,19 +22,10 @@ def convertSid(binary):
         string += "-%d" % value
     return string
 
-
 # =======================================================================
-
 
 class user_info:
 
-    dz = re.compile(r"^00[0.]*")
-    mp = re.compile(r"\.\.+")
-    forb = re.compile(r"[^0-9+.,*#]")
-    area = re.compile(r"\(([0-9]+)\)")
-    ctxt = r"\+(9[976]\d|8[987530]\d|6[987]\d|5[90]\d|42\d|3[875]\d|2[98654321]\d|9[8543210]|8[6421]|6[6543210]|5[87654321]|4[987654310]|3[9643210]|2[70]|7|1)"
-    country = re.compile(ctxt)
-    phoneFmt = re.compile(ctxt + r"\.[0-9.,*#]+$")
     defaultPhone = ""
     attrList = [
         "c",
@@ -120,8 +110,11 @@ class user_info:
         # CHECK IF THIS MAIL IS IN INTEGRATION
         if self.match_email is not None:
             # rely on m being the last regex matched
-            if m.group(3).lower() in self.adtool.tenant_nonO365_domain_names.keys(): # type: ignore
+            if m.group(3).lower() in self.adtool.tenant_nonO365_domain_names.keys():  # type: ignore
                 self.block_push = True
+                self.adtool.log_debug(
+                    f"blocking push of {self.ad_name} ({self.ad_samacc}) : email domain {m.group(3).lower()} in NON-office365 domains"
+                )
                 self.nb_name_push = f"{self.ad_name} (--NOT YET-- {self.ad_samacc})"
 
         # Now handle the proxyAddresses
@@ -172,57 +165,41 @@ class user_info:
         "AE": 971,
     }
 
+    def parse_phone_num(self, number, country) :
+        if number is None:
+            return None
+        number=number.strip()
+        if number in ["", "_"]:
+            return None                
+        if country is not None:
+            country=country.strip()
+            if country=="": 
+                country=None
+        try:
+            z=phonenumbers.parse(number, country)
+            if phonenumbers.is_valid_number(z):
+                return phonenumbers.format_number(z, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+            self.adtool.log_debug(
+                f"Invalid phone number for {self.ad_samacc} : {z}"
+            )
+        except:
+            self.adtool.log_debug(
+                f"Couldn't parse the phone number for {self.ad_samacc} : {country} -- {number}"
+            )
+        return None
+
     def fill_in_phone(self, entry):
         # read proper fields
         self.ad_mobile = self.read_phone_number(entry, "mobile")
         self.ad_telephone_number = self.read_phone_number(entry, "telephoneNumber")
-        # load our work field
-        self.ad_phone = self.ad_mobile
-        if self.ad_phone is None or self.ad_phone.strip() in ["", "_"]:
-            self.ad_phone = self.ad_telephone_number
-        if self.ad_phone is None or self.ad_phone.strip() in ["", "_"]:
+        # try to parse the mobile phone
+        self.ad_phone = self.parse_phone_num(self.ad_mobile, self.ad_country)
+        # Failed -> try with home phone
+        if self.ad_phone is None:
+            self.ad_phone = self.parse_phone_num(self.ad_telephone_number, self.ad_country)
+        if self.ad_phone is None:
             self.ad_phone = self.defaultPhone
             return
-        # Try to match or cleanup the number
-        m = self.phoneFmt.match(self.ad_phone)
-        if not m:
-            p = self.ad_phone
-            # start by replacing the useless (0) with a point
-            p = p.replace("(0)", ".")
-            # then extract area codes (156)
-            p = self.area.sub(r".\1.", p)
-            # then replace leading double zeros with a '+' (allow more than 2 zeroes + points)
-            p = self.dz.sub("+", p)
-            # then replace any forbidden chars with a point
-            p = self.forb.sub(".", p)
-            # separate country code from the rest with a point
-            p = self.country.sub(r"+\1.", p)
-            # try to guess phone country code from the user country
-            m = re.match("^0(.*)$", p)
-            if m:
-                # TODO map via countries in Netbox
-                # TODO handle AD aliases in NB (eg : UK vs GB)
-                if self.ad_country is None or "" == self.ad_country:
-                    pass
-                else:
-                    x = self.pcc.get(self.ad_country)
-                    if x is not None:
-                        p = f"+{x}.{m.group(1)}"
-                    else:
-                        self.adtool.log_debug(
-                            f"Missing phone country : {self.ad_country}"
-                        )
-            # finish with 2 points or more that end up being one point
-            p = self.mp.sub(".", p)
-            # return if we're good !
-            m = self.phoneFmt.match(p)
-            if m:
-                self.ad_phone = p
-                return
-
-            # Log not good and fall back
-            # self.adtool.log_debug(f"Couldn't fix the phone number for {self.ad_samacc} : {self.ad_country} -- {self.ad_phone} -> {p}")
-            self.ad_phone = self.defaultPhone
 
     def fill_in_ad_name(self, entry):
         self.ad_samacc = self.read_single_value(entry, "sAMAccountName")
@@ -505,7 +482,7 @@ class user_infos:
                 nd.save()
                 self.upd_cnt = self.upd_cnt + 1
                 # self.upd_sams.append(usr.ad_samacc)
-                self.adtool.log_info(f"  Updated contact {nd.id} - {nd.name}")
+                self.adtool.log_success(f"  Updated contact {nd.id} - {nd.name}")
             except ValidationError as valerr:
                 self.adtool.log_failure(
                     f"Contact update validation error on {usr.ad_samacc} : {valerr}"
@@ -697,4 +674,3 @@ class ADCountersUpd:
             sopinfra.save()
             return 1
         return 0
-

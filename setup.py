@@ -3,9 +3,12 @@ from setuptools import setup, find_packages
 
 setup(
     name="sop-infra",
-    version="0.4.61",
+    version="0.4.62",
     packages=find_packages(),
     include_package_data=True,
+    install_requires=[
+        'phonenumbers'
+    ],
     description="Manage infrastructure informations of each site.",
     author="Soprema NOC team",
     author_email="noc@soprema.com",

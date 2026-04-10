@@ -174,7 +174,7 @@ class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
             self.log_info(f"Deactivating deleted users in Netbox....")
             uinf.deactivate_unknown_accounts()
 
-            self.log_info(f"Updating site users ....")
+            self.log_info(f"Updating site users counts ....")
             cnt_sit_upd=0
             sl:dict[int,ADCountersUpd]={}
             sits=Site.objects.all()
@@ -203,7 +203,7 @@ class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
                         .filter(custom_field_data__ad_site_id=None)\
                         .filter(custom_field_data__ad_site_name=sname)
                     for ct in cts:
-                        self.log_warning(f"  - {ct.name} ")
+                        self.log_info(f"  - {ct.name} ")
                 else:
                     sl.get(sid).update_direct(t, uc.get('ucount'))
             # Loop again to push to DB
