@@ -11,7 +11,7 @@ from core.models import ObjectType
 
 from dcim.models import Site, Device
 from ipam.models import Prefix, VLANGroup, VLAN, vlans, Role, VRF, IPAddress
-from tenancy.models import Contact, ContactAssignment, ContactRole
+from tenancy.models import Contact, ContactAssignment, ContactRole, Tenant, TenantGroup
 from sop_infra.models.infra import SopDeviceSetting, SopSwitchTemplate, SopInfra
 from sop_infra.models.sopmeraki import SopMerakiDevice, SopMerakiNet, SopMerakiSwitchStack
 
@@ -102,6 +102,7 @@ class NetboxUtils:
         if sopinfra is not None:
             return site.sopinfra.ad_direct_users  # type: ignore
         return None
+
 
     # --------------------  DEVICE CHECKS --------------------------------
        
@@ -402,6 +403,91 @@ class NetboxUtils:
             ret.append(msg)
         return ret
     
+    # --------------------  TENANT CHECKS --------------------------------
+
+    @staticmethod
+    def get_tenant_compliance_warning_messages(tn:Tenant) -> list[str]:
+        ret:list[str]=list()
+        cf_data=tn.custom_field_data
+        status=cf_data.get("tenant_status")
+        if status in ['candidate', 'active', 'decommissionning', 'integration']:
+            if cf_data.get("obs_billing_master_site") is None:
+                ret.append("Missing billing site")
+            if cf_data.get("obs_billing_email") is None:
+                ret.append("Missing billing email")
+        return ret
+
+    @staticmethod
+    def get_tenant_compliance_danger_messages(tn:Tenant) -> list[str]:
+        ret:list[str]=list()
+        cf_data=tn.custom_field_data
+        status=cf_data.get("tenant_status")
+        if status is None or status.strip()=="":
+            ret.append("Missing or invalid status")
+        elif status in ['candidate', 'active', 'decommissionning', 'integration']:
+            vat=cf_data.get("vat_number")
+            if vat is None or vat.strip()=="":
+                ret.append("Missing VAT Number")
+            if status=="candidate":
+                lstv=Site.objects.filter(tenant=tn).filter(status__in=["staging","starting","active","decommissionning"]).all()
+                if len(lstv)>0:
+                    vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.name}</a>' for v in lstv ]
+                    msg=f"Tenant status is inconsistent with these sites' status : "+ ", ".join(vl_msgs)
+                    ret.append(msg)
+        return ret
+ 
+    @staticmethod
+    def has_tenant_compliance_warning_messages(tn:Tenant) -> bool:
+        return len(NetboxUtils.get_tenant_compliance_warning_messages(tn))>0
+
+    @staticmethod
+    def has_tenant_compliance_danger_messages(tn:Tenant) -> bool:
+        return len(NetboxUtils.get_tenant_compliance_danger_messages(tn))>0
+ 
+    @staticmethod
+    def check_if_tenant_is_compliant(tn:Tenant) -> bool:
+        return not(NetboxUtils.has_tenant_compliance_danger_messages(tn)) and not(NetboxUtils.has_tenant_compliance_warning_messages(tn))
+
+  
+    # --------------------  TENANT GROUP CHECKS --------------------------------
+
+    @staticmethod
+    def list_tenantgroup_non_compliant_tenants_warning(tg:TenantGroup) -> list[Tenant]:
+        ret:list[Tenant]=list()
+        for tn in tg.tenants.all():
+            if NetboxUtils.has_tenant_compliance_warning_messages(tn):
+                ret.append(tn)
+        return ret
+
+    @staticmethod
+    def list_tenantgroup_non_compliant_tenants_danger(tg:TenantGroup) -> list[Tenant]:
+        ret:list[Tenant]=list()
+        for tn in tg.tenants.all():
+            if NetboxUtils.has_tenant_compliance_danger_messages(tn):
+                ret.append(tn)
+        return ret
+
+    @staticmethod
+    def get_tenantgroup_compliance_warning_messages(tg:TenantGroup) -> list[str]:
+        ret:list[str]=list()
+        lstv=NetboxUtils.list_tenantgroup_non_compliant_tenants_warning(tg)
+        if len(lstv) > 0:
+            vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.name}</a>' for v in lstv ]
+            msg=f"Non compliant Tenant(s) : "+ ", ".join(vl_msgs)
+            ret.append(msg)
+        return ret
+
+    @staticmethod
+    def get_tenantgroup_compliance_danger_messages(tg:TenantGroup) -> list[str]:
+        ret:list[str]=list()
+        lstv=NetboxUtils.list_tenantgroup_non_compliant_tenants_danger(tg)
+        if len(lstv) > 0:
+            vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.name}</a>' for v in lstv ]
+            msg=f"Critical issues on Tenant(s) : "+ ", ".join(vl_msgs)
+            ret.append(msg)
+        return ret
+
+
     # --------------------  CONTACTS CHECKS --------------------------------
 
     @staticmethod
@@ -554,6 +640,12 @@ class NetboxUtils:
     @staticmethod
     def get_site_compliance_warning_messages(site:Site)->list[str]:
         ret:list[str]=list()
+        if site.tenant is not None:
+            if NetboxUtils.has_tenant_compliance_danger_messages(site.tenant):
+                pass
+            elif NetboxUtils.has_tenant_compliance_warning_messages(site.tenant):
+                msg=f'Non compliant tenant <a href="{site.tenant.get_absolute_url()}">{site.tenant.name}</a> !'
+                ret.append(msg)
         lstv:list[VLAN]=NetboxUtils.list_non_compliant_vlan_namings(site)
         if len(lstv) > 0:
             vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.vid}/{v.name}</a>' for v in lstv ]
@@ -579,6 +671,32 @@ class NetboxUtils:
             vg_msgs=[ f'<a href="{vg.get_absolute_url()}">{vg}</a>' for vg in lstvg ]
             msg=f"Non compliant VLANGROUP scope(s) : "+ ", ".join(vg_msgs)
             ret.append(msg)
+        return ret
+
+    @staticmethod
+    def get_site_compliance_danger_messages(site:Site)->list[str]:
+        ret:list[str]=list()
+        if site.tenant is None:
+            msg=f"Missing tenant !"
+            ret.append(msg)           
+        else:
+            if NetboxUtils.has_tenant_compliance_danger_messages(site.tenant):
+                msg=f'Non compliant tenant <a href="{site.tenant.get_absolute_url()}">{site.tenant.name}</a> !'
+                ret.append(msg)
+        lstct:list[str]=NetboxUtils.list_missing_site_mandatory_contactology(site)
+        if len(lstct) > 0:
+            msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
+            ret.append(msg)
+        lstss:list[SopMerakiSwitchStack]=NetboxUtils.list_meraki_switch_stacks_where_push_would_not_success(site)
+        if len(lstss) > 0:
+            ss_msgs=[ f'<a href="{ss.get_absolute_url()}">{ss.nom}</a>' for ss in lstss ]
+            msg=f"Switch stacks BLOCKING PUSH : "+ ", ".join(ss_msgs)
+            ret.append(msg)        
+        lstsd:list[SopMerakiDevice]=NetboxUtils.list_meraki_devices_where_push_would_not_success(site)
+        if len(lstsd) > 0:
+            sd_msgs=[ f'<a href="{sd.get_absolute_url()}">{sd.nom}</a>' for sd in lstsd ]
+            msg=f"Devices BLOCKING PUSH : "+ ", ".join(sd_msgs)
+            ret.append(msg)
         lstsd:list[SopMerakiDevice]
         lstsd=NetboxUtils.list_meraki_devices_without_netbox_device(site)
         if len(lstsd) > 0:
@@ -594,25 +712,6 @@ class NetboxUtils:
         if len(lstsd) > 0:
             sd_msgs=[ f'<a href="{sd.get_absolute_url()}">{sd.nom}</a>' for sd in lstsd ]
             msg=f"Devices with another type : "+ ", ".join(sd_msgs)
-            ret.append(msg)
-        return ret
-
-    @staticmethod
-    def get_site_compliance_danger_messages(site:Site)->list[str]:
-        ret:list[str]=list()
-        lstct:list[str]=NetboxUtils.list_missing_site_mandatory_contactology(site)
-        if len(lstct) > 0:
-            msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
-            ret.append(msg)
-        lstss:list[SopMerakiSwitchStack]=NetboxUtils.list_meraki_switch_stacks_where_push_would_not_success(site)
-        if len(lstss) > 0:
-            ss_msgs=[ f'<a href="{ss.get_absolute_url()}">{ss.nom}</a>' for ss in lstss ]
-            msg=f"Switch stacks BLOCKING PUSH : "+ ", ".join(ss_msgs)
-            ret.append(msg)        
-        lstsd:list[SopMerakiDevice]=NetboxUtils.list_meraki_devices_where_push_would_not_success(site)
-        if len(lstsd) > 0:
-            sd_msgs=[ f'<a href="{sd.get_absolute_url()}">{sd.nom}</a>' for sd in lstsd ]
-            msg=f"Devices BLOCKING PUSH : "+ ", ".join(sd_msgs)
             ret.append(msg)
         return ret
 

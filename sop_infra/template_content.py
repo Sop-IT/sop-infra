@@ -142,6 +142,34 @@ class NetboxSitePluginExtension(PluginTemplateExtension):
         return ret        
 
 
+class NetboxTenantPluginExtension(PluginTemplateExtension):
+
+    models = ['tenancy.tenant']
+    
+    def alerts(self):
+        ret=""
+        danger_messages:list[str]=NetboxUtils.get_tenant_compliance_danger_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
+        warning_messages:list[str]=NetboxUtils.get_tenant_compliance_warning_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
+        # TODO : INFO  MESSAGES
+        return ret        
+
+
+class NetboxTenantGroupPluginExtension(PluginTemplateExtension):
+
+    models = ['tenancy.tenantgroup']
+    
+    def alerts(self):
+        ret=""
+        danger_messages:list[str]=NetboxUtils.get_tenantgroup_compliance_danger_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
+        warning_messages:list[str]=NetboxUtils.get_tenantgroup_compliance_warning_messages(self.context.get("object"))
+        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
+        # TODO : INFO  MESSAGES
+        return ret        
+    
+    
 class NetboxVlanPluginExtension(PluginTemplateExtension):
 
     models = ['ipam.vlan']
@@ -190,6 +218,8 @@ template_extensions.append(NetboxContactPluginExtension)
 template_extensions.append(SopMerakiDevicePluginExtension)
 template_extensions.append(SopMerakiSwitchStackPluginExtension)
 template_extensions.append(NetboxSitePluginExtension)
+template_extensions.append(NetboxTenantPluginExtension)
+template_extensions.append(NetboxTenantGroupPluginExtension)
 template_extensions.append(NetboxVlanPluginExtension)
 template_extensions.append(NetboxPrefixPluginExtension)
 template_extensions.append(NetboxVlanGroupPluginExtension)
