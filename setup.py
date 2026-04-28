@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="sop-infra",
-    version="0.4.65",
+    version="0.4.66",
     packages=find_packages(),
     include_package_data=True,
     install_requires=[

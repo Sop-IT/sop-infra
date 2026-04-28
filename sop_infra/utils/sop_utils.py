@@ -90,6 +90,8 @@ class StringUtils:
     def is_none_or_empty(arg: str|None) -> bool:
         if arg is None:
             return True
+        if not isinstance(arg, str):
+            arg=f"{arg}"
         if arg == "":
             return True
         if arg.strip() == "":
