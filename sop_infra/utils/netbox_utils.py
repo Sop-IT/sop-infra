@@ -11,6 +11,7 @@ from core.models import ObjectType
 
 from dcim.models import Site, Device
 from ipam.models import Prefix, VLANGroup, VLAN, vlans, Role, VRF, IPAddress
+from sop_infra.utils.sop_utils import StringUtils
 from tenancy.models import Contact, ContactAssignment, ContactRole, Tenant, TenantGroup
 from sop_infra.models.infra import SopDeviceSetting, SopSwitchTemplate, SopInfra
 from sop_infra.models.sopmeraki import SopMerakiDevice, SopMerakiNet, SopMerakiSwitchStack
@@ -408,26 +409,39 @@ class NetboxUtils:
     @staticmethod
     def get_tenant_compliance_warning_messages(tn:Tenant) -> list[str]:
         ret:list[str]=list()
-        cf_data=tn.custom_field_data
-        status=cf_data.get("tenant_status")
+        if tn.slug=="sopit":
+            return ret
+        tn_data=tn.custom_field_data
+        tg:TenantGroup=tn.group # type: ignore
+        tg_data=tg.custom_field_data
+        status=tn_data.get("tenant_status")
         if status in ['candidate', 'active', 'decommissionning', 'integration']:
-            if cf_data.get("obs_billing_master_site") is None:
+            if "warning"==tg_data.get("vat_number_requirement") and StringUtils.is_none_or_empty(tn_data.get("vat_number")):
+                ret.append("Missing VAT Number")
+            if "warning"==tg_data.get("billing_mastersite_requirement") and StringUtils.is_none_or_empty(tn_data.get("obs_billing_master_site")):
                 ret.append("Missing billing site")
-            if cf_data.get("obs_billing_email") is None:
+            if "warning"==tg_data.get("billing_email_requirement") and  StringUtils.is_none_or_empty(tn_data.get("obs_billing_email")):
                 ret.append("Missing billing email")
         return ret
 
     @staticmethod
     def get_tenant_compliance_danger_messages(tn:Tenant) -> list[str]:
         ret:list[str]=list()
-        cf_data=tn.custom_field_data
-        status=cf_data.get("tenant_status")
+        if tn.slug=="sopit":
+            return ret
+        tn_data=tn.custom_field_data
+        status=tn_data.get("tenant_status")
         if status is None or status.strip()=="":
             ret.append("Missing or invalid status")
         elif status in ['candidate', 'active', 'decommissionning', 'integration']:
-            vat=cf_data.get("vat_number")
-            if vat is None or vat.strip()=="":
+            tg:TenantGroup=tn.group # type: ignore
+            tg_data=tg.custom_field_data
+            if "critical"==tg_data.get("vat_number_requirement") and StringUtils.is_none_or_empty(tn_data.get("vat_number")):
                 ret.append("Missing VAT Number")
+            if "critical"==tn_data.get("billing_mastersite_requirement") and StringUtils.is_none_or_empty(tn_data.get("obs_billing_master_site")):
+                ret.append("Missing billing site")
+            if "critical"==tn_data.get("billing_email_requirement") and  StringUtils.is_none_or_empty(tn_data.get("obs_billing_email")):
+                ret.append("Missing billing email")
             if status=="candidate":
                 lstv=Site.objects.filter(tenant=tn).filter(status__in=["staging","starting","active","decommissionning"]).all()
                 if len(lstv)>0:
