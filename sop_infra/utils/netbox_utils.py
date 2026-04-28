@@ -24,12 +24,26 @@ class NetboxConstants():
     sopit_id=386  
 
     __ct_dcim_site:ContentType|None=None
+    __ct_tenancy_group:ContentType|None=None
+    __ct_tenancy_tenant:ContentType|None=None
 
     @staticmethod
     def get_ct_dcim_site()->ContentType:
         if NetboxConstants.__ct_dcim_site is None:
             NetboxConstants.__ct_dcim_site=ContentType.objects.get_by_natural_key("dcim", "site")
         return NetboxConstants.__ct_dcim_site
+
+    @staticmethod
+    def get_ct_tenancy_tenant()->ContentType:
+        if NetboxConstants.__ct_tenancy_tenant is None:
+            NetboxConstants.__ct_tenancy_tenant=ContentType.objects.get_by_natural_key("tenancy", "tenant")
+        return NetboxConstants.__ct_tenancy_tenant
+
+    @staticmethod
+    def get_ct_tenancy_group()->ContentType:
+        if NetboxConstants.__ct_tenancy_group is None:
+            NetboxConstants.__ct_tenancy_group=ContentType.objects.get_by_natural_key("tenancy", "tenantgroup")
+        return NetboxConstants.__ct_tenancy_group
 
 
 
@@ -407,6 +421,31 @@ class NetboxUtils:
     # --------------------  TENANT CHECKS --------------------------------
 
     @staticmethod
+    def list_missing_tenant_mandatory_contactology(tn:Tenant) -> list[str]:
+        # TODO better lookup/constants handling
+        billing_role=ContactRole.objects.get(slug='billing')
+        #it_role=ContactRole.objects.get(slug='it')
+        #telecom_role=ContactRole.objects.get(slug='telecom')
+        #administrative_role=ContactRole.objects.get(slug='administrative')
+        #wms_role=ContactRole.objects.get(slug='rbac-wms')
+        #indus_role=ContactRole.objects.get(slug='rbac-indus')
+        # default mandatory roles
+        mandatory_cts=[
+            (billing_role, 'primary'),
+            #(telecom_role, 'primary'),
+            #(administrative_role, 'primary'),
+        ]
+        ctass_combos:list[tuple[ContactRole,str|None]]=list()
+        for cta in ContactAssignment.objects.filter(object_type_id=NetboxConstants.get_ct_tenancy_tenant(), object_id=tn.pk):
+            if NetboxUtils.check_if_contact_is_compliant(cta.contact):
+                ctass_combos.append((cta.role, cta.priority))
+        ret:list[str]=list()
+        for ctc in mandatory_cts:
+            if ctc not in ctass_combos:
+                ret.append(f"[{ctc[1]} {ctc[0]}]")
+        return ret
+
+    @staticmethod
     def get_tenant_compliance_warning_messages(tn:Tenant) -> list[str]:
         ret:list[str]=list()
         if tn.slug=="sopit":
@@ -434,6 +473,10 @@ class NetboxUtils:
         if status is None or status.strip()=="":
             ret.append("Missing or invalid status")
         elif status in ['candidate', 'active', 'decommissionning', 'integration']:
+            lstct:list[str]=NetboxUtils.list_missing_tenant_mandatory_contactology(tn)
+            if len(lstct) > 0:
+                msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
+                ret.append(msg)
             tg:TenantGroup=tn.group # type: ignore
             tg_data=tg.custom_field_data
             if "critical"==tg_data.get("vat_number_requirement") and StringUtils.is_none_or_empty(tn_data.get("vat_number")):
