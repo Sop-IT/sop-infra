@@ -438,9 +438,9 @@ class NetboxUtils:
             tg_data=tg.custom_field_data
             if "critical"==tg_data.get("vat_number_requirement") and StringUtils.is_none_or_empty(tn_data.get("vat_number")):
                 ret.append("Missing VAT Number")
-            if "critical"==tn_data.get("billing_mastersite_requirement") and StringUtils.is_none_or_empty(tn_data.get("obs_billing_master_site")):
+            if "critical"==tg_data.get("billing_mastersite_requirement") and StringUtils.is_none_or_empty(tn_data.get("obs_billing_master_site")):
                 ret.append("Missing billing site")
-            if "critical"==tn_data.get("billing_email_requirement") and  StringUtils.is_none_or_empty(tn_data.get("obs_billing_email")):
+            if "critical"==tg_data.get("billing_email_requirement") and  StringUtils.is_none_or_empty(tn_data.get("obs_billing_email")):
                 ret.append("Missing billing email")
             if status=="candidate":
                 lstv=Site.objects.filter(tenant=tn).filter(status__in=["staging","starting","active","decommissionning"]).all()
