@@ -87,7 +87,7 @@ class DateUtils:
 class StringUtils:
 
     @staticmethod
-    def is_none_or_empty(arg: str) -> bool:
+    def is_none_or_empty(arg: str|None) -> bool:
         if arg is None:
             return True
         if arg == "":
@@ -97,7 +97,7 @@ class StringUtils:
         return False
 
     @staticmethod
-    def empty_if_none(arg: str) -> str:
+    def empty_if_none(arg: str|None) -> str:
         if arg is None:
             return ""
         return arg
