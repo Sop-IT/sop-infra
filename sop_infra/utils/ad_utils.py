@@ -43,6 +43,7 @@ class user_info:
         "userPrincipalName",
         "mobile",
         "telephoneNumber",
+        "extensionAttribute1",
         "extensionAttribute7",
         "extensionAttribute8",
     ]
@@ -67,6 +68,9 @@ class user_info:
         self.ad_extAtt6 = self.read_single_value(entry, "extensionAttribute6")
         self.ad_title = self.read_single_value(entry, "title")
         self.fill_in_phone(entry)
+        self.ad_extAtt1 = self.read_single_value(entry, "extensionAttribute1")
+        if self.ad_extAtt1 == "":
+            self.ad_extAtt1 = None
         self.ad_extAtt7 = self.read_single_value(entry, "extensionAttribute7")
         if self.ad_extAtt7 == "":
             self.ad_extAtt7 = "empty"
@@ -267,6 +271,7 @@ class user_info:
         nd.custom_field_data["ad_mobile"] = self.ad_mobile
         nd.custom_field_data["ad_telephone_number"] = self.ad_telephone_number
         nd.custom_field_data["ad_country"] = self.ad_country
+        nd.custom_field_data["ad_extAtt1"] = self.ad_extAtt1
         nd.custom_field_data["ad_extAtt6"] = self.ad_extAtt6
         nd.custom_field_data["ad_extAtt7"] = self.ad_extAtt7
         nd.title = self.ad_title
@@ -306,6 +311,7 @@ class user_info:
             or self.compareCF("ad_site_id", self.ad_site_id)
             or self.compareCF("ad_country", self.ad_country)
             or self.compareCF("ad_mail", self.ad_mail)
+            or self.compareCF("ad_extAtt1", self.ad_extAtt1)
             or self.compareCF("ad_extAtt6", self.ad_extAtt6)
             or self.compareCF("ad_extAtt7", self.ad_extAtt7)
             or False
