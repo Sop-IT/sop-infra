@@ -421,7 +421,7 @@ class NetboxUtils:
     # --------------------  TENANT CHECKS --------------------------------
 
     @staticmethod
-    def list_missing_tenant_mandatory_contactology(tn:Tenant) -> list[str]:
+    def list_missing_tenant_mandatory_contactology(tn:Tenant, level:str) -> list[str]:
         # TODO better lookup/constants handling
         billing_role=ContactRole.objects.get(slug='billing')
         #it_role=ContactRole.objects.get(slug='it')
@@ -431,10 +431,15 @@ class NetboxUtils:
         #indus_role=ContactRole.objects.get(slug='rbac-indus')
         # default mandatory roles
         mandatory_cts=[
-            (billing_role, 'primary'),
             #(telecom_role, 'primary'),
             #(administrative_role, 'primary'),
         ]
+        # Per tg mandatory roles
+        tn_data=tn.custom_field_data
+        tg:TenantGroup=tn.group # type: ignore
+        tg_data=tg.custom_field_data
+        if level==tg_data.get("billing_contact_requirement"): 
+            mandatory_cts.append((billing_role, 'primary'))
         ctass_combos:list[tuple[ContactRole,str|None]]=list()
         for cta in ContactAssignment.objects.filter(object_type_id=NetboxConstants.get_ct_tenancy_tenant(), object_id=tn.pk):
             if NetboxUtils.check_if_contact_is_compliant(cta.contact):
@@ -455,6 +460,10 @@ class NetboxUtils:
         tg_data=tg.custom_field_data
         status=tn_data.get("tenant_status")
         if status in ['candidate', 'active', 'decommissionning', 'integration']:
+            lstct:list[str]=NetboxUtils.list_missing_tenant_mandatory_contactology(tn, "warning")
+            if len(lstct) > 0:
+                msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
+                ret.append(msg)
             if "warning"==tg_data.get("vat_number_requirement") and StringUtils.is_none_or_empty(tn_data.get("vat_number")):
                 ret.append("Missing VAT Number")
             if "warning"==tg_data.get("billing_mastersite_requirement") and StringUtils.is_none_or_empty(tn_data.get("obs_billing_master_site")):
@@ -473,7 +482,7 @@ class NetboxUtils:
         if status is None or status.strip()=="":
             ret.append("Missing or invalid status")
         elif status in ['candidate', 'active', 'decommissionning', 'integration']:
-            lstct:list[str]=NetboxUtils.list_missing_tenant_mandatory_contactology(tn)
+            lstct:list[str]=NetboxUtils.list_missing_tenant_mandatory_contactology(tn, "critical")
             if len(lstct) > 0:
                 msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
                 ret.append(msg)
