@@ -1,0 +1,42 @@
+{% load i18n %}
+{# DHCP reservation dropdown button #}
+{# % if perms.netbox_attachments.add_netboxattachment or perms.netbox_attachments.add_netboxattachmentassignment % #}
+    <div class="btn-group" role="group">
+        <button class="btn btn-green dropdown-toggle"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false">
+            <i class="mdi mdi-tools" aria-hidden="true"></i>
+            {% trans "DHCP Reservations" %}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+        
+            <li>
+                <a class="dropdown-item"
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&forced_prefix_role_slug=usr&forced_device_role_slug=prt-printer&forced_device_type_slug=generic-printer&initial_device_name=PRT&flavor=printer&return_url={{ request.get_full_path }}">
+                    <i class="mdi mdi-printer" aria-hidden="true"></i>
+                   &nbsp;-&nbsp;PRINTER
+                </a>
+            </li>
+        
+            <li>
+                <a class="dropdown-item"
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&forced_prefix_role_slug=usr&forced_device_type_slug=0u-unknown-network-device&forced_device_role_slug=ukn-unknown&flavor=unknown&return_url={{ request.get_full_path }}">
+                    <i class="mdi mdi-help" aria-hidden="true"></i>
+                    &nbsp;-&nbsp;unknown USER device
+                </a>
+            </li>
+
+            <li>
+                <a class="dropdown-item"
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=manual&return_url={{ request.get_full_path }}">
+                    <i class="mdi mdi-gesture" aria-hidden="true"></i>
+                    &nbsp;-&nbsp;MANUAL reservation
+                </a>
+            </li>
+        </ul>
+    </div>
+{# % endif % #}
+
+
+

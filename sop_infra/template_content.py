@@ -8,7 +8,7 @@ from django.conf import settings
 from netbox.plugins import PluginTemplateExtension
 from netbox.context import current_request
 from dcim.models import Site, Device, DeviceType
-from ipam.models import VLAN
+from ipam.models import VLAN, Prefix
 
 from sop_infra.models import SopInfra
 from sop_infra.models.infra import SopDeviceSetting
@@ -205,10 +205,22 @@ class NetboxVlanGroupPluginExtension(PluginTemplateExtension):
         # TODO : INFO and ALERT MESSAGES
         return ret   
 
+
 class TrigramSearch(PluginTemplateExtension):
     
     def navbar(self):
         return self.render("sop_infra/inc/trisearch.html", extra_context={})
+
+
+class DHCPHelperPluginExtension(PluginTemplateExtension):
+
+    models = ['dcim.site']
+
+    def buttons(self):
+        if self.context.get("object"):
+            if isinstance(self.context.get("object"), Site):
+                return self.render("sop_infra/inc/helper_dhcp_btn.html", extra_context={})
+        return ""
 
 
 template_extensions = list()
@@ -224,4 +236,5 @@ template_extensions.append(NetboxVlanPluginExtension)
 template_extensions.append(NetboxPrefixPluginExtension)
 template_extensions.append(NetboxVlanGroupPluginExtension)
 template_extensions.append(TrigramSearch)  
+template_extensions.append(DHCPHelperPluginExtension)  
 

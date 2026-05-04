@@ -3,19 +3,22 @@ from django import forms
 from django.urls import reverse
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Q
 
 from sop_infra.models.sopmeraki import SopMerakiUtils
+from sop_infra.utils.netbox_utils import NetboxConstants
+from sop_infra.utils.sop_utils import SopRegExps
 from utilities.forms.fields import DynamicModelChoiceField
 from netbox.forms import NetBoxModelFilterSetForm, NetBoxModelForm
 from utilities.forms.widgets import DatePicker
 from utilities.forms.rendering import FieldSet
 from netbox.context import current_request
 from utilities.forms import add_blank_choice
-from dcim.models import Site, Location, Region, SiteGroup
+from dcim.models import DeviceRole, DeviceType, Site, Location, Region, SiteGroup
+from ipam.models import Role, Prefix
 from dcim.choices import SiteStatusChoices
 
 from sop_infra.models import *
-
 
 __all__ = (
     "SopInfraForm",
@@ -733,7 +736,7 @@ class SopSwitchTemplateForm(NetBoxModelForm):
 class SopSwitchTemplateFilterForm(NetBoxModelFilterSetForm):
 
     model = SopSwitchTemplate
-    
+
     nom = forms.CharField(
         required=False,
         label=_("Template name"),
@@ -751,10 +754,8 @@ class SopSwitchTemplateFilterForm(NetBoxModelFilterSetForm):
     )
 
 
-
 # ======================================================================
 #  DEVICE SETTINGS FORMS
-
 
 
 class SopDeviceSettingForm(NetBoxModelForm):
@@ -783,3 +784,123 @@ class SopDeviceSettingForm(NetBoxModelForm):
 
         if "tags" in self.fields:
             del self.fields["tags"]
+
+
+# ======================================================================
+###  HELPER FORMS
+
+class SopInfraHelperDhcpForm(forms.Form):
+
+
+    forced_site_id=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+    site_id = DynamicModelChoiceField(
+        queryset=Site.objects.all(),
+        label="Site",
+        required=True,
+        help_text="Site in which to create the reservation",
+    )
+    
+    forced_prefix_role_id=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+    forced_prefix_role_slug=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+    prefix_role_id = DynamicModelChoiceField(
+        queryset=Role.objects.all(),
+        label="Prefix Role",
+        required=True,
+        help_text="Prefix Role",
+    )
+
+    forced_prefix_id=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+    prefix_id = DynamicModelChoiceField(
+        queryset=Prefix.objects.all(),
+        label="Prefix",
+        query_params={
+            "status": NetboxConstants.active_prefixes_status,
+            "site_id": "$site_id",
+            "role_id": "$prefix_role_id",
+        },
+        required=True,
+        help_text="Prefix",
+        context={'disabled': '$forced_prefix_id'},
+    )
+    
+    forced_device_role_id=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+    forced_device_role_slug=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+    device_role_id = DynamicModelChoiceField(
+        queryset=DeviceRole.objects.all(),
+        label="Device Role",
+        required=True,
+        help_text="Device role",
+        # TODO filter roles based on cf for availability + cf for prefix role
+    )
+
+    forced_device_type_id=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+    forced_device_type_slug=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+    device_type_id = DynamicModelChoiceField(
+        queryset=DeviceType.objects.all(),
+        label="Device Type",
+        required=True,
+        help_text="Device type",
+        # TODO filter types based on roles cf
+    )
+
+    initial_device_name=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+    device_name = forms.RegexField(
+        required=True,
+        min_length=1,
+        max_length=50,
+        regex=r".*",
+        strip=True,
+        help_text="Netbox device name",
+    )
+
+    device_dns = forms.RegexField(
+        required=False,
+        min_length=1,
+        max_length=100,
+        regex=SopRegExps.fqdn_point_str,
+        help_text="Netbox device's IP DNS",
+    )
+    ip_address = forms.RegexField(
+        required=False,
+        regex=SopRegExps.one_ip4_str,
+        help_text="Optional IP address (if you don't want auto allocation in the above mentionned prefix)",
+    )
+    mac_address = forms.RegexField(
+        help_text="Device MAC Address (format xx:xx:xx:xx:xx:xx, where x=[0-9a-f] )",
+        required=True,
+        regex=SopRegExps.one_mac_str,
+    )
+    flavor = forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
+
+    def clean(self):
+        data = super().clean()
+        
+        request = current_request.get()
+
+        return_url = reverse("home")
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+
+        data["return_url"]=return_url
+        
+        return data

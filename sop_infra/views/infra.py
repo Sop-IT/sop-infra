@@ -1,4 +1,5 @@
 import json
+from django.db import transaction
 from django.http import Http404, HttpRequest, JsonResponse
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404, redirect
@@ -6,29 +7,34 @@ from django.views import View
 from django.urls import reverse
 from django.db.models import Q, Count
 from django.contrib.contenttypes.models import ContentType
-from netbox.jobs import Job
+from django.contrib import messages
 from django.contrib.auth.mixins import AccessMixin
+from django.core.exceptions import ValidationError
 
-from sop_infra.forms.infra import SopMerakiClaimForm
+from netbox.jobs import Job
+from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopMerakiClaimForm
 from sop_infra.jobs import SopMerakiCreateNetworkJob, SopSyncAdUsers
 from sop_infra.models.sopmeraki import SopMerakiUtils
 from sop_infra.utils.netbox_utils import NetboxConstants
 from utilities.views import register_model_view, ViewTab
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
+from utilities.exceptions import AbortScript
 from netbox.views import generic
 
-from dcim.models import Site, Device
+from dcim.models import DeviceRole, Location, MACAddress, Site, Device
 from dcim.tables import DeviceTable
-from ipam.models import Prefix
+from ipam.models import IPAddress, Prefix, Role
 from tenancy.models import Contact
 
 from sop_infra.forms import *
 from sop_infra.tables import *
 from sop_infra.models import *
 from sop_infra.filtersets import *
-from sop_infra.utils.sop_utils import  SopInfraRelatedModelsMixin
-from django.contrib import messages
+from sop_infra.utils.sop_utils import  SopInfraRelatedModelsMixin, StringUtils
+
+
+import netaddr
 
 __all__ = (
     "SopDeviceSettingTryManageInNetbox",
@@ -423,7 +429,7 @@ class DeviceSopDeviceSettingTabViewOnMerakiDevice(generic.ObjectView):
         else :
             context["device"] = nd
             try:
-                context["sopdevicesetting"] = nd.sopdevicesetting
+                context["sopdevicesetting"] = nd.sopdevicesetting # type: ignore
             except SopDeviceSetting.DoesNotExist:
                 context["sopdevicesetting"] =  None
         return context    
@@ -457,7 +463,7 @@ class SopMerakiClaimView(AccessMixin, View):
         # Fetch site
         site = get_object_or_404(Site, pk=pk)
         merorg: SopMerakiOrg | None = SopMerakiUtils.get_site_meraki_org(site)
-        infra: SopInfra | None = site.sopinfra
+        infra: SopInfra | None = site.sopinfra # type: ignore
         claim_net_mx: SopMerakiNet | None = infra.claim_net_mx if infra else None
         claim_net_ms: SopMerakiNet | None = infra.claim_net_ms if infra else None
         claim_net_mr: SopMerakiNet | None = infra.claim_net_mr if infra else None
@@ -598,6 +604,322 @@ class SopInfraRefreshView(AccessMixin, View):
             messages.success(request, f"Successfully recomputed SopInfra sizing.")
         except:
             pass
+
+
+
+
+# ======================================================================
+# HELPER VIEWS
+
+
+class SopInfraHelperDhcp(AccessMixin, View):
+    """
+    create DHCP reservation
+    """
+
+    form = SopInfraHelperDhcpForm
+    template_name: str = "sop_infra/tools/helper_dhcp.html"
+
+    def __data_from_qdict(self, qdict) -> dict:
+
+        # read request params
+        # forced params override the others
+
+        return_url = qdict.get("return_url") or reverse("home")
+
+        forced_site_id = qdict.get("forced_site_id")
+        site_id = forced_site_id or qdict.get("site_id")
+
+        forced_prefix_role_id = qdict.get("forced_prefix_role_id")
+        forced_prefix_role_slug = qdict.get("forced_prefix_role_slug")
+        if forced_prefix_role_slug and not forced_prefix_role_id:
+            if Role.objects.filter(slug=forced_prefix_role_slug).exists():
+                forced_prefix_role_id = Role.objects.get(slug=forced_prefix_role_slug).pk
+        prefix_role_id = forced_prefix_role_id or qdict.get("prefix_role_id")
+
+        prefix_id = qdict.get("prefix_id")
+
+        forced_device_role_id = qdict.get("forced_device_role_id")
+        forced_device_role_slug = qdict.get("forced_device_role_slug")
+        if forced_device_role_slug and not forced_device_role_id:
+            if DeviceRole.objects.filter(slug=forced_device_role_slug).exists():
+                forced_device_role_id = DeviceRole.objects.get(slug=forced_device_role_slug).pk
+        device_role_id = forced_device_role_id or qdict.get("device_role_id")
+
+        forced_device_type_id = qdict.get("forced_device_type_id")
+        forced_device_type_slug = qdict.get("forced_device_type_slug")
+        if forced_device_type_slug and not forced_device_type_id:
+            if DeviceType.objects.filter(slug=forced_device_type_slug).exists():
+                forced_device_type_id = DeviceType.objects.get(slug=forced_device_type_slug).pk
+        device_type_id = forced_device_type_id or qdict.get("device_type_id")
+
+        device_name = qdict.get("device_name")
+        initial_device_name = qdict.get("initial_device_name")
+        device_dns = qdict.get("device_dns")
+        ip_address = qdict.get("ip_address")
+        mac_address = qdict.get("mac_address")
+        flavor = qdict.get("flavor")
+
+        # Apply the only prefix choice when there's only one
+        forced_prefix_id = qdict.get("forced_prefix_id")
+        if not forced_prefix_id :
+            pfxs=Prefix.objects.filter(status__in=NetboxConstants.active_prefixes_status)
+            if site_id:
+                pfxs=pfxs.filter(scope_type_id=NetboxConstants.get_ct_dcim_site(), scope_id=site_id)
+            if prefix_role_id:
+                pfxs=pfxs.filter(role_id=prefix_role_id)
+            if pfxs.count()==1:
+                forced_prefix_id=pfxs[0].pk
+        prefix_id = forced_prefix_id or qdict.get("prefix_id")
+
+        return {
+            "return_url": return_url,
+            "forced_site_id": forced_site_id,
+            "forced_site_id": forced_site_id,
+            "site_id": site_id,
+            "forced_prefix_role_id": forced_prefix_role_id,
+            "forced_prefix_role_slug": forced_prefix_role_slug,
+            "prefix_role_id": prefix_role_id,
+            "forced_prefix_id": forced_prefix_id,
+            "prefix_id" : prefix_id,
+            "forced_device_role_id": forced_device_role_id,
+            "forced_device_role_slug": forced_device_role_slug,
+            "device_role_id" : device_role_id, 
+            "forced_device_type_id": forced_device_type_id,
+            "forced_device_type_slug": forced_device_type_slug,
+            "device_type_id" : device_type_id, 
+            "initial_device_name": initial_device_name,
+            "device_name" : device_name or initial_device_name, 
+            "device_dns" : device_dns, 
+            "ip_address" : ip_address,
+            "mac_address" : mac_address,
+            "flavor": flavor,
+        }
+
+    def __lock_field(self, fld:forms.Field, help_text:str|None=None):
+        fld.disabled=True
+        fld.help_text=help_text or ("FORCED - "+fld.help_text)
+
+    def __lock_fields(self, frm:forms.Form, data):
+        # Site
+        if data["forced_site_id"]:
+            self.__lock_field(frm.fields["site_id"])
+        # Role
+        if data["forced_prefix_role_id"]:
+            self.__lock_field(frm.fields["prefix_role_id"])            
+        # Prefix
+        if data["forced_prefix_id"]:
+            self.__lock_field(frm.fields["prefix_id"])            
+        # Device Role
+        if data["forced_device_role_id"]:
+            self.__lock_field(frm.fields["device_role_id"])            
+        # Device Type
+        if data["forced_device_type_id"]:
+            self.__lock_field(frm.fields["device_type_id"])            
+        # Flavor special processing
+        flavor=data["flavor"]
+        if "printer"==flavor:
+            namefld:forms.RegexField=frm.fields["device_name"] # type: ignore
+            namefld.regex=r"^PRT[^.]+$"
+            namefld.initial='PRT'
+            namefld.help_text+=" (must start with PRT for this flavor)"
+            self.__lock_field(frm.fields["device_dns"], "AUTOMATIC")
+
+    def get(self, request,  *args, **kwargs):
+        # Extract params
+        get_data=self.__data_from_qdict(request.GET)
+        # additional security
+        #if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
+        #    return self.handle_no_permission()
+        # Build form
+        frm=self.form(initial=get_data)
+        # Lock fields
+        self.__lock_fields(frm, get_data)
+        # Apply limits to values
+        restrict_form_fields(frm, request.user)
+        # Render when all is fine
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": frm,
+                "return_url": get_data["return_url"],
+            },
+        )
+
+    def post(self, request, *args, **kwargs):
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
+            return self.handle_no_permission()
+        return_url = request.GET.get("return_url") or reverse("home")
+        get_data = self.__data_from_qdict(request.GET)
+        form = self.form(initial=get_data, data=request.POST, files=request.FILES)
+        # Lock fields
+        self.__lock_fields(form, get_data)
+        if not form.is_valid():
+            return render(
+                request, self.template_name, {"form": form, "return_url": return_url}
+            )
+        data: dict = form.cleaned_data
+        return_url = data["return_url"]
+        changelog_message = (
+            f"SOPInfra / DHCP Helper - used by {self.request.user.username}"
+        )
+
+        try: 
+            self._do_create_netbox(
+                data["device_type_id"],
+                data["device_name"],
+                data["device_dns"],
+                data["prefix_id"],
+                self._get_root_location(data["prefix_id"].scope),
+                "active",
+                data["device_role_id"],
+                self._check_or_allocate(data["prefix_id"], data["ip_address"]),
+                data["mac_address"],
+                changelog_message,
+            )
+        except ValidationError as e:
+            for k,v in e.message_dict.items():
+                for m in v:
+                    form.add_error(k, m)
+            return render(
+                request, self.template_name, {"form": form, "return_url": return_url}
+            )
+        except Exception as e:
+            messages.error(request, f"Unknown error : {e}")
+
+        return redirect(return_url)
+
+    @transaction.atomic
+    def _do_create_netbox(
+        self,
+        dtype: DeviceType,
+        device_name: str,
+        dns_name: str,
+        pref: Prefix,
+        loc: Location,
+        obj_status: str,
+        device_role: DeviceRole,
+        new_ip_add: str,
+        mac_add: str,
+        changelog_msg: str|None=None
+    ):
+
+        # try to create the device
+        # TODO : reuse if it exists
+        nd = Device(
+            device_type=dtype,
+            name=device_name,
+            site=pref.scope,
+            location=loc,
+            tenant=pref.tenant,
+            status=obj_status,
+            role=device_role,
+        )
+        if changelog_msg:
+            nd._changelog_message = changelog_msg
+        nd.full_clean()
+        nd.save()
+
+        # compute assigned interface
+        if nd.interfaces_count < 1:
+            raise AbortScript("Newly created device has no interfaces !")
+        nint = nd.vc_interfaces()[0]
+        if changelog_msg:
+            nint._changelog_message = changelog_msg
+        nint.full_clean()
+        nint.save()
+
+        # Create MAC Address
+        mac = MACAddress()
+        mac.mac_address = mac_add
+        mac.assigned_object = nint
+        mac.full_clean()
+        if changelog_msg:
+            mac._changelog_message = changelog_msg
+        mac.save()
+
+        # primary mac
+        nint.primary_mac_address = mac
+        nint.full_clean()
+        nint.save()
+
+        # allocate the IP
+        adds = IPAddress.objects.filter(address=new_ip_add)
+        ipadd: IPAddress = None
+        if adds.exists():
+            ipadd = adds[0]
+            ipadd.snapshot()
+        else:
+            ipadd = IPAddress()
+            ipadd.address = new_ip_add
+            ipadd.description = f"created by {self.request.user.username}"
+        ipadd.status = obj_status
+        ipadd.tenant = pref.tenant
+        ipadd.dns_name = dns_name
+        ipadd.assigned_object = nint
+        if changelog_msg:
+            ipadd._changelog_message = changelog_msg
+        ipadd.full_clean()
+        ipadd.save()
+
+        nd.primary_ip4 = ipadd
+        nd.full_clean()
+        nd.save()
+
+        try:
+            request: HttpRequest = current_request.get()  # type: ignore
+            messages.success(request, f"Successfully created reservation : {nd.name} - {nint.name} - {ipadd.address}")
+        except:
+            pass
+
+    def _get_root_location(self, site: Site) -> Location:
+        # find the main location of the site
+        loc = Location.objects.filter(site=site)
+        if len(loc) < 1:
+            raise AbortScript("No locs on this site !")
+        loc = loc[0]
+        while loc.parent is not None:
+            loc = loc.parent
+        return loc
+
+    def _check_or_allocate(self, pref: Prefix, ip_address: str) -> str:
+        # Check if we need to find a free IP in the pools
+        if StringUtils.is_none_or_empty(ip_address):
+            # check if we have a fixed IP range
+            pools = pref.get_child_ranges().filter(role__slug="fix")
+            if pools is None or len(pools) < 1:
+                raise AbortScript(
+                    "This IP Range has no fixed IP allocation pool.\nEither allocate a FIX range in this prefix or input an IP address manualy."
+                )
+            # Find the first free IP address in the first pool
+            ipset: netaddr.IPSet = None
+            for p in pools:
+                ipset = p.get_available_ips()
+                if ipset is None or len(ipset) == 0:
+                    continue
+            print(f"Pool : {ipset.iter_cidrs()}")
+            naddint = 0
+            cid: netaddr.IPNetwork = None
+            for cid in ipset.iter_cidrs():
+                naddint = cid.first
+                break
+            if naddint == 0:
+                raise AbortScript(
+                    "No more available IPs in the fixed allocation pools !"
+                )
+            print(f"IPAdd : {netaddr.IPAddress(naddint)}")
+            # self.log_debug(f'Pref : {pref}')
+            ip_address: str = f"{netaddr.IPAddress(naddint)}/{pref.mask_length}"
+        else:
+            ipadd = netaddr.IPNetwork(f"{ip_address}/{pref.mask_length}")
+            if ipadd != pref.prefix.cidr:
+                raise AbortScript(
+                    f"this IP ({ip_address}) is not in the target network {pref.prefix}"
+                )
+            ip_address = f"{ip_address}/{pref.mask_length}"
+        return ip_address
 
 
 

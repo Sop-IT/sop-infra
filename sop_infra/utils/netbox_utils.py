@@ -23,6 +23,8 @@ class NetboxConstants():
     spokes_root_id=11
     sopit_id=386  
 
+    active_prefixes_status=["active", "noncompliant", "decommissionning"]
+
     __ct_dcim_site:ContentType|None=None
     __ct_tenancy_group:ContentType|None=None
     __ct_tenancy_tenant:ContentType|None=None

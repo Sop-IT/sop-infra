@@ -2,7 +2,7 @@ from django.urls import include, path
 from utilities.urls import get_model_urls
 
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
-from sop_infra.views.infra import SopInfraSyncAdUsers, SopMerakiClaimView, SopMerakiCreateNetworksView, SopMerakiEditView
+from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraSyncAdUsers, SopMerakiClaimView, SopMerakiCreateNetworksView, SopMerakiEditView
 
 from .views import *
 from .models import *
@@ -31,6 +31,10 @@ urlpatterns = [
     # list views
     path('list/', SopInfraListView.as_view(), name='sopinfra_list'),
   
+    # ========================================================================
+    # HELPERS
+    path('helpers/dhcp', SopInfraHelperDhcp.as_view(), name='helpers_dhcp'),
+
 
     # ========================================================================
     # SOP INFRA - SOP MERAKI VIEWS
