@@ -54,7 +54,7 @@ class DateUtils:
         return datetime.now(timezone.utc)
 
     @staticmethod
-    def parse_date(txt: str|None) -> datetime:
+    def parse_date(txt: str) -> datetime:
         if txt is None:
             return None
         dt: datetime = dateutil.parser.isoparse(txt).astimezone(timezone.utc)
@@ -78,7 +78,7 @@ class DateUtils:
     def is_expired_date_string(
         date_str: str, expiry_seconds: int, dflt: bool = True
     ) -> bool:
-        date = None
+        date:datetime
         try:
             date = DateUtils.parse_date(date_str)
         except Exception as err:
@@ -139,17 +139,33 @@ class ArrayUtils:
 
 class SopUtils:
 
-    _email_config = get_config().EMAIL
-    _email_server = _email_config.get("SERVER")
-    _email_port = _email_config.get("PORT")
-    _email_from = _email_config.get("FROM_EMAIL")
-    # TODO others ?
+    __email_server:str|None=None
+    __email_port:str|None=None
+    __email_from:str|None=None
 
     _colors = {
         "failure": ' style="color: red;"',
         "warning": ' style="color: orange;"',
         "success": ' style="color: green;"',
     }
+
+    @staticmethod
+    def get_email_server()->str:
+        if not SopUtils.__email_server:
+            __email_server = get_config().EMAIL.get("SERVER")
+        return SopUtils.__email_server or ""
+    
+    @staticmethod
+    def get_email_port()->int:
+        if not SopUtils.__email_port:
+            __email_port = get_config().EMAIL.get("PORT")
+        return int(SopUtils.__email_port or "0")
+
+    @staticmethod
+    def get_email_from()->str:
+        if not SopUtils.__email_from:
+            __email_from = get_config().EMAIL.get("FROM_EMAIL")
+        return SopUtils.__email_from or ""
 
     @staticmethod
     def extract_script_param(data: dict, pname: str, dflt, if_int_lambda=None):
@@ -250,7 +266,7 @@ class SopUtils:
         html: str | None = None,
     ):
         if sender is None or sender.strip() == "":
-            sender = SopUtils._email_from
+            sender = SopUtils.get_email_from()
         message = MIMEMultipart("alternative")
         message["Subject"] = subject
         message["From"] = sender
@@ -268,7 +284,7 @@ class SopUtils:
         # The email client will try to render the last part first
         message.attach(part1)
         message.attach(part2)
-        smtp = smtplib.SMTP(SopUtils._email_server, SopUtils._email_port)
+        smtp = smtplib.SMTP(SopUtils.get_email_server(), SopUtils.get_email_port())
         smtp.sendmail(sender, receivers, message.as_string())
 
     @staticmethod
@@ -482,7 +498,7 @@ class ReportCheckResultLogger(AbstractCheckResultLogger):
             self.logger.log_debug(cr.text, cr.site)
 
 class ValidatorCheckResultLogger(AbstractCheckResultLogger):
-    logger:CustomValidator=None
+    logger:CustomValidator
     def __init__(self, logger:CustomValidator, failprefix:str):
         self.logger=logger
         self.failprefix=failprefix
