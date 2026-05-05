@@ -11,6 +11,7 @@ from core.models import ObjectType
 
 from dcim.models import Site, Device
 from ipam.models import Prefix, VLANGroup, VLAN, vlans, Role, VRF, IPAddress
+from extras.models import Tag
 from sop_infra.utils.sop_utils import StringUtils
 from tenancy.models import Contact, ContactAssignment, ContactRole, Tenant, TenantGroup
 from sop_infra.models.infra import SopDeviceSetting, SopSwitchTemplate, SopInfra
@@ -50,6 +51,13 @@ class NetboxConstants():
 
 
 class NetboxUtils:
+
+    @staticmethod
+    def get_tag_from_tag_slug(slug:str)->Tag|None:
+        q=Tag.objects.filter(slug=slug)
+        if q.exists():
+            return q[0]
+        return None
 
     @staticmethod
     def get_std_nets()->dict[int, dict[str,Any]]:

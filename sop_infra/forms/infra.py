@@ -837,9 +837,15 @@ class SopInfraHelperDhcpForm(forms.Form):
     forced_device_role_slug=forms.CharField(
         required=False, widget=forms.widgets.HiddenInput
     )
+    forced_device_role_tag_slug=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
     device_role_id = DynamicModelChoiceField(
         queryset=DeviceRole.objects.all(),
         label="Device Role",
+        query_params={
+            "tag": "$forced_device_role_tag_slug"
+        },
         required=True,
         help_text="Device role",
         # TODO filter roles based on cf for availability + cf for prefix role
@@ -851,12 +857,17 @@ class SopInfraHelperDhcpForm(forms.Form):
     forced_device_type_slug=forms.CharField(
         required=False, widget=forms.widgets.HiddenInput
     )
+    forced_device_type_tag_slug=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
     device_type_id = DynamicModelChoiceField(
         queryset=DeviceType.objects.all(),
         label="Device Type",
+        query_params={
+            "tag": "$forced_device_type_tag_slug"
+        },
         required=True,
         help_text="Device type",
-        # TODO filter types based on roles cf
     )
 
     initial_device_name=forms.CharField(
@@ -893,14 +904,11 @@ class SopInfraHelperDhcpForm(forms.Form):
     )
 
     def clean(self):
+        # Super form cleaning
         data = super().clean()
-        
-        request = current_request.get()
+        # Return URL extraction 
+        data["return_url"]=current_request.get().GET.get("return_url") or reverse("home")
+        # Data sanitization
 
-        return_url = reverse("home")
-        if request.GET.get("return_url"):
-            return_url = request.GET.get("return_url")
-
-        data["return_url"]=return_url
-        
+        # Return clean data
         return data

@@ -15,7 +15,7 @@ from netbox.jobs import Job
 from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopMerakiClaimForm
 from sop_infra.jobs import SopMerakiCreateNetworkJob, SopSyncAdUsers
 from sop_infra.models.sopmeraki import SopMerakiUtils
-from sop_infra.utils.netbox_utils import NetboxConstants
+from sop_infra.utils.netbox_utils import NetboxConstants, NetboxUtils
 from utilities.views import register_model_view, ViewTab
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
@@ -25,6 +25,7 @@ from netbox.views import generic
 from dcim.models import DeviceRole, Location, MACAddress, Site, Device
 from dcim.tables import DeviceTable
 from ipam.models import IPAddress, Prefix, Role
+from extras.models import Tag
 from tenancy.models import Contact
 
 from sop_infra.forms import *
@@ -622,9 +623,6 @@ class SopInfraHelperDhcp(AccessMixin, View):
 
     def __data_from_qdict(self, qdict) -> dict:
 
-        # read request params
-        
-
         return_url = qdict.get("return_url") or reverse("home")
         
         flavor = qdict.get("flavor")
@@ -644,6 +642,11 @@ class SopInfraHelperDhcp(AccessMixin, View):
 
         forced_device_role_id = qdict.get("forced_device_role_id")
         forced_device_role_slug = qdict.get("forced_device_role_slug")
+        forced_device_role_tag_slug = qdict.get("forced_device_role_tag_slug")
+        if forced_device_role_tag_slug and not forced_device_role_slug:
+            query=DeviceRole.objects.filter(tags__slug=forced_device_role_tag_slug)
+            if query.count()==1:
+                forced_device_role_slug = query[0]
         if forced_device_role_slug and not forced_device_role_id:
             if DeviceRole.objects.filter(slug=forced_device_role_slug).exists():
                 forced_device_role_id = DeviceRole.objects.get(slug=forced_device_role_slug).pk
@@ -651,6 +654,11 @@ class SopInfraHelperDhcp(AccessMixin, View):
 
         forced_device_type_id = qdict.get("forced_device_type_id")
         forced_device_type_slug = qdict.get("forced_device_type_slug")
+        forced_device_type_tag_slug = qdict.get("forced_device_type_tag_slug")
+        if forced_device_type_tag_slug and not forced_device_type_slug:
+            query=DeviceRole.objects.filter(tags__slug=forced_device_type_tag_slug)
+            if query.count()==1:
+                forced_device_type_slug = query[0]
         if forced_device_type_slug and not forced_device_type_id:
             if DeviceType.objects.filter(slug=forced_device_type_slug).exists():
                 forced_device_type_id = DeviceType.objects.get(slug=forced_device_type_slug).pk
@@ -687,9 +695,11 @@ class SopInfraHelperDhcp(AccessMixin, View):
             "prefix_id" : prefix_id,
             "forced_device_role_id": forced_device_role_id,
             "forced_device_role_slug": forced_device_role_slug,
+            "forced_device_role_tag_slug" : forced_device_role_tag_slug,
             "device_role_id" : device_role_id, 
             "forced_device_type_id": forced_device_type_id,
             "forced_device_type_slug": forced_device_type_slug,
+            "forced_device_type_tag_slug" : forced_device_type_tag_slug,
             "device_type_id" : device_type_id, 
             "initial_device_name": initial_device_name,
             "device_name" : device_name or initial_device_name, 
@@ -727,6 +737,8 @@ class SopInfraHelperDhcp(AccessMixin, View):
             namefld.initial='PRT'
             namefld.help_text+=" (must start with PRT for this flavor)"
             self.__lock_field(frm.fields["device_dns"], "AUTOMATIC")
+        elif "wms"==flavor:
+            self.__lock_field(frm.fields["device_dns"], "IGNORED")
 
     def get(self, request,  *args, **kwargs):
         # Extract params
@@ -783,6 +795,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
                     self._check_or_allocate(data["prefix_id"], data["ip_address"]),
                     data["mac_address"],
                     f"SOPInfra / DHCP Helper - used by {self.request.user.username}",
+                    data["flavor"],
                 )
                 # ALL IS WELL ==> RETURN
                 return redirect(data["return_url"])
@@ -790,6 +803,8 @@ class SopInfraHelperDhcp(AccessMixin, View):
                 for k,v in e.message_dict.items():
                     for m in v:
                         form.add_error(k, m)
+            except AbortScript as e:
+                messages.error(request, f"{e}")
             except Exception as e:
                 messages.error(request, f"Unknown error : {e}")
         # Either the form was invalid or something went wrong
@@ -798,7 +813,26 @@ class SopInfraHelperDhcp(AccessMixin, View):
             request, self.template_name, {"form": form, "return_url": return_url}
         )
 
-        
+    __flavor_tags :dict[str,dict[str,list[str]]]= {
+        "wms": {
+            "Device" : ["wms", "rbac-wms", ],
+            "IPAddress" : ["wms", "rbac-wms", ],
+        },
+    }
+    @staticmethod
+    def get_flavor_tag(flavor:str, objtype:str)->list[Tag]|None:
+        slugs=SopInfraHelperDhcp.__flavor_tags.get(flavor)
+        if slugs is None:
+            return None
+        slugs=slugs.get(objtype)
+        if slugs is None:
+            return None
+        ret:list[Tag]=[]
+        for x in slugs:
+            y=NetboxUtils.get_tag_from_tag_slug(x)
+            if y:
+                ret.append(y)
+        return ret        
 
     @transaction.atomic
     def _do_create_netbox(
@@ -812,8 +846,11 @@ class SopInfraHelperDhcp(AccessMixin, View):
         device_role: DeviceRole,
         new_ip_add: str,
         mac_add: str,
-        changelog_msg: str|None=None
+        changelog_msg: str,
+        flavor: str,
     ):
+
+        apply_tags : list[Tag]|None
 
         # try to create the device
         # TODO : reuse if it exists
@@ -830,6 +867,13 @@ class SopInfraHelperDhcp(AccessMixin, View):
             nd._changelog_message = changelog_msg
         nd.full_clean()
         nd.save()
+        # We need a PK to apply tags
+        apply_tags=self.get_flavor_tag(flavor, "Device")
+        if apply_tags is not None:
+            for tag in apply_tags:
+                nd.tags.add(tag)
+            nd.full_clean()
+            nd.save()
 
         # compute assigned interface
         if nd.interfaces_count < 1:
@@ -844,10 +888,17 @@ class SopInfraHelperDhcp(AccessMixin, View):
         mac = MACAddress()
         mac.mac_address = mac_add
         mac.assigned_object = nint
-        mac.full_clean()
         if changelog_msg:
             mac._changelog_message = changelog_msg
+        mac.full_clean()
         mac.save()
+        # We need a PK to apply tags
+        apply_tags=self.get_flavor_tag(flavor, "MACAddress")
+        if apply_tags is not None:
+            for tag in apply_tags:
+                mac.tags.add(tag)
+            mac.full_clean()
+            mac.save()
 
         # primary mac
         nint.primary_mac_address = mac
@@ -872,7 +923,11 @@ class SopInfraHelperDhcp(AccessMixin, View):
             ipadd._changelog_message = changelog_msg
         ipadd.full_clean()
         ipadd.save()
-
+        # We need a PK to apply tags
+        apply_tags=self.get_flavor_tag(flavor, "IPAddress")
+        if apply_tags is not None:
+            for tag in apply_tags:
+                ipadd.tags.add(tag)
         nd.primary_ip4 = ipadd
         nd.full_clean()
         nd.save()
