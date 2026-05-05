@@ -21,9 +21,17 @@
         
             <li>
                 <a class="dropdown-item"
-                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&forced_prefix_role_slug=usr&forced_device_type_slug=0u-unknown-network-device&forced_device_role_slug=ukn-unknown&flavor=unknown&return_url={{ request.get_full_path }}">
-                    <i class="mdi mdi-help" aria-hidden="true"></i>
-                    &nbsp;-&nbsp;unknown USER device
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&forced_prefix_role_slug=usr&forced_device_type_slug=0u-unknown-network-device&forced_device_role_slug=ukn-unknown&flavor=user&return_url={{ request.get_full_path }}">
+                    <i class="mdi mdi-account" aria-hidden="true"></i>
+                    &nbsp;-&nbsp;any USER device
+                </a>
+            </li>
+        
+            <li>
+                <a class="dropdown-item"
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&forced_prefix_role_slug=wms&forced_device_type_tag_slug=wms&forced_device_role_tag_slug=wms&flavor=wms&return_url={{ request.get_full_path }}">
+                    <i class="mdi mdi-forklift" aria-hidden="true"></i>
+                    &nbsp;-&nbsp;WMS device
                 </a>
             </li>
 

@@ -19,7 +19,7 @@ from sop_infra.utils.netbox_utils import NetboxConstants
 from utilities.views import register_model_view, ViewTab
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
-from utilities.exceptions import AbortScript
+from utilities.exceptions import AbortRequest, AbortScript
 from netbox.views import generic
 
 from dcim.models import DeviceRole, Location, MACAddress, Site, Device
@@ -623,13 +623,16 @@ class SopInfraHelperDhcp(AccessMixin, View):
     def __data_from_qdict(self, qdict) -> dict:
 
         # read request params
-        # forced params override the others
+        
 
         return_url = qdict.get("return_url") or reverse("home")
+        
+        flavor = qdict.get("flavor")
 
         forced_site_id = qdict.get("forced_site_id")
         site_id = forced_site_id or qdict.get("site_id")
 
+        # forced params override the others
         forced_prefix_role_id = qdict.get("forced_prefix_role_id")
         forced_prefix_role_slug = qdict.get("forced_prefix_role_slug")
         if forced_prefix_role_slug and not forced_prefix_role_id:
@@ -658,7 +661,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
         device_dns = qdict.get("device_dns")
         ip_address = qdict.get("ip_address")
         mac_address = qdict.get("mac_address")
-        flavor = qdict.get("flavor")
+
 
         # Apply the only prefix choice when there's only one
         forced_prefix_id = qdict.get("forced_prefix_id")
@@ -729,8 +732,8 @@ class SopInfraHelperDhcp(AccessMixin, View):
         # Extract params
         get_data=self.__data_from_qdict(request.GET)
         # additional security
-        #if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
-        #    return self.handle_no_permission()
+        if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get("flavor")}")):
+            return self.handle_no_permission()
         # Build form
         frm=self.form(initial=get_data)
         # Lock fields
@@ -748,48 +751,54 @@ class SopInfraHelperDhcp(AccessMixin, View):
         )
 
     def post(self, request, *args, **kwargs):
-        # additional security
-        if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
-            return self.handle_no_permission()
-        return_url = request.GET.get("return_url") or reverse("home")
+        # Extract params
         get_data = self.__data_from_qdict(request.GET)
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get("flavor")}")):
+            return self.handle_no_permission()
+        # Build form from post
         form = self.form(initial=get_data, data=request.POST, files=request.FILES)
         # Lock fields
         self.__lock_fields(form, get_data)
-        if not form.is_valid():
-            return render(
-                request, self.template_name, {"form": form, "return_url": return_url}
-            )
-        data: dict = form.cleaned_data
-        return_url = data["return_url"]
-        changelog_message = (
-            f"SOPInfra / DHCP Helper - used by {self.request.user.username}"
+        # Check form data
+        return_url = request.GET.get("return_url") or reverse("home")
+        if form.is_valid():           
+            # fetch clean data
+            data: dict = form.cleaned_data
+            # recheck security with cleaned data
+            if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get("flavor")}")):
+                return self.handle_no_permission()
+            # extract returl url
+            return_url= data["return_url"]
+            # Try create and return 
+            try: 
+                self._do_create_netbox(
+                    data["device_type_id"],
+                    data["device_name"],
+                    data["device_dns"],
+                    data["prefix_id"],
+                    self._get_root_location(data["prefix_id"].scope),
+                    "active",
+                    data["device_role_id"],
+                    self._check_or_allocate(data["prefix_id"], data["ip_address"]),
+                    data["mac_address"],
+                    f"SOPInfra / DHCP Helper - used by {self.request.user.username}",
+                )
+                # ALL IS WELL ==> RETURN
+                return redirect(data["return_url"])
+            except ValidationError as e:
+                for k,v in e.message_dict.items():
+                    for m in v:
+                        form.add_error(k, m)
+            except Exception as e:
+                messages.error(request, f"Unknown error : {e}")
+        # Either the form was invalid or something went wrong
+        # Render the form with error messages
+        return render(
+            request, self.template_name, {"form": form, "return_url": return_url}
         )
 
-        try: 
-            self._do_create_netbox(
-                data["device_type_id"],
-                data["device_name"],
-                data["device_dns"],
-                data["prefix_id"],
-                self._get_root_location(data["prefix_id"].scope),
-                "active",
-                data["device_role_id"],
-                self._check_or_allocate(data["prefix_id"], data["ip_address"]),
-                data["mac_address"],
-                changelog_message,
-            )
-        except ValidationError as e:
-            for k,v in e.message_dict.items():
-                for m in v:
-                    form.add_error(k, m)
-            return render(
-                request, self.template_name, {"form": form, "return_url": return_url}
-            )
-        except Exception as e:
-            messages.error(request, f"Unknown error : {e}")
-
-        return redirect(return_url)
+        
 
     @transaction.atomic
     def _do_create_netbox(
