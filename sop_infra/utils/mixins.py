@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from utilities.exceptions import AbortScript
 from users.models import User, Group
 from extras.choices import LogLevelChoices
@@ -20,7 +20,7 @@ class SopBaseScriptMixin:
                 pass
         if username is None:
             raise AbortScript("---- No username found !!  ----")
-        return self.checkHasPerm(username, "ALL_ITA_Netbox_ADMIN")
+        self.checkHasPerm(username, "ALL_ITA_Netbox_ADMIN")
 
     def checkHasPerm(self, username, groupToCheck):
         realUsers = User.objects.filter(username__exact=username)

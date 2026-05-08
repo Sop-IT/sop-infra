@@ -4,8 +4,8 @@ from utilities.urls import get_model_urls
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
 from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraSyncAdUsers, SopMerakiClaimView, SopMerakiCreateNetworksView, SopMerakiEditView
 
-from .views import *
-from .models import *
+from sop_infra.views import *
+from sop_infra.models import *
 
 app_name = 'sop_infra'
 
