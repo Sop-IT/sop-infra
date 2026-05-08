@@ -11,3 +11,7 @@ dist/
 !remove_old.sh
 venv/
 .vscode/
+.idea/
+.project
+.pydevproject
+Pipfile
