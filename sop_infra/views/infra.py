@@ -5,35 +5,35 @@ from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.urls import reverse
-from django.db.models import Q, Count
-from django.contrib.contenttypes.models import ContentType
+from django.db.models import Count
 from django.contrib import messages
 from django.contrib.auth.mixins import AccessMixin
 from django.core.exceptions import ValidationError
 
-from netbox.jobs import Job
-from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopMerakiClaimForm
-from sop_infra.jobs import SopMerakiCreateNetworkJob, SopSyncAdUsers
-from sop_infra.models.sopmeraki import SopMerakiUtils
-from sop_infra.utils.netbox_utils import NetboxConstants, NetboxUtils
 from utilities.views import register_model_view, ViewTab
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
-from utilities.exceptions import AbortRequest, AbortScript
+from utilities.exceptions import AbortScript
+
+from netbox.jobs import Job
 from netbox.views import generic
 
-from dcim.models import DeviceRole, Location, MACAddress, Site, Device
-from dcim.tables import DeviceTable
-from ipam.models import IPAddress, Prefix, Role
-from extras.models import Tag
+from dcim.models import DeviceRole, Location, MACAddress
+from ipam.models import IPAddress, Role
 from tenancy.models import Contact
+from extras.models import Tag
 
+from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopMerakiClaimForm
+from sop_infra.jobs import SopMerakiCreateNetworkJob, SopSyncAdUsers
+from sop_infra.models.sopmeraki import SopMerakiUtils
+from sop_infra.utils.netbox_utils import SopInfraConstants
 from sop_infra.forms import *
 from sop_infra.tables import *
 from sop_infra.models import *
 from sop_infra.filtersets import *
-from sop_infra.utils.sop_utils import  SopInfraRelatedModelsMixin, StringUtils
-
+from sop_infra.utils.sop_utils import  SopInfraRelatedModelsMixin
+from sop_utils.strings import  StringUtils
+from sop_utils.netbox import NetboxConstants, NetboxUtils
 
 import netaddr
 
@@ -638,8 +638,6 @@ class SopInfraHelperDhcp(AccessMixin, View):
                 forced_prefix_role_id = Role.objects.get(slug=forced_prefix_role_slug).pk
         prefix_role_id = forced_prefix_role_id or qdict.get("prefix_role_id")
 
-        prefix_id = qdict.get("prefix_id")
-
         forced_device_role_id = qdict.get("forced_device_role_id")
         forced_device_role_slug = qdict.get("forced_device_role_slug")
         forced_device_role_tag_slug = qdict.get("forced_device_role_tag_slug")
@@ -674,7 +672,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
         # Apply the only prefix choice when there's only one
         forced_prefix_id = qdict.get("forced_prefix_id")
         if not forced_prefix_id :
-            pfxs=Prefix.objects.filter(status__in=NetboxConstants.active_prefixes_status)
+            pfxs=Prefix.objects.filter(status__in=SopInfraConstants.active_prefixes_status)
             if site_id:
                 pfxs=pfxs.filter(scope_type_id=NetboxConstants.get_ct_dcim_site(), scope_id=site_id)
             if prefix_role_id:
@@ -744,7 +742,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
         # Extract params
         get_data=self.__data_from_qdict(request.GET)
         # additional security
-        if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get("flavor")}")):
+        if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get('flavor')}")):
             return self.handle_no_permission()
         # Build form
         frm=self.form(initial=get_data)
@@ -766,7 +764,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
         # Extract params
         get_data = self.__data_from_qdict(request.GET)
         # additional security
-        if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get("flavor")}")):
+        if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get('flavor')}")):
             return self.handle_no_permission()
         # Build form from post
         form = self.form(initial=get_data, data=request.POST, files=request.FILES)
@@ -778,7 +776,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
             # fetch clean data
             data: dict = form.cleaned_data
             # recheck security with cleaned data
-            if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get("flavor")}")):
+            if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get('flavor')}")):
                 return self.handle_no_permission()
             # extract returl url
             return_url= data["return_url"]
@@ -958,32 +956,33 @@ class SopInfraHelperDhcp(AccessMixin, View):
                     "This IP Range has no fixed IP allocation pool.\nEither allocate a FIX range in this prefix or input an IP address manualy."
                 )
             # Find the first free IP address in the first pool
-            ipset: netaddr.IPSet = None
+            ipset: netaddr.IPSet|None = None
             for p in pools:
                 ipset = p.get_available_ips()
                 if ipset is None or len(ipset) == 0:
                     continue
-            print(f"Pool : {ipset.iter_cidrs()}")
             naddint = 0
-            cid: netaddr.IPNetwork = None
-            for cid in ipset.iter_cidrs():
-                naddint = cid.first
-                break
+            if ipset:
+                print(f"Pool : {ipset.iter_cidrs()}")
+                cid: netaddr.IPNetwork
+                for cid in ipset.iter_cidrs():
+                    naddint = cid.first
+                    break
             if naddint == 0:
                 raise AbortScript(
                     "No more available IPs in the fixed allocation pools !"
                 )
             print(f"IPAdd : {netaddr.IPAddress(naddint)}")
             # self.log_debug(f'Pref : {pref}')
-            ip_address: str = f"{netaddr.IPAddress(naddint)}/{pref.mask_length}"
+            ret: str = f"{netaddr.IPAddress(naddint)}/{pref.mask_length}"
         else:
             ipadd = netaddr.IPNetwork(f"{ip_address}/{pref.mask_length}")
             if ipadd != pref.prefix.cidr:
                 raise AbortScript(
                     f"this IP ({ip_address}) is not in the target network {pref.prefix}"
                 )
-            ip_address = f"{ip_address}/{pref.mask_length}"
-        return ip_address
+            ret = f"{ip_address}/{pref.mask_length}"
+        return ret
 
 
 

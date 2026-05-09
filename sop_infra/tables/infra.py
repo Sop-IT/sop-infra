@@ -1,10 +1,10 @@
-from django.db import models
+
 import django_tables2 as tables
+
 from django.utils.safestring import mark_safe
-from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable, ChoiceFieldColumn
-from dcim.models import Site
+
 from dcim.choices import SiteStatusChoices
 
 from sop_infra.models import *

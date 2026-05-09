@@ -3,11 +3,10 @@ from django import forms
 from django.urls import reverse
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
-from django.db.models import Q
 
 from sop_infra.models.sopmeraki import SopMerakiUtils
-from sop_infra.utils.netbox_utils import NetboxConstants
-from sop_infra.utils.sop_utils import SopRegExps
+from sop_infra.utils.netbox_utils import SopInfraConstants
+from sop_utils.regexps import SopRegExps
 from utilities.forms.fields import DynamicModelChoiceField
 from netbox.forms import NetBoxModelFilterSetForm, NetBoxModelForm
 from utilities.forms.widgets import DatePicker
@@ -822,7 +821,7 @@ class SopInfraHelperDhcpForm(forms.Form):
         queryset=Prefix.objects.all(),
         label="Prefix",
         query_params={
-            "status": NetboxConstants.active_prefixes_status,
+            "status": SopInfraConstants.active_prefixes_status,
             "site_id": "$site_id",
             "role_id": "$prefix_role_id",
         },

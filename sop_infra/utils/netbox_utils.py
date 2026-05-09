@@ -7,18 +7,18 @@ from django.db.models import Q, F
 from django.db.models import Case, Value, When
 from django.contrib.contenttypes.models import ContentType
 
-from core.models import ObjectType
-
 from dcim.models import Site, Device
 from ipam.models import Prefix, VLANGroup, VLAN, vlans, Role, VRF, IPAddress
 from extras.models import Tag
-from sop_infra.utils.sop_utils import StringUtils
 from tenancy.models import Contact, ContactAssignment, ContactRole, Tenant, TenantGroup
+
+from sop_utils.strings import StringUtils
+from sop_utils.netbox import NetboxConstants
 from sop_infra.models.infra import SopDeviceSetting, SopSwitchTemplate, SopInfra
 from sop_infra.models.sopmeraki import SopMerakiDevice, SopMerakiNet, SopMerakiSwitchStack
 
 
-class NetboxConstants():
+class SopInfraConstants():
     # TODO : move that to config settings
     base_adm_ip_addr=netaddr.IPAddress('10.40.0.0')
     spokes_root_id=11
@@ -26,38 +26,11 @@ class NetboxConstants():
 
     active_prefixes_status=["active", "noncompliant", "decommissionning"]
 
-    __ct_dcim_site:ContentType|None=None
-    __ct_tenancy_group:ContentType|None=None
-    __ct_tenancy_tenant:ContentType|None=None
-
-    @staticmethod
-    def get_ct_dcim_site()->ContentType:
-        if NetboxConstants.__ct_dcim_site is None:
-            NetboxConstants.__ct_dcim_site=ContentType.objects.get_by_natural_key("dcim", "site")
-        return NetboxConstants.__ct_dcim_site
-
-    @staticmethod
-    def get_ct_tenancy_tenant()->ContentType:
-        if NetboxConstants.__ct_tenancy_tenant is None:
-            NetboxConstants.__ct_tenancy_tenant=ContentType.objects.get_by_natural_key("tenancy", "tenant")
-        return NetboxConstants.__ct_tenancy_tenant
-
-    @staticmethod
-    def get_ct_tenancy_group()->ContentType:
-        if NetboxConstants.__ct_tenancy_group is None:
-            NetboxConstants.__ct_tenancy_group=ContentType.objects.get_by_natural_key("tenancy", "tenantgroup")
-        return NetboxConstants.__ct_tenancy_group
 
 
+class SopInfraUtils:
 
-class NetboxUtils:
-
-    @staticmethod
-    def get_tag_from_tag_slug(slug:str)->Tag|None:
-        q=Tag.objects.filter(slug=slug)
-        if q.exists():
-            return q[0]
-        return None
+ 
 
     @staticmethod
     def get_std_nets()->dict[int, dict[str,Any]]:
@@ -116,14 +89,14 @@ class NetboxUtils:
 
     @staticmethod
     def get_sopinfra_site_master_site_id(site: Site) -> int | None:
-        sopinfra = NetboxUtils.get_site_sopinfra(site)
+        sopinfra = SopInfraUtils.get_site_sopinfra(site)
         if sopinfra is not None and sopinfra.master_site is not None:
             return site.sopinfra.master_site.id  # type: ignore
         return None
 
     @staticmethod
     def get_sopinfra_ad_direct_users(site: Site) -> int | None:
-        sopinfra = NetboxUtils.get_site_sopinfra(site)
+        sopinfra = SopInfraUtils.get_site_sopinfra(site)
         if sopinfra is not None:
             return site.sopinfra.ad_direct_users  # type: ignore
         return None
@@ -224,7 +197,7 @@ class NetboxUtils:
             .annotate(stp_prio_mod=F("netbox_device__sopdevicesetting__switch_template__stp_prio")%4096)\
             .exclude(stp_prio_mod=0)
         for sd in sds:
-            if not NetboxUtils.check_if_meraki_device_push_would_succeed(sd):
+            if not SopInfraUtils.check_if_meraki_device_push_would_succeed(sd):
                 ret.append(sd)
         return ret
                       
@@ -273,7 +246,7 @@ class NetboxUtils:
     @staticmethod
     def get_device_compliance_alert_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
-        if not NetboxUtils.check_if_meraki_device_push_would_succeed(sd):
+        if not SopInfraUtils.check_if_meraki_device_push_would_succeed(sd):
             msg=f"Meraki PUSH would NOT succeed for this device due to configuration issues"
             ret.append(msg)
         return ret
@@ -281,13 +254,13 @@ class NetboxUtils:
     @staticmethod
     def get_device_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
-        if not NetboxUtils.check_if_meraki_device_has_netbox_device(sd):
+        if not SopInfraUtils.check_if_meraki_device_has_netbox_device(sd):
             msg=f"Meraki Device has no matching Netbox Device"
             ret.append(msg)
-        if not NetboxUtils.check_if_meraki_device_has_netbox_device_in_same_site(sd):
+        if not SopInfraUtils.check_if_meraki_device_has_netbox_device_in_same_site(sd):
             msg=f"Meraki Device has a matching Netbox Device but on another site"
             ret.append(msg)
-        if not NetboxUtils.check_if_meraki_device_has_netbox_device_of_same_type(sd):
+        if not SopInfraUtils.check_if_meraki_device_has_netbox_device_of_same_type(sd):
             msg=f"Meraki Device has a matching Netbox Device but of another type"
             ret.append(msg)
         return ret
@@ -295,7 +268,7 @@ class NetboxUtils:
     @staticmethod
     def get_switch_stack_alert_messages(ss:SopMerakiSwitchStack)->list[str]:
         ret:list[str]=list()
-        if not NetboxUtils.check_if_meraki_switch_stack_push_would_succeed(ss):
+        if not SopInfraUtils.check_if_meraki_switch_stack_push_would_succeed(ss):
             msg=f"Meraki PUSH would NOT succeed for this switch stack due to configuration issues"
             ret.append(msg) 
         return ret
@@ -329,7 +302,7 @@ class NetboxUtils:
         if vl is None or not isinstance(vl, VLAN):
             raise Exception(f"vl must be a VLAN instance")
         # Ignore exempted vlans
-        if NetboxUtils.is_exempted_vlan(vl):
+        if SopInfraUtils.is_exempted_vlan(vl):
             return True
         # First check special cases
         short_name=vl.name.lower()[:3]
@@ -346,7 +319,7 @@ class NetboxUtils:
         if short_name in ("ind", "red"):
             return True 
         # fetch standard user vlans
-        std_nets=NetboxUtils.get_std_nets()
+        std_nets=SopInfraUtils.get_std_nets()
         # Check if we have an exact match in "user" vlans
         if vl.vid in std_nets.keys():
             std_vl:dict[str,Any]=std_nets.get(vl.vid) # type: ignore
@@ -359,7 +332,7 @@ class NetboxUtils:
         if vl is None or not isinstance(vl, VLAN):
             raise Exception(f"vl must be a VLAN instance")
         # Ignore exempted vlans
-        if NetboxUtils.is_exempted_vlan(vl):
+        if SopInfraUtils.is_exempted_vlan(vl):
             return True
         # check if we have a vlan group
         if vl.group is None:
@@ -378,10 +351,10 @@ class NetboxUtils:
     @staticmethod
     def get_vlan_compliance_warning_messages(vl:VLAN)->list[str]:
         ret:list[str]=list()
-        if not NetboxUtils.check_if_vlan_naming_is_compliant(vl):
+        if not SopInfraUtils.check_if_vlan_naming_is_compliant(vl):
             msg=f"Vlan <b>ID/name</b> is not compliant with Soprema standards."
             ret.append(msg)
-        if not NetboxUtils.check_if_vlan_vlan_group_is_compliant(vl):
+        if not SopInfraUtils.check_if_vlan_vlan_group_is_compliant(vl):
             msg=f"Vlan <b>VLAN GROUP</b> is missing or not compliant with Soprema standards."
             ret.append(msg)
         return ret
@@ -416,14 +389,14 @@ class NetboxUtils:
         ret:list[Prefix]=list()
         pfxs=Prefix.objects.filter(scope_type=NetboxConstants.get_ct_dcim_site(), scope_id=site.pk)
         for pfx in pfxs:
-            if not NetboxUtils.check_if_prefix_role_is_compliant(pfx):
+            if not SopInfraUtils.check_if_prefix_role_is_compliant(pfx):
                 ret.append(pfx)
         return ret
 
     @staticmethod
     def get_prefix_compliance_warning_messages(pfx:Prefix)->list[str]:
         ret:list[str]=list()
-        if not NetboxUtils.check_if_prefix_role_is_compliant(pfx):
+        if not SopInfraUtils.check_if_prefix_role_is_compliant(pfx):
             msg=f"Prefix role is missing or otherwise not compliant with Soprema standards."
             ret.append(msg)
         return ret
@@ -452,7 +425,7 @@ class NetboxUtils:
             mandatory_cts.append((billing_role, 'primary'))
         ctass_combos:list[tuple[ContactRole,str|None]]=list()
         for cta in ContactAssignment.objects.filter(object_type_id=NetboxConstants.get_ct_tenancy_tenant(), object_id=tn.pk):
-            if NetboxUtils.check_if_contact_is_compliant(cta.contact):
+            if SopInfraUtils.check_if_contact_is_compliant(cta.contact):
                 ctass_combos.append((cta.role, cta.priority))
         ret:list[str]=list()
         for ctc in mandatory_cts:
@@ -470,7 +443,7 @@ class NetboxUtils:
         tg_data=tg.custom_field_data
         status=tn_data.get("tenant_status")
         if status in ['candidate', 'active', 'decommissionning', 'integration']:
-            lstct:list[str]=NetboxUtils.list_missing_tenant_mandatory_contactology(tn, "warning")
+            lstct:list[str]=SopInfraUtils.list_missing_tenant_mandatory_contactology(tn, "warning")
             if len(lstct) > 0:
                 msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
                 ret.append(msg)
@@ -492,7 +465,7 @@ class NetboxUtils:
         if status is None or status.strip()=="":
             ret.append("Missing or invalid status")
         elif status in ['candidate', 'active', 'decommissionning', 'integration']:
-            lstct:list[str]=NetboxUtils.list_missing_tenant_mandatory_contactology(tn, "critical")
+            lstct:list[str]=SopInfraUtils.list_missing_tenant_mandatory_contactology(tn, "critical")
             if len(lstct) > 0:
                 msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
                 ret.append(msg)
@@ -514,15 +487,15 @@ class NetboxUtils:
  
     @staticmethod
     def has_tenant_compliance_warning_messages(tn:Tenant) -> bool:
-        return len(NetboxUtils.get_tenant_compliance_warning_messages(tn))>0
+        return len(SopInfraUtils.get_tenant_compliance_warning_messages(tn))>0
 
     @staticmethod
     def has_tenant_compliance_danger_messages(tn:Tenant) -> bool:
-        return len(NetboxUtils.get_tenant_compliance_danger_messages(tn))>0
+        return len(SopInfraUtils.get_tenant_compliance_danger_messages(tn))>0
  
     @staticmethod
     def check_if_tenant_is_compliant(tn:Tenant) -> bool:
-        return not(NetboxUtils.has_tenant_compliance_danger_messages(tn)) and not(NetboxUtils.has_tenant_compliance_warning_messages(tn))
+        return not(SopInfraUtils.has_tenant_compliance_danger_messages(tn)) and not(SopInfraUtils.has_tenant_compliance_warning_messages(tn))
 
   
     # --------------------  TENANT GROUP CHECKS --------------------------------
@@ -531,7 +504,7 @@ class NetboxUtils:
     def list_tenantgroup_non_compliant_tenants_warning(tg:TenantGroup) -> list[Tenant]:
         ret:list[Tenant]=list()
         for tn in tg.tenants.all():
-            if NetboxUtils.has_tenant_compliance_warning_messages(tn):
+            if SopInfraUtils.has_tenant_compliance_warning_messages(tn):
                 ret.append(tn)
         return ret
 
@@ -539,14 +512,14 @@ class NetboxUtils:
     def list_tenantgroup_non_compliant_tenants_danger(tg:TenantGroup) -> list[Tenant]:
         ret:list[Tenant]=list()
         for tn in tg.tenants.all():
-            if NetboxUtils.has_tenant_compliance_danger_messages(tn):
+            if SopInfraUtils.has_tenant_compliance_danger_messages(tn):
                 ret.append(tn)
         return ret
 
     @staticmethod
     def get_tenantgroup_compliance_warning_messages(tg:TenantGroup) -> list[str]:
         ret:list[str]=list()
-        lstv=NetboxUtils.list_tenantgroup_non_compliant_tenants_warning(tg)
+        lstv=SopInfraUtils.list_tenantgroup_non_compliant_tenants_warning(tg)
         if len(lstv) > 0:
             vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.name}</a>' for v in lstv ]
             msg=f"Non compliant Tenant(s) : "+ ", ".join(vl_msgs)
@@ -556,7 +529,7 @@ class NetboxUtils:
     @staticmethod
     def get_tenantgroup_compliance_danger_messages(tg:TenantGroup) -> list[str]:
         ret:list[str]=list()
-        lstv=NetboxUtils.list_tenantgroup_non_compliant_tenants_danger(tg)
+        lstv=SopInfraUtils.list_tenantgroup_non_compliant_tenants_danger(tg)
         if len(lstv) > 0:
             vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.name}</a>' for v in lstv ]
             msg=f"Critical issues on Tenant(s) : "+ ", ".join(vl_msgs)
@@ -582,7 +555,7 @@ class NetboxUtils:
 
     @staticmethod
     def check_if_contact_is_compliant(ct:Contact) -> bool:
-        return len(NetboxUtils.list_contact_compliance_issues(ct))==0
+        return len(SopInfraUtils.list_contact_compliance_issues(ct))==0
 
     
     # --------------------  VLAN GROUP CHECKS --------------------------------
@@ -611,7 +584,7 @@ class NetboxUtils:
         # VlanGroups have to be attached to a site, but this is handled by a saparate check
         if vlg.scope_type != NetboxConstants.get_ct_dcim_site() :
             return True
-        if NetboxUtils.is_exempted_vlan_group(vlg):
+        if SopInfraUtils.is_exempted_vlan_group(vlg):
             return True
         if vlg.name is None:
             return False
@@ -626,7 +599,7 @@ class NetboxUtils:
         ret:list[VLANGroup]=list()
         vlgs=VLANGroup.objects.filter(scope_type=NetboxConstants.get_ct_dcim_site(), scope_id=site.pk)
         for vlg in vlgs:
-            if not NetboxUtils.check_if_vlan_group_name_is_compliant(vlg):
+            if not SopInfraUtils.check_if_vlan_group_name_is_compliant(vlg):
                 ret.append(vlg)
         return ret
    
@@ -635,7 +608,7 @@ class NetboxUtils:
         # VlanGroups have to be attached to a site
         if vlg.scope_type != NetboxConstants.get_ct_dcim_site() :
             return False
-        if NetboxUtils.is_exempted_vlan_group(vlg):
+        if SopInfraUtils.is_exempted_vlan_group(vlg):
             return True
         # ok for now, perhaps we'll implement tenant checks later
         return True
@@ -645,17 +618,17 @@ class NetboxUtils:
         ret:list[VLANGroup]=list()
         vlgs=VLANGroup.objects.filter(scope_type=NetboxConstants.get_ct_dcim_site(), scope_id=site.pk)
         for vlg in vlgs:
-            if not NetboxUtils.check_if_vlan_group_scope_is_compliant(vlg):
+            if not SopInfraUtils.check_if_vlan_group_scope_is_compliant(vlg):
                 ret.append(vlg)
         return ret 
 
     @staticmethod
     def get_vlan_group_compliance_warning_messages(vg:VLANGroup)->list[str]:
         ret:list[str]=list()
-        if not NetboxUtils.check_if_vlan_group_name_is_compliant(vg):
+        if not SopInfraUtils.check_if_vlan_group_name_is_compliant(vg):
             msg=f"VLAN Group <b>NAME</b> is not compliant with Soprema standards."
             ret.append(msg)
-        if not NetboxUtils.check_if_vlan_group_scope_is_compliant(vg):
+        if not SopInfraUtils.check_if_vlan_group_scope_is_compliant(vg):
             msg=f"VLAN Group <b>SCOPE</b> is not compliant with Soprema standards."
             ret.append(msg)
         return ret        
@@ -687,7 +660,7 @@ class NetboxUtils:
             pass
         ctass_combos:list[tuple[ContactRole,str|None]]=list()
         for cta in ContactAssignment.objects.filter(object_type_id=NetboxConstants.get_ct_dcim_site(), object_id=site.pk):
-            if NetboxUtils.check_if_contact_is_compliant(cta.contact):
+            if SopInfraUtils.check_if_contact_is_compliant(cta.contact):
                 ctass_combos.append((cta.role, cta.priority))
         ret:list[str]=list()
         for ctc in mandatory_cts:
@@ -700,7 +673,7 @@ class NetboxUtils:
         ret:list[VLAN]=list()
         vls=VLAN.objects.filter(site_id=site.pk)
         for vl in vls:
-            if not NetboxUtils.check_if_vlan_naming_is_compliant(vl):
+            if not SopInfraUtils.check_if_vlan_naming_is_compliant(vl):
                 ret.append(vl)
         return ret
  
@@ -709,7 +682,7 @@ class NetboxUtils:
         ret:list[VLAN]=list()
         vls=VLAN.objects.filter(site_id=site.pk)
         for vl in vls:
-            if not NetboxUtils.check_if_vlan_vlan_group_is_compliant(vl):
+            if not SopInfraUtils.check_if_vlan_vlan_group_is_compliant(vl):
                 ret.append(vl)
         return ret
 
@@ -717,32 +690,32 @@ class NetboxUtils:
     def get_site_compliance_warning_messages(site:Site)->list[str]:
         ret:list[str]=list()
         if site.tenant is not None:
-            if NetboxUtils.has_tenant_compliance_danger_messages(site.tenant):
+            if SopInfraUtils.has_tenant_compliance_danger_messages(site.tenant):
                 pass
-            elif NetboxUtils.has_tenant_compliance_warning_messages(site.tenant):
+            elif SopInfraUtils.has_tenant_compliance_warning_messages(site.tenant):
                 msg=f'Non compliant tenant <a href="{site.tenant.get_absolute_url()}">{site.tenant.name}</a> !'
                 ret.append(msg)
-        lstv:list[VLAN]=NetboxUtils.list_non_compliant_vlan_namings(site)
+        lstv:list[VLAN]=SopInfraUtils.list_non_compliant_vlan_namings(site)
         if len(lstv) > 0:
             vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.vid}/{v.name}</a>' for v in lstv ]
             msg=f"Non compliant VLAN ID/name(s) : "+ ", ".join(vl_msgs)
             ret.append(msg)
-        lstv:list[VLAN]=NetboxUtils.list_non_compliant_vlan_vlan_groups(site)
+        lstv:list[VLAN]=SopInfraUtils.list_non_compliant_vlan_vlan_groups(site)
         if len(lstv) > 0:
             vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.vid}/{v.name}</a>' for v in lstv ]
             msg=f"Non compliant VLAN vlan group(s) : "+ ", ".join(vl_msgs)
             ret.append(msg)
-        lstp:list[Prefix]=NetboxUtils.list_non_compliant_prefix_roles(site)
+        lstp:list[Prefix]=SopInfraUtils.list_non_compliant_prefix_roles(site)
         if len(lstp) > 0:
             pfx_msgs=[ f'<a href="{p.get_absolute_url()}">{p.prefix}</a>' for p in lstp ]
             msg=f"Non compliant PREFIX role(s) : "+ ", ".join(pfx_msgs)
             ret.append(msg)
-        lstvg:list[VLANGroup]=NetboxUtils.list_non_compliant_vlan_group_names(site)
+        lstvg:list[VLANGroup]=SopInfraUtils.list_non_compliant_vlan_group_names(site)
         if len(lstvg) > 0:
             vg_msgs=[ f'<a href="{vg.get_absolute_url()}">{vg}</a>' for vg in lstvg ]
             msg=f"Non compliant VLANGROUP name(s) : "+ ", ".join(vg_msgs)
             ret.append(msg)
-        lstvg:list[VLANGroup]=NetboxUtils.list_non_compliant_vlan_group_scopes(site)
+        lstvg:list[VLANGroup]=SopInfraUtils.list_non_compliant_vlan_group_scopes(site)
         if len(lstvg) > 0:
             vg_msgs=[ f'<a href="{vg.get_absolute_url()}">{vg}</a>' for vg in lstvg ]
             msg=f"Non compliant VLANGROUP scope(s) : "+ ", ".join(vg_msgs)
@@ -756,35 +729,35 @@ class NetboxUtils:
             msg=f"Missing tenant !"
             ret.append(msg)           
         else:
-            if NetboxUtils.has_tenant_compliance_danger_messages(site.tenant):
+            if SopInfraUtils.has_tenant_compliance_danger_messages(site.tenant):
                 msg=f'Non compliant tenant <a href="{site.tenant.get_absolute_url()}">{site.tenant.name}</a> !'
                 ret.append(msg)
-        lstct:list[str]=NetboxUtils.list_missing_site_mandatory_contactology(site)
+        lstct:list[str]=SopInfraUtils.list_missing_site_mandatory_contactology(site)
         if len(lstct) > 0:
             msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
             ret.append(msg)
-        lstss:list[SopMerakiSwitchStack]=NetboxUtils.list_meraki_switch_stacks_where_push_would_not_success(site)
+        lstss:list[SopMerakiSwitchStack]=SopInfraUtils.list_meraki_switch_stacks_where_push_would_not_success(site)
         if len(lstss) > 0:
             ss_msgs=[ f'<a href="{ss.get_absolute_url()}">{ss.nom}</a>' for ss in lstss ]
             msg=f"Switch stacks BLOCKING PUSH : "+ ", ".join(ss_msgs)
             ret.append(msg)        
-        lstsd:list[SopMerakiDevice]=NetboxUtils.list_meraki_devices_where_push_would_not_success(site)
+        lstsd:list[SopMerakiDevice]=SopInfraUtils.list_meraki_devices_where_push_would_not_success(site)
         if len(lstsd) > 0:
             sd_msgs=[ f'<a href="{sd.get_absolute_url()}">{sd.nom}</a>' for sd in lstsd ]
             msg=f"Devices BLOCKING PUSH : "+ ", ".join(sd_msgs)
             ret.append(msg)
         lstsd:list[SopMerakiDevice]
-        lstsd=NetboxUtils.list_meraki_devices_without_netbox_device(site)
+        lstsd=SopInfraUtils.list_meraki_devices_without_netbox_device(site)
         if len(lstsd) > 0:
             sd_msgs=[ f'<a href="{sd.get_absolute_url()}">{sd.nom}</a>' for sd in lstsd ]
             msg=f"Missing netbox devices : "+ ", ".join(sd_msgs)
             ret.append(msg)
-        lstsd=NetboxUtils.list_meraki_devices_without_netbox_device_in_same_site(site)
+        lstsd=SopInfraUtils.list_meraki_devices_without_netbox_device_in_same_site(site)
         if len(lstsd) > 0:
             sd_msgs=[ f'<a href="{sd.get_absolute_url()}">{sd.nom}</a>' for sd in lstsd ]
             msg=f"Devices on another site : "+ ", ".join(sd_msgs)
             ret.append(msg)
-        lstsd=NetboxUtils.list_meraki_devices_without_netbox_device_of_same_type(site)
+        lstsd=SopInfraUtils.list_meraki_devices_without_netbox_device_of_same_type(site)
         if len(lstsd) > 0:
             sd_msgs=[ f'<a href="{sd.get_absolute_url()}">{sd.nom}</a>' for sd in lstsd ]
             msg=f"Devices with another type : "+ ", ".join(sd_msgs)
@@ -828,9 +801,9 @@ class NetboxHelpers():
     def _calc_site_net_num(self, p:Prefix)->int:
         if p.prefix.ip.value is None:
             raise Exception("p.prefix.ip.value cannot be None")
-        if NetboxConstants.base_adm_ip_addr.value is None:
+        if SopInfraConstants.base_adm_ip_addr.value is None:
             raise Exception("NetboxConstants.base_adm_ip_addr.value cannot be None")
-        net_num=int((p.prefix.ip.value-NetboxConstants.base_adm_ip_addr.value)/256)
+        net_num=int((p.prefix.ip.value-SopInfraConstants.base_adm_ip_addr.value)/256)
         return net_num
     
     def _calc_std_network_start(self, net_num:int, base:netaddr.IPAddress, cidr:int) -> netaddr.IPAddress:
@@ -889,7 +862,7 @@ class NetboxHelpers():
         if net_num is None:
             raise Exception("Cannot calculate std networks without an ADM prefix on site !")
         # TODO : ça devrait être de vrais objets, probablement des modèles
-        std_nets=NetboxUtils.get_std_nets()
+        std_nets=SopInfraUtils.get_std_nets()
         ret={}
         for k,v in std_nets.items():
             start:netaddr.IPAddress=v.get('start') # type: ignore

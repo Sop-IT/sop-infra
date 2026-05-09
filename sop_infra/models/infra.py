@@ -7,7 +7,6 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
 from dcim.models import Site, Location, Device
-from ipam.models import VLAN, VLANGroup
 
 from sop_infra.validators import SopInfraSlaveValidator
 

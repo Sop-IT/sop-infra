@@ -1,26 +1,33 @@
 from django.db.models import Count
-from netbox.views import generic
-from sop_infra.forms import *
-from sop_infra.tables import *
-from sop_infra.models import *
 from django.shortcuts import render, redirect
 from django.views import View
-from sop_infra.filtersets import *
+
 from django.http import HttpRequest
+from django.urls import reverse
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.mixins import AccessMixin
+
+from utilities.views import ObjectPermissionRequiredMixin, register_model_view
+from utilities.permissions import get_permission_for_model
+from utilities.forms import restrict_form_fields
+
+from netbox.views import generic
+from netbox.jobs import Job
+
+from dcim.models import Site
 from sop_infra.jobs import (
     SopMerakiCreateNetworkJob,
     SopMerakiDashRefreshJob,
     SopMerakiOrgRefreshJob,
     SopMerakiNetRefreshJob,
 )
-from netbox.jobs import Job
-from django.urls import reverse
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.mixins import AccessMixin
-from sop_infra.utils.sop_utils import SopUtils
-from utilities.views import ObjectPermissionRequiredMixin, register_model_view
-from utilities.permissions import get_permission_for_model
-from utilities.forms import restrict_form_fields
+
+from sop_utils.misc import SopUtils
+from sop_infra.forms import SopMerakiDashForm, SopMerakiDashFilterForm, SopMerakiDashRefreshForm, SopMerakiOrgForm, SopMerakiOrgFilterForm, SopMerakiOrgRefreshChooseForm, SopMerakiNetForm, SopMerakiNetFilterForm, SopMerakiNetRefreshChooseForm, SopMerakiDeviceForm, SopMerakiDeviceFilterForm, SopMerakiSwitchStackForm, SopMerakiSwitchStackFilterForm
+from sop_infra.tables import SopMerakiDashTable, SopMerakiOrgTable, SopMerakiNetTable, SopMerakiDeviceTable, SopMerakiSwitchStackTable
+from sop_infra.models import SopMerakiDash, SopMerakiOrg, SopMerakiNet, SopMerakiDevice, SopMerakiSwitchStack
+from sop_infra.filtersets import SopMerakiDashFilterSet, SopMerakiOrgFilterSet, SopMerakiNetFilterSet, SopMerakiDeviceFilterSet, SopMerakiSwitchStackFilterSet
+
 
 
 class SopMerakiTriSearchView(View):

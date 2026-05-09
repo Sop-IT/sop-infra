@@ -1,7 +1,7 @@
 import struct, re, ldap, phonenumbers
 
-from sop_infra.utils.sop_utils import DateUtils
-from sop_infra.utils.netbox_utils import NetboxUtils
+from sop_utils.dates import DateUtils
+from sop_infra.utils.netbox_utils import SopInfraUtils
 from django.core.exceptions import ValidationError
 
 from dcim.models import Site
@@ -98,6 +98,7 @@ class user_info:
                 )
             # try via the isilog email attribute
             smpMail = self.read_single_value(entry, "extensionAttribute8").lower()
+            m:re.Match[str]|None
             m = re.match(r"^\s*(([^@]+)@([^@]+))\s*$", smpMail)
             if m and m.group(3) != "ad.soprema.com":
                 smpMail = m.group(1)
@@ -662,7 +663,7 @@ class ADCountersUpd:
     # Push to DB
     def push_to_db(self) -> int:
         site = self.site
-        sopinfra = NetboxUtils.get_site_sopinfra(site)
+        sopinfra = SopInfraUtils.get_site_sopinfra(site)
         if sopinfra is None:
             return 0
         if (

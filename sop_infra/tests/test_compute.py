@@ -1,11 +1,8 @@
-from django.urls import reverse
-
-from utilities.testing import TestCase
 from dcim.models import Site
+from utilities.testing import TestCase
 
 from sop_infra.models import SopInfra
 from sop_infra.utils.sop_utils import SopInfraRefreshMixin
-
 
 __all__ = ("SopInfraComputeTestCase",)
 

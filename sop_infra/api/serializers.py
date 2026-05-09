@@ -1,4 +1,4 @@
-from django.utils.translation import gettext_lazy as _
+
 from rest_framework import serializers
 from timezone_field.rest_framework import TimeZoneSerializerField
 
@@ -16,7 +16,7 @@ class PrismaEndpointSerializer(NetBoxModelSerializer):
     )
     # access_location = serializers.SerializerMethodField()
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = PrismaEndpoint
         fields = (
             "id",
@@ -58,7 +58,7 @@ class PrismaAccessLocationSerializer(NetBoxModelSerializer):
     time_zone = TimeZoneSerializerField(required=False, allow_null=True)
     compute_location = serializers.SerializerMethodField()
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = PrismaAccessLocation
         fields = (
             "id",
@@ -87,7 +87,7 @@ class PrismaComputedAccessLocationSerializer(NetBoxModelSerializer):
         view_name="plugins-api:sop_infra-api:prismacomputedaccesslocation-detail"
     )
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = PrismaComputedAccessLocation
         fields = (
             "id",
@@ -124,7 +124,7 @@ class SopInfraSerializer(NetBoxModelSerializer):
     enabled = ChoiceField(choices=InfraTypeIndusChoices)
     valid = ChoiceField(choices=InfraTypeIndusChoices)
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = SopInfra
         fields = (
             "id",
@@ -220,7 +220,7 @@ class SopMerakiDashSerializer(NetBoxModelSerializer):
     )
     orgs_count = serializers.IntegerField(read_only=True)
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = SopMerakiDash
         fields = (
             "id",
@@ -244,7 +244,7 @@ class SopMerakiOrgSerializer(NetBoxModelSerializer):
     nets_count = serializers.IntegerField(read_only=True)
     devs_count = serializers.IntegerField(read_only=True)
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = SopMerakiOrg
         fields = (
             "id",
@@ -266,7 +266,7 @@ class SopMerakiNetSerializer(NetBoxModelSerializer):
         view_name="plugins-api:sop_infra-api:sopmerakinet-detail"
     )
     devs_count = serializers.IntegerField(read_only=True)
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = SopMerakiNet
         fields = (
             "id",
@@ -288,7 +288,7 @@ class SopMerakiSwitchStackSerializer(NetBoxModelSerializer):
         view_name="plugins-api:sop_infra-api:sopmerakiswitchstack-detail"
     )
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = SopMerakiSwitchStack
         fields = (
             "id",
@@ -308,7 +308,7 @@ class SopMerakiDeviceSerializer(NetBoxModelSerializer):
         view_name="plugins-api:sop_infra-api:sopmerakidevice-detail"
     )
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = SopMerakiDevice
         fields = (
             "id",
@@ -337,7 +337,7 @@ class SopSwitchTemplateSerializer(NetBoxModelSerializer):
         view_name="plugins-api:sop_infra-api:sopswitchtemplate-detail"
     )
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = SopSwitchTemplate
         fields = (
             "id",
@@ -360,7 +360,7 @@ class SopDeviceSettingSerializer(NetBoxModelSerializer):
         view_name="plugins-api:sop_infra-api:sopdevicesetting-detail"
     )
 
-    class Meta:
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
         model = SopDeviceSetting
         fields = (
             "id",

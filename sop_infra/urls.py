@@ -1,11 +1,34 @@
 from django.urls import include, path
+
+
+
 from utilities.urls import get_model_urls
 
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
-from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraSyncAdUsers, SopMerakiClaimView, SopMerakiCreateNetworksView, SopMerakiEditView
 
-from sop_infra.views import *
-from sop_infra.models import *
+from sop_infra.models.infra import SopInfra, SopSwitchTemplate
+from sop_infra.views.infra import SopInfraHelperDhcp, SopMerakiClaimView, SopMerakiCreateNetworksView, SopMerakiEditView
+from sop_infra.views.infra import SopInfraListView, SopInfraDetailView, SopInfraEditView, SopInfraDeleteView, SopInfraRefreshView
+from sop_infra.views.infra import SopDeviceSettingDetailView, SopDeviceSettingEditView, SopDeviceSettingTryManageInNetbox
+from sop_infra.views.infra import SopSwitchTemplateListView, SopSwitchTemplateDetailView, SopSwitchTemplateEditView, SopSwitchTemplateDeleteView
+from sop_infra.views.infra import SopInfraSyncAdUsers,SopInfraJsonExportsAdUsers, SopInfraJsonExportsAdSites
+
+
+from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
+from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView
+from sop_infra.views.sopmeraki import SopMerakiOrgListView, SopMerakiOrgView, SopMerakiOrgEditView, SopMerakiOrgDeleteView, SopMerakiOrgRefreshView, SopMerakiOrgRefreshChooseView
+from sop_infra.views.sopmeraki import SopMerakiNetListView, SopMerakiNetView, SopMerakiNetEditView, SopMerakiNetDeleteView, SopMerakiNetRefreshView, SopMerakiNetRefreshChooseView
+from sop_infra.views.sopmeraki import SopMerakiDeviceListView, SopMerakiDeviceView, SopMerakiDeviceEditView, SopMerakiDeviceDeleteView
+# TODO -> move to infra
+from sop_infra.views.sopmeraki import SopMerakiTriSearchView
+
+
+from sop_infra.models.prisma import PrismaAccessLocation, PrismaComputedAccessLocation, PrismaEndpoint
+from sop_infra.views.prisma import PrismaEndpointListView, PrismaEndpointDetailView, PrismaEndpointEditView, PrismaEndpointDeleteView
+from sop_infra.views.prisma import  PrismaAccessLocationListView, PrismaAccessLocationDetailView, PrismaAccessLocationEditView, PrismaAccessLocationDeleteView
+from sop_infra.views.prisma import  PrismaComputedAccessLocationListView, PrismaComputedAccessLocationDetailView, PrismaComputedAccessLocationEditView, PrismaComputedAccessLocationDeleteView, PrismaAccessLocationRefreshView
+
+
 
 app_name = 'sop_infra'
 

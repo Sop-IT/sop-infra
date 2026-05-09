@@ -1,9 +1,7 @@
 from django.db import models
-from django.urls import reverse
-from django.utils.safestring import mark_safe
-from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from datetime import datetime
+
 from netbox.models import NetBoxModel
 
 

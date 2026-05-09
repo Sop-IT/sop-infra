@@ -1,19 +1,16 @@
-import logging
 
+from django.contrib import messages
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib import messages
-from django.conf import settings
 
-from netbox.plugins import PluginTemplateExtension
 from netbox.context import current_request
-from dcim.models import Site, Device, DeviceType
-from ipam.models import VLAN, Prefix
+from netbox.plugins import PluginTemplateExtension
+
+from dcim.models import Site, Device
 
 from sop_infra.models import SopInfra
-from sop_infra.models.infra import SopDeviceSetting
-from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiDevice, SopMerakiUtils
-from sop_infra.utils.netbox_utils import NetboxUtils
+from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiUtils
+from sop_infra.utils.netbox_utils import SopInfraUtils
 
 
 # AUTO CREATE SOPINFRA WHEN A SITE IS SAVED
@@ -97,7 +94,7 @@ class NetboxContactPluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
-        warning_messages:list[str]=NetboxUtils.list_contact_compliance_issues(self.context.get("object"))
+        warning_messages:list[str]=SopInfraUtils.list_contact_compliance_issues(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
         return ret        
 
@@ -108,9 +105,9 @@ class SopMerakiDevicePluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
-        danger_messages:list[str]=NetboxUtils.get_device_compliance_alert_messages(self.context.get("object"))
+        danger_messages:list[str]=SopInfraUtils.get_device_compliance_alert_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
-        warning_messages:list[str]=NetboxUtils.get_device_compliance_warning_messages(self.context.get("object"))
+        warning_messages:list[str]=SopInfraUtils.get_device_compliance_warning_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT DEVICE", "messages":warning_messages})
         # TODO : INFO  MESSAGES
         return ret          
@@ -122,7 +119,7 @@ class SopMerakiSwitchStackPluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
-        danger_messages:list[str]=NetboxUtils.get_switch_stack_alert_messages(self.context.get("object"))
+        danger_messages:list[str]=SopInfraUtils.get_switch_stack_alert_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
         # TODO : INFO  MESSAGES
         return ret          
@@ -134,9 +131,9 @@ class NetboxSitePluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
-        danger_messages:list[str]=NetboxUtils.get_site_compliance_danger_messages(self.context.get("object"))
+        danger_messages:list[str]=SopInfraUtils.get_site_compliance_danger_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
-        warning_messages:list[str]=NetboxUtils.get_site_compliance_warning_messages(self.context.get("object"))
+        warning_messages:list[str]=SopInfraUtils.get_site_compliance_warning_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
         # TODO : INFO  MESSAGES
         return ret        
@@ -148,9 +145,9 @@ class NetboxTenantPluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
-        danger_messages:list[str]=NetboxUtils.get_tenant_compliance_danger_messages(self.context.get("object"))
+        danger_messages:list[str]=SopInfraUtils.get_tenant_compliance_danger_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
-        warning_messages:list[str]=NetboxUtils.get_tenant_compliance_warning_messages(self.context.get("object"))
+        warning_messages:list[str]=SopInfraUtils.get_tenant_compliance_warning_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
         # TODO : INFO  MESSAGES
         return ret        
@@ -162,9 +159,9 @@ class NetboxTenantGroupPluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
-        danger_messages:list[str]=NetboxUtils.get_tenantgroup_compliance_danger_messages(self.context.get("object"))
+        danger_messages:list[str]=SopInfraUtils.get_tenantgroup_compliance_danger_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
-        warning_messages:list[str]=NetboxUtils.get_tenantgroup_compliance_warning_messages(self.context.get("object"))
+        warning_messages:list[str]=SopInfraUtils.get_tenantgroup_compliance_warning_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
         # TODO : INFO  MESSAGES
         return ret        
@@ -176,7 +173,7 @@ class NetboxVlanPluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
-        warning_messages:list[str]=NetboxUtils.get_vlan_compliance_warning_messages(self.context.get("object"))
+        warning_messages:list[str]=SopInfraUtils.get_vlan_compliance_warning_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT VLAN", "messages":warning_messages})
         # TODO : INFO and ALERT MESSAGES
         return ret   
@@ -188,7 +185,7 @@ class NetboxPrefixPluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
-        warning_messages:list[str]=NetboxUtils.get_prefix_compliance_warning_messages(self.context.get("object"))
+        warning_messages:list[str]=SopInfraUtils.get_prefix_compliance_warning_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT PREFIX", "messages":warning_messages})
         # TODO : INFO and ALERT MESSAGES
         return ret   
@@ -200,7 +197,7 @@ class NetboxVlanGroupPluginExtension(PluginTemplateExtension):
     
     def alerts(self):
         ret=""
-        warning_messages:list[str]=NetboxUtils.get_vlan_group_compliance_warning_messages(self.context.get("object"))
+        warning_messages:list[str]=SopInfraUtils.get_vlan_group_compliance_warning_messages(self.context.get("object"))
         ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT VLAN GROUP", "messages":warning_messages})
         # TODO : INFO and ALERT MESSAGES
         return ret   

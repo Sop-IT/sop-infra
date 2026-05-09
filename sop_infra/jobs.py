@@ -3,18 +3,15 @@ import traceback, ldap
 from django.conf import settings
 from django.db.models import Count
 
-from core.choices import JobIntervalChoices
-
-from netbox.jobs import JobRunner, Job, system_job
+from netbox.jobs import JobRunner, Job
 
 from dcim.models import Site
-from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
-from sop_infra.utils.ad_utils import ADCountersUpd, user_info, user_infos
-from sop_infra.utils.mixins import JobRunnerLogMixin
 from tenancy.models import Contact, Tenant
 
-from sop_infra.models.sopmeraki import SopMerakiUtils
-from sop_infra.utils.sop_utils import  SopUtils
+# TODO sopmerakiutils -> sop_infra.utils
+from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg, SopMerakiUtils
+from sop_infra.utils.ad_utils import ADCountersUpd, user_info, user_infos
+from sop_infra.utils.mixins import JobRunnerLogMixin
 
 
 class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):

@@ -17,7 +17,9 @@ from utilities.querysets import RestrictedQuerySet
 
 import meraki
 
-from sop_infra.utils.sop_utils import ArrayUtils, SopRegExps, SopUtils
+from sop_utils.arrays import ArrayUtils
+from sop_utils.regexps import SopRegExps
+from sop_utils.misc import SopUtils
 
 
 __all__ = (
@@ -1278,7 +1280,7 @@ class SopMerakiDevice(
         if self.lan_ip != dev_data.get("lanIp", None):
             self.lan_ip = dev_data.get("lanIp", None)
             save = True
-        from sop_infra.utils.sop_utils import DateUtils
+        from sop_utils.dates import DateUtils
         dt=DateUtils.parse_date(dev_data.get("configurationUpdatedAt"))
         if self.cfg_updated_at != dt:
             self.cfg_updated_at = dt

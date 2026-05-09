@@ -1,15 +1,16 @@
 import django_filters
 from django.db import models
 from django.db.models import Q, F
-from django.utils.translation import gettext_lazy as _
+
+from utilities.filters import TreeNodeMultipleChoiceFilter, MultiValueCharFilter
+
+from netbox.filtersets import NetBoxModelFilterSet
 
 from ipam.models import Prefix
 from dcim.choices import SiteStatusChoices
-from netbox.filtersets import NetBoxModelFilterSet
 from dcim.models import Site, Region, SiteGroup
-from utilities.filters import TreeNodeMultipleChoiceFilter, MultiValueCharFilter
 
-from .models import *
+from sop_infra.models import *
 
 
 # ==========================================================================

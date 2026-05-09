@@ -1,13 +1,9 @@
 from django.db.models import Count
-
-from netbox.api.viewsets import NetBoxModelViewSet
 from netbox.api.metadata import ContentTypeMetadata
+from netbox.api.viewsets import NetBoxModelViewSet
 
-from sop_infra.api.serializers import SopDeviceSettingSerializer
-from sop_infra.models import *
-from sop_infra.filtersets import *
 from sop_infra.api.serializers import *
-
+from sop_infra.filtersets import *
 
 __all__ = (
     "SopInfraViewSet",

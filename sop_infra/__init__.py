@@ -13,7 +13,7 @@ class SopInfraConfig(PluginConfig):
 
     def ready(self):
         super().ready()
-        from .auto_jobs.dash_ref_job import SopMerakiDashAutoRefreshJob
-        from .auto_jobs.sync_ad_users import SopAutoSyncAdUsers
+        from sop_infra.auto_jobs.dash_ref_job import SopMerakiDashAutoRefreshJob
+        from sop_infra.auto_jobs.sync_ad_users import SopAutoSyncAdUsers
 
 config = SopInfraConfig

@@ -140,9 +140,9 @@ class MerakiNetwork():
         self._appliances:dict[str,str]={}
         self._access_points:dict[str,dict]={}
         self._name:str=net_name
-        self._ids_mode:str=None
-        self._amp_mode:str=None
-        self._ctflt:dict=None
+        self._ids_mode:str
+        self._amp_mode:str
+        self._ctflt:dict
         self._tags=net_tags
     @property
     def id(self) -> str:
@@ -168,7 +168,7 @@ class MerakiNetwork():
     @property
     def tags(self) -> list[str]:
         ret:list[str]=[]
-        x:str=None
+        x:str
         for x in self._tags:
             ret.append(x)
         ret.sort()
@@ -176,7 +176,7 @@ class MerakiNetwork():
     @property
     def netbox_tags(self) -> list[str]:
         ret:list[str]=[]
-        x:str=None
+        x:str
         for x in self._tags:
             if x.startswith("NETBOX_"):
                 ret.append(x)
@@ -206,12 +206,12 @@ class MerakiNetwork():
 class MerakiNets():
     def __init__(self):
         self._nets:dict[str,MerakiNetwork]={}
-        self._slugs:dict[str:list[MerakiNetwork]]={}
-        self._orgs:dict[str:list[MerakiNetwork]]={}
+        self._slugs:dict[str,list[MerakiNetwork]]={}
+        self._orgs:dict[str,list[MerakiNetwork]]={}
     @property
     def nets(self):
         return self._nets
-    def add_net(self, merNet:MerakiNetwork, slug:str=None):
+    def add_net(self, merNet:MerakiNetwork, slug:str|None=None):
         if self._nets.get(merNet.id) is not None:
             raise Exception(f"NetworkID is already present : {merNet.id}")
         self._nets[merNet.id]=merNet
@@ -222,7 +222,7 @@ class MerakiNets():
             if slug not in self._slugs.keys():
                 self._slugs[slug]=[]
             self._slugs[slug].append(merNet)
-    def get_net(self, id:str)->MerakiNetwork:
+    def get_net(self, id:str)->MerakiNetwork|None:
         return self._nets.get(id)
     def get_net_ids(self):
         return self._nets.keys()

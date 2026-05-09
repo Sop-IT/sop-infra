@@ -1,6 +1,6 @@
 from django import template
 
-from sop_infra.utils.sop_utils import SopUtils
+from sop_utils.misc import SopUtils
 
 __all__ = (
     'can_refresh',
