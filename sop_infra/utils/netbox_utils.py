@@ -24,7 +24,7 @@ class SopInfraConstants():
     spokes_root_id=11
     sopit_id=386  
 
-    active_prefixes_status=["active", "noncompliant", "decommissionning"]
+    active_prefixes_status=["active", "noncompliant", "decommissioning"]
 
 
 
@@ -442,7 +442,7 @@ class SopInfraUtils:
         tg:TenantGroup=tn.group # type: ignore
         tg_data=tg.custom_field_data
         status=tn_data.get("tenant_status")
-        if status in ['candidate', 'active', 'decommissionning', 'integration']:
+        if status in ['candidate', 'active', 'decommissioning', 'integration']:
             lstct:list[str]=SopInfraUtils.list_missing_tenant_mandatory_contactology(tn, "warning")
             if len(lstct) > 0:
                 msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
@@ -464,7 +464,7 @@ class SopInfraUtils:
         status=tn_data.get("tenant_status")
         if status is None or status.strip()=="":
             ret.append("Missing or invalid status")
-        elif status in ['candidate', 'active', 'decommissionning', 'integration']:
+        elif status in ['candidate', 'active', 'decommissioning', 'integration']:
             lstct:list[str]=SopInfraUtils.list_missing_tenant_mandatory_contactology(tn, "critical")
             if len(lstct) > 0:
                 msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
@@ -478,7 +478,7 @@ class SopInfraUtils:
             if "critical"==tg_data.get("billing_email_requirement") and  StringUtils.is_none_or_empty(tn_data.get("obs_billing_email")):
                 ret.append("Missing billing email")
             if status=="candidate":
-                lstv=Site.objects.filter(tenant=tn).filter(status__in=["staging","starting","active","decommissionning"]).all()
+                lstv=Site.objects.filter(tenant=tn).filter(status__in=["staging","starting","active","decommissioning"]).all()
                 if len(lstv)>0:
                     vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.name}</a>' for v in lstv ]
                     msg=f"Tenant status is inconsistent with these sites' status : "+ ", ".join(vl_msgs)
