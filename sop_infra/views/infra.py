@@ -803,8 +803,8 @@ class SopInfraHelperDhcp(AccessMixin, View):
                         form.add_error(k, m)
             except AbortScript as e:
                 messages.error(request, f"{e}")
-            except Exception as e:
-                messages.error(request, f"Unknown error : {e}")
+            # except Exception as e:
+            #     messages.error(request, f"Unknown error : {e}")
         # Either the form was invalid or something went wrong
         # Render the form with error messages
         return render(
