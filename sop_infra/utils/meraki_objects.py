@@ -140,9 +140,6 @@ class MerakiNetwork():
         self._appliances:dict[str,str]={}
         self._access_points:dict[str,dict]={}
         self._name:str=net_name
-        self._ids_mode:str
-        self._amp_mode:str
-        self._ctflt:dict
         self._tags=net_tags
     @property
     def id(self) -> str:
@@ -200,7 +197,7 @@ class MerakiNetwork():
         return f"org: {self.orgId} - net: {self.id} - bound : {self.bound}"
     def __repr__(self):
         return f"MerakiNet(id={self.orgId},net.id={self.id},net.name={self.name},bound={self.bound},\
-            tz={self._tz},appliances={self.appliances},ids={self._ids_mode},amp={self._amp_mode},ctflt={self._ctflt})"
+            tz={self._tz},appliances={self.appliances})"
 
 
 class MerakiNets():
