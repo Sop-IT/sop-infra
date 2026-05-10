@@ -827,7 +827,6 @@ class SopInfraHelperDhcpForm(forms.Form):
         },
         required=True,
         help_text="Prefix",
-        context={'disabled': '$forced_prefix_id'},
     )
     
     forced_device_role_id=forms.CharField(
