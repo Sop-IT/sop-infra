@@ -5,11 +5,9 @@ from typing import Any
 from django.utils.text import slugify
 from django.db.models import Q, F
 from django.db.models import Case, Value, When
-from django.contrib.contenttypes.models import ContentType
 
 from dcim.models import Site, Device
 from ipam.models import Prefix, VLANGroup, VLAN, vlans, Role, VRF, IPAddress
-from extras.models import Tag
 from tenancy.models import Contact, ContactAssignment, ContactRole, Tenant, TenantGroup
 
 from sop_utils.strings import StringUtils
@@ -23,7 +21,7 @@ class SopInfraConstants():
     base_adm_ip_addr=netaddr.IPAddress('10.40.0.0')
     spokes_root_id=11
     sopit_id=386  
-
+    # status we want to filter with
     active_prefixes_status=["active", "noncompliant", "decommissioning"]
 
 
