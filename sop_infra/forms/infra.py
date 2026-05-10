@@ -906,7 +906,7 @@ class SopInfraHelperDhcpForm(forms.Form):
         data = super().clean()
         # Return URL extraction 
         data["return_url"]=current_request.get().GET.get("return_url") or reverse("home")
-        # Data sanitization
+        # TODO Data sanitization
 
         # Return clean data
         return data
