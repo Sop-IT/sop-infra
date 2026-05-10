@@ -5,11 +5,11 @@ class SopInfraConfig(PluginConfig):
     name = "sop_infra"
     verbose_name = "SOP Infra"
     description = "Manage infrastructure informations of each site"
-    version = "0.4.71"
+    version = "0.4.72"
     author = "Soprema NOC team"
     author_email = "noc@soprema.com"
     base_url = "sop-infra"
-    min_version = "4.5.1"
+    min_version = "4.5.8"
 
     def ready(self):
         super().ready()
