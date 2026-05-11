@@ -807,9 +807,15 @@ class SopInfraHelperDhcpForm(forms.Form):
     forced_prefix_role_slug=forms.CharField(
         required=False, widget=forms.widgets.HiddenInput
     )
+    forced_prefix_role_tag_slug=forms.CharField(
+        required=False, widget=forms.widgets.HiddenInput
+    )
     prefix_role_id = DynamicModelChoiceField(
         queryset=Role.objects.all(),
         label="Prefix Role",
+        query_params={
+            "tag": "$forced_prefix_role_tag_slug",
+        },
         required=True,
         help_text="Prefix Role",
     )
