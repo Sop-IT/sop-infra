@@ -613,6 +613,27 @@ class SopInfraRefreshView(AccessMixin, View):
 # HELPER VIEWS
 
 
+
+class SopInfraHelperDhcpReader:
+
+    def __init__(self, qdict, flavor_config):
+        self.__qdict=qdict
+        self.__read_method=self.__read_direct
+        if flavor_config is not None :
+            self.__flavor_config=flavor_config
+            self.__read_method=self.__read_override
+
+    def __read_direct(self, key):
+        return self.__qdict.get(key)
+    
+    def __read_override(self, key):
+        return self.__flavor_config.get(key) or self.__read_direct(key)
+    
+    def get(self, key):
+        return self.__read_method(key)
+
+
+
 class SopInfraHelperDhcp(AccessMixin, View):
     """
     create DHCP reservation
@@ -621,11 +642,46 @@ class SopInfraHelperDhcp(AccessMixin, View):
     form = SopInfraHelperDhcpForm
     template_name: str = "sop_infra/tools/helper_dhcp.html"
 
-    def __data_from_qdict(self, qdict) -> dict:
+    __flavor_configs= {
+        "printer": {
+            "forced_prefix_role_slug" : "usr",
+            "forced_device_role_slug": "prt-printer", 
+            "forced_device_type_slug" : "generic-printer",
+        },
+        "user": {
+            "forced_prefix_role_slug" : "usr",
+            "forced_device_role_slug": "0u-unknown-network-device", 
+            "forced_device_role_slug" : "ukn-unknown",
+        },
+        "wms": {
+            "forced_prefix_role_slug" : "wms",
+            "forced_device_type_tag_slug" : "wms",
+            "forced_device_role_tag_slug" : "wms", 
+            "auto_tags": {
+                    "Device" : ["wms", "rbac-wms", ],
+                    "IPAddress" : ["wms", "rbac-wms", ],
+                }
+            },
+        "std": {
+            "forced_prefix_role_tag_slug" : "std",
+        },
+        "lan": {
+            "forced_prefix_role_tag_slug" : "lan",
+        },
+        "manual": None,
+    }
 
-        return_url = qdict.get("return_url") or reverse("home")
+    @staticmethod
+    def __data_from_qdict(query_dict) -> dict:
+
+        return_url = query_dict.get("return_url") or reverse("home")
         
-        flavor = qdict.get("flavor")
+        flavor = query_dict.get("flavor")
+        # TODO : passer ça en config du module
+        if not flavor in SopInfraHelperDhcp.__flavor_configs.keys():
+                raise Exception(f"Unknown flavor {flavor} !")
+        flavor_config=SopInfraHelperDhcp.__flavor_configs.get(flavor)
+        qdict = SopInfraHelperDhcpReader(query_dict, flavor_config)
 
         forced_site_id = qdict.get("forced_site_id")
         site_id = forced_site_id or qdict.get("site_id")
@@ -633,6 +689,11 @@ class SopInfraHelperDhcp(AccessMixin, View):
         # forced params override the others
         forced_prefix_role_id = qdict.get("forced_prefix_role_id")
         forced_prefix_role_slug = qdict.get("forced_prefix_role_slug")
+        forced_prefix_role_tag_slug = qdict.get("forced_prefix_role_tag_slug")
+        if forced_prefix_role_tag_slug and not forced_prefix_role_slug:
+            query=Role.objects.filter(tags__slug=forced_prefix_role_tag_slug)
+            if query.count()==1:
+                forced_prefix_role_slug = query[0].slug
         if forced_prefix_role_slug and not forced_prefix_role_id:
             if Role.objects.filter(slug=forced_prefix_role_slug).exists():
                 forced_prefix_role_id = Role.objects.get(slug=forced_prefix_role_slug).pk
@@ -644,7 +705,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
         if forced_device_role_tag_slug and not forced_device_role_slug:
             query=DeviceRole.objects.filter(tags__slug=forced_device_role_tag_slug)
             if query.count()==1:
-                forced_device_role_slug = query[0]
+                forced_device_role_slug = query[0].slug
         if forced_device_role_slug and not forced_device_role_id:
             if DeviceRole.objects.filter(slug=forced_device_role_slug).exists():
                 forced_device_role_id = DeviceRole.objects.get(slug=forced_device_role_slug).pk
@@ -656,7 +717,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
         if forced_device_type_tag_slug and not forced_device_type_slug:
             query=DeviceRole.objects.filter(tags__slug=forced_device_type_tag_slug)
             if query.count()==1:
-                forced_device_type_slug = query[0]
+                forced_device_type_slug = query[0].slug
         if forced_device_type_slug and not forced_device_type_id:
             if DeviceType.objects.filter(slug=forced_device_type_slug).exists():
                 forced_device_type_id = DeviceType.objects.get(slug=forced_device_type_slug).pk
@@ -684,10 +745,10 @@ class SopInfraHelperDhcp(AccessMixin, View):
         return {
             "return_url": return_url,
             "forced_site_id": forced_site_id,
-            "forced_site_id": forced_site_id,
             "site_id": site_id,
             "forced_prefix_role_id": forced_prefix_role_id,
             "forced_prefix_role_slug": forced_prefix_role_slug,
+            "forced_prefix_role_tag_slug" : forced_prefix_role_tag_slug,
             "prefix_role_id": prefix_role_id,
             "forced_prefix_id": forced_prefix_id,
             "prefix_id" : prefix_id,
@@ -740,7 +801,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
 
     def get(self, request,  *args, **kwargs):
         # Extract params
-        get_data=self.__data_from_qdict(request.GET)
+        get_data=SopInfraHelperDhcp.__data_from_qdict(request.GET)
         # additional security
         if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get('flavor')}")):
             return self.handle_no_permission()
@@ -762,7 +823,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
 
     def post(self, request, *args, **kwargs):
         # Extract params
-        get_data = self.__data_from_qdict(request.GET)
+        get_data = SopInfraHelperDhcp.__data_from_qdict(request.GET)
         # additional security
         if not request.user.has_perm(get_permission_for_model(Site, f"helper_dhcp_{get_data.get('flavor')}")):
             return self.handle_no_permission()
@@ -792,7 +853,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
                     data["device_role_id"],
                     self._check_or_allocate(data["prefix_id"], data["ip_address"]),
                     data["mac_address"],
-                    f"SOPInfra / DHCP Helper - used by {self.request.user.username}",
+                    f"SOPInfra / DHCP Helper - flavor={data["flavor"]} - used by {self.request.user.username}",
                     data["flavor"],
                 )
                 # ALL IS WELL ==> RETURN
@@ -811,18 +872,16 @@ class SopInfraHelperDhcp(AccessMixin, View):
             request, self.template_name, {"form": form, "return_url": return_url}
         )
 
-    __flavor_tags :dict[str,dict[str,list[str]]]= {
-        "wms": {
-            "Device" : ["wms", "rbac-wms", ],
-            "IPAddress" : ["wms", "rbac-wms", ],
-        },
-    }
+
     @staticmethod
     def get_flavor_tag(flavor:str, objtype:str)->list[Tag]|None:
-        slugs=SopInfraHelperDhcp.__flavor_tags.get(flavor)
-        if slugs is None:
+        flavor_config = SopInfraHelperDhcp.__flavor_configs.get(flavor)
+        if flavor_config is None:
             return None
-        slugs=slugs.get(objtype)
+        auto_tags = flavor_config.get("auto_tags")
+        if auto_tags is None:
+            return None
+        slugs=auto_tags.get(objtype)
         if slugs is None:
             return None
         ret:list[Tag]=[]
