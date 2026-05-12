@@ -765,13 +765,14 @@ class SopMerakiNet(NetBoxModel):
             save = True
         slug = SopMerakiUtils.extractSiteName(self.nom)
         old_site:Site|None=None
+        new_site:Site|None=None
         if self.site_id is not None:
             old_site=Site.objects.get(pk=self.site_id)
         if slug is None:
             if self.site_id is not None:
                 self.site_id = None
                 if old_site and old_site.meraki_nets:
-                    old_site.meraki_nets.remove(self)
+                    old_site.meraki_nets.remove(old_site)
         elif not Site.objects.filter(slug=slug).exists():
             if self.site_id is not None:
                 self.site_id = None
@@ -783,7 +784,6 @@ class SopMerakiNet(NetBoxModel):
                 if old_site and old_site.meraki_nets:
                     old_site.meraki_nets.remove(old_site)
                 self.site = new_site
-                new_site.meraki_nets.add(self)
 
         # Prepare Meraki site update
         update_meraki: dict = {}
@@ -823,10 +823,14 @@ class SopMerakiNet(NetBoxModel):
             )
 
         # only save if something changed
-        if save:
-            log.success(f"Saving SopMerakiNetwork '[{self.nom}]'.")
-            self.full_clean()
-            self.save()
+        if save or new_site:
+            if save:
+                log.success(f"Saving SopMerakiNetwork '[{self.nom}]'.")
+                self.full_clean()
+                self.save()
+            if new_site:
+                new_site.meraki_nets.add(self)
+
 
         # Refresh devices from this net
         for dev in conn.organizations.getOrganizationDevices(
