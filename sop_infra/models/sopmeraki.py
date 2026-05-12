@@ -712,6 +712,7 @@ class SopMerakiNet(NetBoxModel):
         else:
             smn = SopMerakiNet.objects.get(meraki_id=net_data["id"])
         smn.refresh_from_meraki_data(conn, net_data, org, log, details)
+        return smn
 
     def refresh_from_meraki(
         self,
@@ -763,16 +764,23 @@ class SopMerakiNet(NetBoxModel):
             self.ptypes = net_data["productTypes"]
             save = True
         slug = SopMerakiUtils.extractSiteName(self.nom)
+        old_site:Site|None=None
+        if self.site_id is not None:
+            old_site=Site.objects.get(pk=self.site_id)
         if slug is None:
             if self.site_id is not None:
                 self.site_id = None
+                old_site.meraki_nets.remove(self)
         elif not Site.objects.filter(slug=slug).exists():
             if self.site_id is not None:
                 self.site_id = None
+                old_site.meraki_nets.remove(old_site)
         else:
-            val = Site.objects.get(slug=slug)
-            if self.site_id != val.pk:
-                self.site = val
+            new_site = Site.objects.get(slug=slug)
+            if self.site_id != new_site.pk:
+                old_site.meraki_nets.remove(old_site)
+                self.site = new_site
+                new_site.meraki_nets.add(self)
 
         # Prepare Meraki site update
         update_meraki: dict = {}
