@@ -770,15 +770,18 @@ class SopMerakiNet(NetBoxModel):
         if slug is None:
             if self.site_id is not None:
                 self.site_id = None
-                old_site.meraki_nets.remove(self)
+                if old_site and old_site.meraki_nets:
+                    old_site.meraki_nets.remove(self)
         elif not Site.objects.filter(slug=slug).exists():
             if self.site_id is not None:
                 self.site_id = None
-                old_site.meraki_nets.remove(old_site)
+                if old_site and old_site.meraki_nets:
+                    old_site.meraki_nets.remove(old_site)
         else:
             new_site = Site.objects.get(slug=slug)
             if self.site_id != new_site.pk:
-                old_site.meraki_nets.remove(old_site)
+                if old_site and old_site.meraki_nets:
+                    old_site.meraki_nets.remove(old_site)
                 self.site = new_site
                 new_site.meraki_nets.add(self)
 
