@@ -1,0 +1,17 @@
+{
+    "python-envs.pythonProjects": [
+        {
+            "path": ".",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ],
+    "python.autoComplete.extraPaths": [
+        "../netbox/netbox", 
+        "../sop-utils",
+    ],
+    "python.analysis.extraPaths": [ 	
+        "../netbox/netbox", 
+        "../sop-utils",
+    ],
+}
