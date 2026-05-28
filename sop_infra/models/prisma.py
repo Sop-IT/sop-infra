@@ -44,12 +44,12 @@ class PrismaComputedAccessLocation(NetBoxModel):
         verbose_name_plural = _("PRISMA compute locations")
         constraints = [
             models.CheckConstraint(
-                check=~Q(name=None),
+                condition=~Q(name=None),
                 name="%(app_label)s_%(class)s_name_none",
                 violation_error_message="Name must be set.",
             ),
             models.CheckConstraint(
-                check=~Q(slug=None),
+                condition=~Q(slug=None),
                 name="%(app_label)s_%(class)s_slug_none",
                 violation_error_message="Slug must be set.",
             ),
@@ -124,12 +124,12 @@ class PrismaAccessLocation(NetBoxModel):
         verbose_name_plural = _("PRISMA access locations")
         constraints = [
             models.CheckConstraint(
-                check=~Q(name=None),
+                condition=~Q(name=None),
                 name="%(app_label)s_%(class)s_name_none",
                 violation_error_message="Name must be set.",
             ),
             models.CheckConstraint(
-                check=~Q(slug=None),
+                condition=~Q(slug=None),
                 name="%(app_label)s_%(class)s_slug_none",
                 violation_error_message="Slug must be set.",
             ),

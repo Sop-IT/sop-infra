@@ -14,30 +14,30 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddConstraint(
             model_name='prismaaccesslocation',
-            constraint=models.CheckConstraint(check=models.Q(('name', None), _negated=True), name='sop_infra_prismaaccesslocation_name_none', violation_error_message='Name must be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('name', None), _negated=True), name='sop_infra_prismaaccesslocation_name_none', violation_error_message='Name must be set.'),
         ),
         migrations.AddConstraint(
             model_name='prismaaccesslocation',
-            constraint=models.CheckConstraint(check=models.Q(('slug', None), _negated=True), name='sop_infra_prismaaccesslocation_slug_none', violation_error_message='Slug must be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('slug', None), _negated=True), name='sop_infra_prismaaccesslocation_slug_none', violation_error_message='Slug must be set.'),
         ),
         migrations.AddConstraint(
             model_name='prismacomputedaccesslocation',
-            constraint=models.CheckConstraint(check=models.Q(('name', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_name_none', violation_error_message='Name must be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('name', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_name_none', violation_error_message='Name must be set.'),
         ),
         migrations.AddConstraint(
             model_name='prismacomputedaccesslocation',
-            constraint=models.CheckConstraint(check=models.Q(('slug', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_slug_none', violation_error_message='Slug must be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('slug', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_slug_none', violation_error_message='Slug must be set.'),
         ),
         migrations.AddConstraint(
             model_name='prismacomputedaccesslocation',
-            constraint=models.CheckConstraint(check=models.Q(('strata_id', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_strata_id_none', violation_error_message='Strata ID must be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('strata_id', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_strata_id_none', violation_error_message='Strata ID must be set.'),
         ),
         migrations.AddConstraint(
             model_name='prismaendpoint',
-            constraint=models.CheckConstraint(check=models.Q(('name', None), _negated=True), name='sop_infra_prismaendpoint_name_none', violation_error_message='Name must be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('name', None), _negated=True), name='sop_infra_prismaendpoint_name_none', violation_error_message='Name must be set.'),
         ),
         migrations.AddConstraint(
             model_name='prismaendpoint',
-            constraint=models.CheckConstraint(check=models.Q(('slug', None), _negated=True), name='sop_infra_prismaendpoint_slug_none', violation_error_message='Slug must be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('slug', None), _negated=True), name='sop_infra_prismaendpoint_slug_none', violation_error_message='Slug must be set.'),
         ),
     ]

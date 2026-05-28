@@ -21,10 +21,10 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='prismacomputedaccesslocation',
-            constraint=models.CheckConstraint(check=models.Q(('name', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_name_none', violation_error_message='Name must be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('name', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_name_none', violation_error_message='Name must be set.'),
         ),
         migrations.AddConstraint(
             model_name='prismacomputedaccesslocation',
-            constraint=models.CheckConstraint(check=models.Q(('slug', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_slug_none', violation_error_message='Slug must be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('slug', None), _negated=True), name='sop_infra_prismacomputedaccesslocation_slug_none', violation_error_message='Slug must be set.'),
         ),
     ]

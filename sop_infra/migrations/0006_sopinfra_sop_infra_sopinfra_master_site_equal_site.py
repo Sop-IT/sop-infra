@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddConstraint(
             model_name='sopinfra',
-            constraint=models.CheckConstraint(check=models.Q(('site', models.F('master_site')), _negated=True), name='sop_infra_sopinfra_master_site_equal_site', violation_error_message='SDWAN MASTER site cannot be itself'),
+            constraint=models.CheckConstraint(condition=models.Q(('site', models.F('master_site')), _negated=True), name='sop_infra_sopinfra_master_site_equal_site', violation_error_message='SDWAN MASTER site cannot be itself'),
         ),
     ]

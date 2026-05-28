@@ -25,10 +25,10 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='prismacomputedaccesslocation',
-            constraint=models.CheckConstraint(check=models.Q(('name__isnull', False), ('slug__isnull', False), ('strata_id__isnull', False)), name='sop_infra_prismacomputedaccesslocation_name_slug_strataid_not_null', violation_error_message='Name, slug, and strata ID must all be set.'),
+            constraint=models.CheckConstraint(condition=models.Q(('name__isnull', False), ('slug__isnull', False), ('strata_id__isnull', False)), name='sop_infra_prismacomputedaccesslocation_name_slug_strataid_not_null', violation_error_message='Name, slug, and strata ID must all be set.'),
         ),
         migrations.AddConstraint(
             model_name='prismacomputedaccesslocation',
-            constraint=models.CheckConstraint(check=models.Q(models.Q(('name', ''), _negated=True), models.Q(('slug', ''), _negated=True), models.Q(('strata_id', ''), _negated=True)), name='sop_infra_prismacomputedaccesslocation_name_slug_strataid_not_empty', violation_error_message='Name, slug, and strata ID cannot be empty strings.'),
+            constraint=models.CheckConstraint(condition=models.Q(models.Q(('name', ''), _negated=True), models.Q(('slug', ''), _negated=True), models.Q(('strata_id', ''), _negated=True)), name='sop_infra_prismacomputedaccesslocation_name_slug_strataid_not_empty', violation_error_message='Name, slug, and strata ID cannot be empty strings.'),
         ),
     ]

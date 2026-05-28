@@ -358,7 +358,7 @@ class SopInfra(NetBoxModel):
             # PostgreSQL doesnt provide database-level constraints with related fields
             # That is why i cannot check if site == master_location__site on db level, only with clean()
             models.CheckConstraint(
-                check=~models.Q(site=models.F("master_site")),
+                condition=~models.Q(site=models.F("master_site")),
                 name="%(app_label)s_%(class)s_master_site_equal_site",
                 violation_error_message=_("SDWAN MASTER site cannot be itself"),
             ),
