@@ -6,6 +6,7 @@ from django.db.models import Count
 from netbox.jobs import JobRunner, Job
 
 from dcim.models import Site
+from sop_infra.utils.meraki_tools import MerakiUpdater
 from tenancy.models import Contact, Tenant
 
 # TODO sopmerakiutils -> sop_infra.utils
@@ -118,6 +119,34 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
         if settings.DEBUG:
             return SopMerakiNetRefreshJob.enqueue(immediate=True, nets=nets, details=details)
         return SopMerakiNetRefreshJob.enqueue(nets=nets, details=details)
+
+
+class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Push configs to Meraki"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            sites=kwargs.pop('sites', None)
+            details=kwargs.pop('details', False)
+            MerakiUpdater.push_to_sites(self, settings.DEBUG, sites, details)
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        finally:
+            self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(sites:list[Site], details:bool)->Job:
+        if settings.DEBUG:
+            return SopMerakiPushSiteJob.enqueue(immediate=True, sites=sites, details=details)
+        return SopMerakiPushSiteJob.enqueue(sites=sites, details=details)
 
 
 class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):

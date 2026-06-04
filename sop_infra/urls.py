@@ -1,7 +1,6 @@
 from django.urls import include, path
 
 
-
 from utilities.urls import get_model_urls
 
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
@@ -19,6 +18,7 @@ from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDelete
 from sop_infra.views.sopmeraki import SopMerakiOrgListView, SopMerakiOrgView, SopMerakiOrgEditView, SopMerakiOrgDeleteView, SopMerakiOrgRefreshView, SopMerakiOrgRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiNetListView, SopMerakiNetView, SopMerakiNetEditView, SopMerakiNetDeleteView, SopMerakiNetRefreshView, SopMerakiNetRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiDeviceListView, SopMerakiDeviceView, SopMerakiDeviceEditView, SopMerakiDeviceDeleteView
+from sop_infra.views.sopmeraki import SopMerakiPushSiteView
 # TODO -> move to infra
 from sop_infra.views.sopmeraki import SopMerakiTriSearchView
 
@@ -36,7 +36,7 @@ urlpatterns = [
 
     path('trisearch', SopMerakiTriSearchView.as_view(), name='trisearch'),
     path('sync_ad_users', SopInfraSyncAdUsers.as_view(), name='sync_ad_users'),
-    
+    path('sopmeraki/push', SopMerakiPushSiteView.as_view(), name='sopmeraki_push'),
 
     path('jsonexports/adusers', SopInfraJsonExportsAdUsers.as_view(), name='jsonexports_adusers'),
     path('jsonexports/adsites', SopInfraJsonExportsAdSites.as_view(), name='jsonexports_adsites'),

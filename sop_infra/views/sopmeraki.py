@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.db.models import Count
 from django.shortcuts import render, redirect
 from django.views import View
@@ -20,6 +21,7 @@ from sop_infra.jobs import (
     SopMerakiDashRefreshJob,
     SopMerakiOrgRefreshJob,
     SopMerakiNetRefreshJob,
+    SopMerakiPushSiteJob,
 )
 
 from sop_utils.misc import SopUtils
@@ -29,8 +31,39 @@ from sop_infra.models import SopMerakiDash, SopMerakiOrg, SopMerakiNet, SopMerak
 from sop_infra.filtersets import SopMerakiDashFilterSet, SopMerakiOrgFilterSet, SopMerakiNetFilterSet, SopMerakiDeviceFilterSet, SopMerakiSwitchStackFilterSet
 
 
+class SopMerakiPushSiteView(View):
+
+    """
+    Push Meraki configurations
+    """
+
+    def get(self, request, *args, **kwargs):
+
+        if not request.user.has_perm(get_permission_for_model(Site, f"helper_push_site")):
+            return self.handle_no_permission()
+        
+        return_url = "/dcim/sites"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+
+        pk_str: str|None = request.GET.get("pk")
+        if pk_str is None or pk_str.strip() == "":
+            # TODO message PK manquante 
+            messages.error(request, f"Missing PK !")
+            return redirect(return_url)
+
+        sites = Site.objects.filter(pk=pk_str.strip().lower())
+        if sites.count() == 0:
+            messages.error(request, f"Site not found {pk_str} !")
+            return redirect(return_url)
+
+        j: Job = SopMerakiPushSiteJob.launch_manual(sites=sites.all(), details=True)
+        return redirect(reverse("extras:script_result", args=[j.pk]))
+
+
 
 class SopMerakiTriSearchView(View):
+    
     """
     Send to the site or to the filtered site search page
     """

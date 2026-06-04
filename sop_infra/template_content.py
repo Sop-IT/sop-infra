@@ -209,6 +209,17 @@ class TrigramSearch(PluginTemplateExtension):
         return self.render("sop_infra/inc/trisearch.html", extra_context={})
 
 
+class MerakiPushPluginExtension(PluginTemplateExtension):
+
+    models = ['dcim.site']
+
+    def buttons(self):
+        if self.context.get("object"):
+            if isinstance(self.context.get("object"), Site):
+                return self.render("sop_infra/inc/pushconf_btn.html", extra_context={})
+        return ""
+
+
 class DHCPHelperPluginExtension(PluginTemplateExtension):
 
     models = ['dcim.site']
@@ -234,4 +245,4 @@ template_extensions.append(NetboxPrefixPluginExtension)
 template_extensions.append(NetboxVlanGroupPluginExtension)
 template_extensions.append(TrigramSearch)  
 template_extensions.append(DHCPHelperPluginExtension)  
-
+template_extensions.append(MerakiPushPluginExtension)
