@@ -60,6 +60,31 @@ class SopMerakiPushSiteView(View):
         j: Job = SopMerakiPushSiteJob.launch_manual(sites=sites.all(), details=True)
         return redirect(reverse("extras:script_result", args=[j.pk]))
 
+    def post(self, request, pk, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_push_site")):
+            return self.handle_no_permission()
+
+        # data=request.POST
+        # if not "pk" in data.keys():
+        #     return
+
+        # pk = data ["pk"]
+
+        instance = get_object_or_404(Site, pk=pk)
+
+        if not SopUtils.check_permission(request.user, instance, "helper_push_site"):
+            return self.handle_no_permission()
+
+        # Launch job
+        j: Job = SopMerakiPushSiteJob.launch_manual(sites=[instance], details=True)
+
+        # Send to script result
+        url = reverse("extras:script_result", args=[j.pk])
+        # if details:
+        #     url+="?log_threshold=debug"
+        return redirect(url)
 
 
 class SopMerakiTriSearchView(View):

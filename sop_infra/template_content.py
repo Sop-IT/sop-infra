@@ -9,7 +9,8 @@ from netbox.plugins import PluginTemplateExtension
 from dcim.models import Site, Device
 
 from sop_infra.models import SopInfra
-from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiUtils
+from sop_infra.utils.meraki_utils import SopMerakiUtils
+from sop_infra.models.sopmeraki import SopMerakiDash
 from sop_infra.utils.netbox_utils import SopInfraUtils
 
 

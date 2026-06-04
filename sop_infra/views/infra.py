@@ -25,7 +25,7 @@ from extras.models import Tag
 
 from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopMerakiClaimForm
 from sop_infra.jobs import SopMerakiCreateNetworkJob, SopSyncAdUsers
-from sop_infra.models.sopmeraki import SopMerakiUtils
+from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraConstants
 from sop_infra.forms import *
 from sop_infra.tables import *

@@ -8,7 +8,8 @@ from django.db.models.functions.math import Mod
 from django.core.exceptions import ValidationError
 
 from extras.scripts import BooleanVar, ObjectVar, Script
-from sop_infra.utils.DHCPUtils import TargetNetwork
+from sop_infra.utils.meraki_utils import SopMerakiUtils
+from sop_infra.utils.DHCPUtils import TargetPrefix
 from utilities.exceptions import AbortScript
 
 
@@ -25,20 +26,20 @@ from dcim.models import Site, Device, DeviceType
 from sop_infra.utils.meraki_objects import *
 from sop_infra.models import SopMerakiNet, SopSwitchTemplate, SopDeviceSetting
 from sop_utils.misc import SopUtils
+from sop_utils.regexps import SopRegExps
 from sop_infra.utils.mixins import JobRunnerLogMixin, SopBaseScriptMixin
-from sop_infra.models.sopmeraki import SopMerakiUtils, SopRegExps
+from sop_infra.models.sopmeraki import SopMerakiOrg
 
 # =======================================================================
 
 
-class MerakiSiteUpdater:
+class MerakiNetworkUpdater:
 
     stub_vlan_id: int = 3998
 
     def __init__(
         self,
         dash: meraki.DashboardAPI,
-        tgt_nets: list[TargetNetwork],
         site:Site,
         net: MerakiNetwork,
         logger,
@@ -50,10 +51,12 @@ class MerakiSiteUpdater:
         self.siteName:str=f"site_id={site}"
         self.net:MerakiNetwork = net
         self.details = details
-        self.tgt_nets: list[TargetNetwork] = tgt_nets
         self.site_vlans: list[dict] = []
         self.site_routes: list[dict] = []
         self.site_gps: list[dict] = []
+        self.tgt_nets: list[TargetPrefix] = TargetPrefix.netbox_get_tagged_prefixes(
+            self.__logger, site, details
+        )
 
     def get_dashboard(self):
         if self.__merakiDashboard is not None:
@@ -84,7 +87,7 @@ class MerakiSiteUpdater:
     def _create_meraki_vlan(self, vlan, log_inf: str):
         try:
             self.get_dashboard().appliance.createNetworkApplianceVlan(
-                **prepare_create_vlan(vlan)
+                **SopMerakiUtils.prepare_create_vlan(vlan)
             )  # APIError
             self.site_vlans.append(vlan)
         except Exception as err:
@@ -100,7 +103,7 @@ class MerakiSiteUpdater:
     def _update_meraki_vlan(self, vlan, log_inf: str):
         try:
             self.get_dashboard().appliance.updateNetworkApplianceVlan(
-                **prepare_put_vlan(vlan)
+                **SopMerakiUtils.prepare_put_vlan(vlan)
             )  # APIError
             index = self.__find_meraki_vlan(vlan.get("id", -1))
             self.site_vlans[index]=vlan
@@ -117,7 +120,7 @@ class MerakiSiteUpdater:
     def _del_meraki_vlan(self, vlan, log_inf: str):
         if (
             len(self.site_vlans) == 1
-            and vlan.get("id") == MerakiSiteUpdater.stub_vlan_id
+            and vlan.get("id") == MerakiNetworkUpdater.stub_vlan_id
         ):
             self.__logger.log_debug(
                 f"   Do NOT delete the stub VLAN when it's the last VLAN"
@@ -157,7 +160,7 @@ class MerakiSiteUpdater:
             return False
         if l == 0:
             return True
-        vid = vlan.get("id", MerakiSiteUpdater.stub_vlan_id)
+        vid = vlan.get("id", MerakiNetworkUpdater.stub_vlan_id)
         return vid == self.site_vlans[0].get("id")
 
     def _push_temp_stub_vlan(self):
@@ -166,13 +169,13 @@ class MerakiSiteUpdater:
         )
 
     def _remove_temp_stub_vlan(self):
-        index = self.__find_meraki_vlan(MerakiSiteUpdater.stub_vlan_id)
+        index = self.__find_meraki_vlan(MerakiNetworkUpdater.stub_vlan_id)
         if index >= 0 and len(self.site_vlans) > 1:
             self._del_meraki_vlan(self.__build_stub_vlan(), "REMOVE WORKAROUND STUB")
 
     def __build_stub_vlan(self):
         return {
-            "id": MerakiSiteUpdater.stub_vlan_id,
+            "id": MerakiNetworkUpdater.stub_vlan_id,
             "networkId": self.net.id,
             "subnet": "127.98.0.0/24",
             "name": "netbox_stub",
@@ -188,7 +191,7 @@ class MerakiSiteUpdater:
     def _create_meraki_route(self, route, log_inf: str):
         try:
             self.get_dashboard().appliance.createNetworkApplianceStaticRoute(
-                **prepare_create_route(route)
+                **SopMerakiUtils.prepare_create_route(route)
             )  # APIError
             self.site_routes.append(route)
         except Exception as err:
@@ -204,7 +207,7 @@ class MerakiSiteUpdater:
     def _update_meraki_route(self, route, log_inf: str):
         try:
             self.get_dashboard().appliance.updateNetworkApplianceStaticRoute(
-                **prepare_put_route(route)
+                **SopMerakiUtils.prepare_put_route(route)
             )  # APIError
             index = self.__find_meraki_route(route.get("subnet", ""))
             self.site_routes[index]=route
@@ -244,10 +247,10 @@ class MerakiSiteUpdater:
 
 
     # ---------------------------------------
-    # 
+    # region update logic
     def _update_or_create_meraki_network(
         self,
-        tgt_net: TargetNetwork,
+        tgt_net: TargetPrefix,
     ):
         if self.details:
             self.__logger.log_debug(f"handling {tgt_net} ")
@@ -281,7 +284,9 @@ class MerakiSiteUpdater:
                     self.net.id,
                     tgt_net.prefix_str,
                     tgt_net.get_net_name(),
-                    f"{netaddr.IPAddress(tgt_net.nb_prefix.prefix.last-1)}",
+                    f"{netaddr.IPAddress(tgt_net.nb_prefix.prefix.last-1)}", 
+                    self.net, 
+                    self.__logger,
                 )
                 self._create_meraki_vlan(
                     tgt,
@@ -389,7 +394,7 @@ class MerakiSiteUpdater:
                 f"UPDATE/CREATE CODE ERROR : tgt_net is neither VLAN nor ROUTE {tgt_net}"
             )
 
-    def purge_l3_fw_rules(self, nbp: Prefix, tgt_net: TargetNetwork) -> None:
+    def purge_l3_fw_rules(self, nbp: Prefix, tgt_net: TargetPrefix) -> None:
         # Nothing to purge if the prefix needs rules
         if tgt_net.gp.has_rules():
             return
@@ -419,7 +424,7 @@ class MerakiSiteUpdater:
                 )
                 raise err
 
-    def push_l3_fw_rules(self, nbp: Prefix, tgt_net: TargetNetwork) -> None:
+    def push_l3_fw_rules(self, nbp: Prefix, tgt_net: TargetPrefix) -> None:
         if self.details:
             self.__logger.log_debug(f"push_l3_fw_rules handling {tgt_net} ")
         if tgt_net.get_nb_prefix().status in ["retired", "reserved"]:
@@ -538,19 +543,20 @@ class MerakiSiteUpdater:
                     )
                 tgt_net.gp.group_policy_id[self.net.id] = f"{r.get('groupPolicyId')}"
 
+
     def patch_one_meraki_site_network(self):
 
-        tgt_net: TargetNetwork
+        tgt_net: TargetPrefix
 
         # HANDLE THE CASE OF ROUTED VLAN 1
         self.__logger.log_debug(
             f"----- CHECKING FOR ROUTED VLAN 1 ON MERAKI NETWORK {self.net.name} - {self.net.id}"
         )
         rtone = False
-        for tgt in self.tgt_nets:
-            if tgt.vlan_id == 1 and tgt.is_route():
+        for tgt_net in self.tgt_nets:
+            if tgt_net.vlan_id == 1 and tgt_net.is_route():
                 if self.details:
-                    self.__logger.log_debug(f" rtone for net {self.net.id} : {tgt}")
+                    self.__logger.log_debug(f" rtone for net {self.net.id} : {tgt_net}")
                 rtone = True
                 break
         lports = self.get_dashboard().appliance.getNetworkAppliancePorts(self.net.id)
@@ -628,8 +634,8 @@ class MerakiSiteUpdater:
         # ANALYZE VLANS/ROUTES/POLICIES AND CACHE THEM
         self._refresh_cache()
 
-        # DELETE NETWORKS OF THE WRONG TYPE (ROUTES VS VLANS)
-        self.__logger.log_debug(f'----- DELETING "WRONG" NETWORKS ')
+        # DELETE PREFIXES OF THE WRONG TYPE (ROUTES VS VLANS)
+        self.__logger.log_debug(f'----- DELETING "WRONG" PREFIXES ')
         for tgt_net in self.tgt_nets:
             if self.details:
                 self.__logger.log_debug(f"handling {tgt_net} ")
@@ -662,9 +668,9 @@ class MerakiSiteUpdater:
                     f"DELETE WRONG NETWORKS CODE ERROR : tgt_net is either VLAN or ROUTE {tgt_net}"
                 )
 
-        # DELETE NETWORK THAT WERE RETIRED OR DO NOT EXIST IN NETBOX
+        # DELETE PREFIXES THAT WERE RETIRED OR DO NOT EXIST IN NETBOX
         self.__logger.log_debug(
-            f"----- DELETING RETIRED , RESERVED OR NON-EXISTENT NETWORKS "
+            f"----- DELETING RETIRED , RESERVED OR NON-EXISTENT PREFIXES "
         )
         for v in self.site_vlans:
             found = None
@@ -702,15 +708,15 @@ class MerakiSiteUpdater:
             if tgt_net.is_vlan:
                 self.push_l3_fw_rules(tgt_net.nb_prefix, tgt_net)
 
-        # UPDATE EXISTING NETWORKS / CREATE NON-EXISTING ONES
-        self.__logger.log_debug(f"----- UPDATING/CREATING NETWORKS ")
-        tgt_net: TargetNetwork|None = None
+        # UPDATE EXISTING PREFIXES / CREATE NON-EXISTING ONES
+        self.__logger.log_debug(f"----- UPDATING/CREATING PREFIXES ")
+        tgt_net: TargetPrefix|None = None
         for tgt_net in self.tgt_nets:
             self._update_or_create_meraki_network(
                 tgt_net
             )
 
-        # DELETE L3RULES THAT HAVE AREN'T NEEDED ANYMORE ON THE EXISTING NETWORKS (RULES EMPTIED)
+        # DELETE L3RULES THAT HAVE AREN'T NEEDED ANYMORE ON THE EXISTING PREFIXES (RULES EMPTIED)
         self.__logger.log_debug(
             f"----- PURGING L3 RULES ON NETWORK {self.net.name} - {self.net.id}"
         )
@@ -723,55 +729,37 @@ class MerakiSiteUpdater:
         # PURGE STUB
         self.__logger.log_debug(f"----- REMOVE STUB ")
         self._remove_temp_stub_vlan()
-
+    
+    #endregion
 
 # =======================================================================
 
 
-class MerakiUpdater():
+class NetboxSiteMerakiUpdater():
 
-    def __init__(self, logger, *args, **kwargs):
+    def __init__(self, site:Site, logger, details:bool, simulate:bool, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__merakiDashboard = None
-        self.__merakiDashboard_name = None
+        self.__site:Site=site
         self.__logger=logger
+        self.__details=details
+        self.__simulate=simulate
+        self.__merakiDashboard = None
+        self.__smorg:SopMerakiOrg=SopMerakiUtils.get_site_meraki_org(self.__site)
 
-    def meraki_connect_to_dashboard(self, simulate: bool = False) -> None:
-        self.meraki_connect_to_dashboard_by_name("GLOBAL", simulate)
+    #region dashboard  
+    def __meraki_connect(self) -> None:
+        if self.__smorg is None:
+            raise Exception(f"Unknown dashboard for the site {self.__site.name} ! ")
+        self.__merakiDashboard = SopMerakiUtils.connect(self.__smorg.dash.nom, self.__smorg.dash.api_url, self.__simulate)
+        self.__logger.log_info(f"Meraki connection established to dashboard {self.__smorg.dash.nom}")
 
-    def meraki_connect_to_dashboard_by_name(
-        self, name: str, simulate: bool = False
-    ) -> None:
-        self.__merakiDashboard = SopMerakiUtils.connect_by_name(name, simulate
-        )
-        self.__merakiDashboard_name = name
-        self.__logger.log_info(f"Meraki connection established to dashboard {name}")
-
-    def get_dashboard(self):
+    def __get_dash(self):
+        if self.__merakiDashboard is None:
+            self.__meraki_connect()
         if self.__merakiDashboard is not None:
             return self.__merakiDashboard
         raise Exception("Not connected")
-
-    def get_dashboard_name(self):
-        if self.__merakiDashboard_name is not None:
-            return self.__merakiDashboard_name
-        raise Exception("Not connected")
-
-    def only_netbox_tags(self, tags: list[str]) -> list[str]:
-        ret: list[str] = []
-        for x in tags:
-            if x.startswith("NETBOX_"):
-                ret.append(x)
-        ret.sort()
-        return ret
-
-    def only_non_netbox_tags(self, tags: list[str]) -> list[str]:
-        ret: list[str] = []
-        for x in tags:
-            if not (x.startswith("NETBOX_")):
-                ret.append(x)
-        ret.sort()
-        return ret
+    #endregion 
 
     def _vpn_enable_disable_prefix(
         self, nbp: Prefix, mvh: MerakiVPNHubs, details: bool = False
@@ -859,7 +847,7 @@ class MerakiUpdater():
                     f"==== FORCIBLY DISABLING PREVIOUSLY ENABLED VPN for {nbp.prefix} on site {nbp.scope.name}"
                 )
         if upd:
-            self.get_dashboard().appliance.updateNetworkApplianceVpnSiteToSiteVpn(
+            self.__get_dash().appliance.updateNetworkApplianceVpnSiteToSiteVpn(
                 n.id,
                 mode=n.mode,
                 hubs=n.get_meraki_hubs_list(),
@@ -939,25 +927,13 @@ class MerakiUpdater():
                     net._subnets = []
                     upd = True
             if upd:
-                self.get_dashboard().appliance.updateNetworkApplianceVpnSiteToSiteVpn(
+                self.__get_dash().appliance.updateNetworkApplianceVpnSiteToSiteVpn(
                     net.id,
                     mode=net.mode,
                     hubs=net.get_meraki_hubs_list(),
                     subnets=net.get_meraki_subnets_list(),
                 )
 
-    def patch_meraki_site_networks(
-        self,
-        tgt_nets: list[TargetNetwork],
-        site:Site,
-        all_net_mer: list[MerakiNetwork],
-        details: bool = False,
-    ):
-        for net in all_net_mer:
-            msu = MerakiSiteUpdater(
-                self.get_dashboard(), tgt_nets, site, net, self.__logger, details
-            )
-            msu.patch_one_meraki_site_network()
 
     def _switches_push_stp(self, nbs: Site, details: bool = False):
 
@@ -1055,7 +1031,7 @@ class MerakiUpdater():
                 stpbp.append(pd)
 
             # Récup params actuels et comparer
-            curr = self.get_dashboard().switch.getNetworkSwitchStp(mnet)
+            curr = self.__get_dash().switch.getNetworkSwitchStp(mnet)
             tgt = {"rstpEnabled": True, "stpBridgePriority": stpbp}
             if SopUtils.deep_equals_json_ic(tgt, curr):
                 self.__logger.log_info(
@@ -1067,7 +1043,7 @@ class MerakiUpdater():
                         f"Spanning settings for [{mnet}] are different {curr=} VS {tgt=}"
                     )
                 # passer l'appel
-                self.get_dashboard().switch.updateNetworkSwitchStp(
+                self.__get_dash().switch.updateNetworkSwitchStp(
                     mnet, rstpEnabled=True, stpBridgePriority=stpbp
                 )
                 self.__logger.log_success(f"Updated spanning tree for [{mnet}] : {tgt=}")
@@ -1085,7 +1061,7 @@ class MerakiUpdater():
         for mnet in mnets:
             mid = mnet.meraki_id
             # Récup params actuels et comparer
-            curr = self.get_dashboard().switch.getNetworkSwitchRoutingMulticast(mid)
+            curr = self.__get_dash().switch.getNetworkSwitchRoutingMulticast(mid)
             tgt = {"defaultSettings": defaultSettings, "overrides": overrides}
             if SopUtils.deep_equals_json_ic(tgt, curr):
                 self.__logger.log_info(
@@ -1097,7 +1073,7 @@ class MerakiUpdater():
                         f"IGMP settings for [{mnet}] are different {curr=} VS {tgt=}"
                     )
                 # Procéder à l'update
-                self.get_dashboard().switch.updateNetworkSwitchRoutingMulticast(
+                self.__get_dash().switch.updateNetworkSwitchRoutingMulticast(
                     mid, defaultSettings=defaultSettings, overrides=overrides
                 )
                 self.__logger.log_success(
@@ -1129,7 +1105,7 @@ class MerakiUpdater():
             mid = mnet.meraki_id
             changed = False
             # Récup params actuels et comparer
-            curr = self.get_dashboard().switch.getNetworkSwitchQosRules(mid)
+            curr = self.__get_dash().switch.getNetworkSwitchQosRules(mid)
             lst_rem = list()
             for x in curr:
                 curr_id = x.pop("id")
@@ -1155,13 +1131,13 @@ class MerakiUpdater():
                 changed = True
                 if details:
                     self.__logger.log_debug(f"Adding QOS Rules in [{mnet}] : {y}")
-                self.get_dashboard().switch.createNetworkSwitchQosRule(mid, **y)
+                self.__get_dash().switch.createNetworkSwitchQosRule(mid, **y)
             # Now remove all those that we didn't want
             for x in lst_rem:
                 changed = True
                 if details:
                     self.__logger.log_debug(f"Deleting QOS Rules in [{mnet}] : {x}")
-                self.get_dashboard().switch.deleteNetworkSwitchQosRule(mid, x)
+                self.__get_dash().switch.deleteNetworkSwitchQosRule(mid, x)
             if changed:
                 self.__logger.log_success(f"Updated QOS Rules for [{mnet}] !")
             elif details:
@@ -1177,6 +1153,8 @@ class MerakiUpdater():
 
         # Meraki org/net loop
         self.__logger.log_debug(f"_get_all_mer_nets_for_site - Meraki net loop")
+        if site.meraki_nets.count()==0:
+            return mns
         net: SopMerakiNet
         for net in site.meraki_nets.all():
             self.__logger.log_debug(f"_get_all_mer_nets_for_site - handling {net.nom}")
@@ -1200,7 +1178,7 @@ class MerakiUpdater():
         # ["appliance","camera","cellularGateway","secureConnect","sensor","switch","systemsManager","wireless"]
         self.__logger.log_debug(f"_get_all_mer_nets_for_site - getOrganizationDevices")
         # TODO: bug quand on a un network sur plusieurs orgs   
-        devices = self.get_dashboard().organizations.getOrganizationDevices(
+        devices = self.__get_dash().organizations.getOrganizationDevices(
             organizationId=net.org.meraki_id,
             productTypes=[MerakiConstants.dev_type_appliance],
             networkIds=mns.get_net_ids(),
@@ -1216,7 +1194,7 @@ class MerakiUpdater():
                         )
                         x: (
                             dict
-                        ) = self.get_dashboard().appliance.getNetworkApplianceSecurityIntrusion(
+                        ) = self.__get_dash().appliance.getNetworkApplianceSecurityIntrusion(
                             mn.id
                         )
                         # self.__logger.log_debug(f"netappids {x}")
@@ -1226,7 +1204,7 @@ class MerakiUpdater():
                         )
                         x: (
                             dict
-                        ) = self.get_dashboard().appliance.getNetworkApplianceSecurityMalware(
+                        ) = self.__get_dash().appliance.getNetworkApplianceSecurityMalware(
                             mn.id
                         )
                         # self.__logger.log_debug(f"netappamp {x}")
@@ -1236,7 +1214,7 @@ class MerakiUpdater():
                         )
                         x: (
                             dict
-                        ) = self.get_dashboard().appliance.getNetworkApplianceContentFiltering(
+                        ) = self.__get_dash().appliance.getNetworkApplianceContentFiltering(
                             mn.id
                         )
                         # self.__logger.log_debug(f"netctfilter {x}")
@@ -1258,86 +1236,87 @@ class MerakiUpdater():
                     mn.id,
                     mn.name,
                     mn.bound,
-                    self.get_dashboard().appliance.getNetworkApplianceVpnSiteToSiteVpn(
+                    self.__get_dash().appliance.getNetworkApplianceVpnSiteToSiteVpn(
                         mn.id
                     ),
                 )
             )
         return mvh
 
-    def enforce_one_netbox_site(self, site: Site, details: bool = False):
+    def enforce_one_netbox_site(self):
 
         # GET MERAKI NETWORKS FOR NETBOX SITE
         mns: MerakiNets = None
-        mns = self._get_all_mer_nets_for_site(site)
-        if details:
+        mns = self._get_all_mer_nets_for_site(self.__site)
+        if self.__details:
             self.__logger.log_debug(f"MNS => {mns}")
         if len(mns.nets.keys()) == 0:
             self.__logger.log_warning(
-                f"Impossible to match Meraki networks to this site slug '{site.slug}' !"
+                f"Impossible to match Meraki networks to this site slug '{self.__site.slug}' !"
             )
             self.__logger.log_warning(
-                f"Please verify both your slug (lower case match) and your Meraki network naming (matches {SopRegExps.meraki_sitename_str})."
+                f"Please verify both your slug (lower case match) and your Meraki network naming (must match {SopRegExps.meraki_sitename_str})."
             )
             return
         org_ids: list[str] = list()
-        si = site.sopinfra
+        si = self.__site.sopinfra
 
         # PATCH SITE
-        if details:
-            self.__logger.log_info(f"==== SITE:{site.name} >>>> PATCH SITE")
+        if self.__details:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH MERAKI NETWORKS")
         for mn in mns.nets.values():
             self.__logger.log_debug(
-                f"check mn {mn.name}/{mn.id} : has_appliances:{mn.has_appliances}/has_access_points{mn.has_access_points}"
+                f"MERAKI NETWORK {mn.name}/{mn.id} : {mn.has_appliances=}/{mn.bound=}"
             )
-
-            # Handle appliance networks
-            if mn.has_appliances and not (mn.bound):
-                # Save Org ID for later
-                if details:
-                    self.__logger.log_debug(f"{mn.appliances=}")
-                for v in mn.appliances.values():
-                    if v not in org_ids:
-                        if details:
-                            self.__logger.log_debug(f"append {v=}")
-                        org_ids.append(v)
-                # Reset AMP/IDS/ContentFiltering
-                # TODO move that to scheduled task
-                if not ("disabled" == mn._amp_mode):
+            # Skip bound networks or non appliance networks
+            if mn.bound or not mn.has_appliances:
+                continue
+        
+            # Save Org ID for later
+            if self.__details:
+                self.__logger.log_debug(f"{mn.appliances=}")
+            for v in mn.appliances.values():
+                if v not in org_ids:
+                    if self.__details:
+                        self.__logger.log_debug(f"append {v=}")
+                    org_ids.append(v)
+            # Reset AMP/IDS/ContentFiltering
+            # TODO move that to scheduled task
+            if not ("disabled" == mn._amp_mode):
+                self.__logger.log_warning(
+                    f"Resetting {mn.name}/{mn.id} AMP mode {mn._amp_mode} to 'disabled'"
+                )
+                self.__get_dash().appliance.updateNetworkApplianceSecurityMalware(
+                    mn.id, mode="disabled"
+                )
+            if not ("disabled" == mn._ids_mode):
+                self.__logger.log_warning(
+                    f"Resetting {mn.name}/{mn.id} IDS mode {mn._amp_mode} to 'disabled'"
+                )
+                self.__get_dash().appliance.updateNetworkApplianceSecurityIntrusion(
+                    mn.id, mode="disabled"
+                )
+            if mn._ctflt is not None:
+                fix = False
+                if len(mn._ctflt.get("allowedUrlPatterns", [])) > 0:
+                    fix = True
+                elif len(mn._ctflt.get("blockedUrlPatterns", [])) > 0:
+                    fix = True
+                elif len(mn._ctflt.get("blockedUrlCategories", [])) > 0:
+                    fix = True
+                if fix:
                     self.__logger.log_warning(
-                        f"Resetting {mn.name}/{mn.id} AMP mode {mn._amp_mode} to 'disabled'"
+                        f"Resetting {mn.name}/{mn.id} Content Filtering {mn._ctflt} to empty lists"
                     )
-                    self.get_dashboard().appliance.updateNetworkApplianceSecurityMalware(
-                        mn.id, mode="disabled"
+                    self.__get_dash().appliance.updateNetworkApplianceContentFiltering(
+                        mn.id,
+                        allowedUrlPatterns=[],
+                        blockedUrlPatterns=[],
+                        blockedUrlCategories=[],
+                        urlCategoryListSize="topSites",
                     )
-                if not ("disabled" == mn._ids_mode):
-                    self.__logger.log_warning(
-                        f"Resetting {mn.name}/{mn.id} IDS mode {mn._amp_mode} to 'disabled'"
-                    )
-                    self.get_dashboard().appliance.updateNetworkApplianceSecurityIntrusion(
-                        mn.id, mode="disabled"
-                    )
-                if mn._ctflt is not None:
-                    fix = False
-                    if len(mn._ctflt.get("allowedUrlPatterns", [])) > 0:
-                        fix = True
-                    elif len(mn._ctflt.get("blockedUrlPatterns", [])) > 0:
-                        fix = True
-                    elif len(mn._ctflt.get("blockedUrlCategories", [])) > 0:
-                        fix = True
-                    if fix:
-                        self.__logger.log_warning(
-                            f"Resetting {mn.name}/{mn.id} Content Filtering {mn._ctflt} to empty lists"
-                        )
-                        self.get_dashboard().appliance.updateNetworkApplianceContentFiltering(
-                            mn.id,
-                            allowedUrlPatterns=[],
-                            blockedUrlPatterns=[],
-                            blockedUrlCategories=[],
-                            urlCategoryListSize="topSites",
-                        )
-                # Check Prisma Access VPN conf
-                if si is not None and si.enabled is not None:
+            # Check Prisma Access VPN conf
+            if si is not None and si.enabled is not None:
                     # We need to act
                     self.__logger.log_debug(
                         f"enforce_one_netbox_site - prisma should be {si.enabled=} / current tags {mn.tags=}"
@@ -1347,9 +1326,9 @@ class MerakiUpdater():
                         fix_old = mn.del_tag(f"AUTO-{mn.id}")
                         if fix_new or fix_old:
                             update_meraki: dict = {"tags": mn.tags}
-                            if details:
+                            if self.__details:
                                 self.__logger.log_debug(f"{update_meraki=}")
-                            d = self.get_dashboard().networks.updateNetwork(
+                            d = self.__get_dash().networks.updateNetwork(
                                 mn.id, **update_meraki
                             )
                             self.__logger.log_success(
@@ -1357,14 +1336,14 @@ class MerakiUpdater():
                             )
                     elif si.enabled == "false":
                         if mn.del_tag(f"{si.endpoint.name}"):
-                            if details:
+                            if self.__details:
                                 self.__logger.log_debug(
                                     f"remove new prisma tag '{si.endpoint.name}'"
                                 )
                             update_meraki: dict = {"tags": mn.tags}
-                            if details:
+                            if self.__details:
                                 self.__logger.log_debug(f"{update_meraki=}")
-                            d = self.get_dashboard().networks.updateNetwork(
+                            d = self.__get_dash().networks.updateNetwork(
                                 mn.id, **update_meraki
                             )
                             self.__logger.log_success(
@@ -1380,22 +1359,22 @@ class MerakiUpdater():
                         )
 
         # PATCH ORG FOR PRISMA VPN
-        if details:
-            self.__logger.log_info(f"==== SITE:{site.name} >>>> PATCH ORG")
+        if self.__details:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORG")
         if si is not None:
             if si.endpoint is not None:
-                if details:
+                if self.__details:
                     self.__logger.log_debug(
-                        f"enforce_one_netbox_site {site.name} - found Prisma Access conf"
+                        f"enforce_one_netbox_site {self.__site.name} - found Prisma Access conf"
                     )
-                self.__logger.log_debug(f"enforce_one_netbox_site {site.name} - {org_ids=}")
+                self.__logger.log_debug(f"enforce_one_netbox_site {self.__site.name} - {org_ids=}")
                 for org_id in org_ids:
-                    dict_peers = self.get_dashboard().appliance.getOrganizationApplianceVpnThirdPartyVPNPeers(
+                    dict_peers = self.__get_dash().appliance.getOrganizationApplianceVpnThirdPartyVPNPeers(
                         org_id
                     )
                     current_peers = dict_peers.get("peers")
                     self.__logger.log_debug(
-                        f"enforce_one_netbox_site {site.name} - {org_id=} - {current_peers=}"
+                        f"enforce_one_netbox_site {self.__site.name} - {org_id=} - {current_peers=}"
                     )
                     found = False
                     for p in current_peers:
@@ -1404,7 +1383,7 @@ class MerakiUpdater():
                             break
                     if found:
                         self.__logger.log_debug(
-                            f"enforce_one_netbox_site {site.name} - {org_id=} - Peer {si.endpoint.name} found -> skipping"
+                            f"enforce_one_netbox_site {self.__site.name} - {org_id=} - Peer {si.endpoint.name} found -> skipping"
                         )
                     else:
                         peer = {
@@ -1431,53 +1410,52 @@ class MerakiUpdater():
                         current_peers.append(peer)
                         dict_peers = {"peers": current_peers}
                         self.__logger.log_debug(
-                            f"enforce_one_netbox_site {site.name} - {org_id=} - Pushing {dict_peers} "
+                            f"enforce_one_netbox_site {self.__site.name} - {org_id=} - Pushing {dict_peers} "
                         )
-                        self.get_dashboard().appliance.updateOrganizationApplianceVpnThirdPartyVPNPeers(
+                        self.__get_dash().appliance.updateOrganizationApplianceVpnThirdPartyVPNPeers(
                             org_id, peers=current_peers
                         )
 
-        # PATCH NETWORKS
-        if details:
-            self.__logger.log_info(f"==== SITE:{site.name} >>>> PATCH NETWORKS")
+        # PATCH PREFIXES
+        if self.__details:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH PREFIXES")
+        for net in mns.get_appliance_nets():
+            mnu = MerakiNetworkUpdater(
+                self.__get_dash(), self.__site, net, self.__logger, self.__details
+            )
+            mnu.patch_one_meraki_site_network()
 
-        tgt_nets: list[TargetNetwork] = TargetNetwork.netbox_get_tagged_prefixes(
-            self.__logger, site, details
-        )
-        self.patch_meraki_site_networks(
-            tgt_nets, site, mns.get_appliance_nets(), details
-        )
 
         # FETCH HUBS (DEFERRED TO HAVE CURRENT REPRESENTATION)
         mvh: MerakiVPNHubs = None
         mvh = self._fetch_hubs(mns)
-        if details and True:
+        if self.__details and True:
             self.__logger.log_debug(f"MVH => {mvh}")
 
         # PATCH HUBS
-        if details:
-            self.__logger.log_info(f"==== SITE:{site.name} >>>> PATCH HUBS")
-        self._vpnhub_enforce_site(site, mvh, details)
+        if self.__details:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH HUBS")
+        self._vpnhub_enforce_site(self.__site, mvh, self.__details)
 
         # PATCH VPN
-        if details:
-            self.__logger.log_info(f"==== SITE:{site.name} >>>> PATCH VPN")
-        self._vpn_enable_disable_site(site, mvh, details)
+        if self.__details:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH VPN")
+        self._vpn_enable_disable_site(self.__site, mvh, self.__details)
 
         # PATCH STP
-        if details:
-            self.__logger.log_info(f"==== SITE:{site.name} >>>> PATCH STP")
-        self._switches_push_stp(site, details)
+        if self.__details:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH STP")
+        self._switches_push_stp(self.__site, self.__details)
 
         # PATCH IGMP
-        if details:
-            self.__logger.log_info(f"==== SITE:{site.name} >>>> PATCH IGMP")
-        self._switches_push_igmp(site, details)
+        if self.__details:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH IGMP")
+        self._switches_push_igmp(self.__site, self.__details)
 
         # PATCH QOS RULES
-        if details:
-            self.__logger.log_info(f"==== SITE:{site.name} >>>> PATCH QOS")
-        self._switches_push_qos_rules(site, details)
+        if self.__details:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH QOS")
+        self._switches_push_qos_rules(self.__site, self.__details)
 
 
 
@@ -1488,13 +1466,12 @@ class MerakiUpdater():
         if sites is None or len(sites) == 0:
             log.info(f"Nothing to do...")
             return
-        site:Site
-        upd:MerakiUpdater=MerakiUpdater(log)
-        upd.meraki_connect_to_dashboard(simulate=simulate)
+        s:Site
         for s in sites:
             if log :
                 log.info(f"MerakiUpdater:push_to_sites handling '{s.name}'...")
-            upd.enforce_one_netbox_site(s, details)
+            upd:NetboxSiteMerakiUpdater=NetboxSiteMerakiUpdater(s, log, details, simulate)
+            upd.enforce_one_netbox_site()
 
 
 
@@ -1502,54 +1479,9 @@ class MerakiUpdater():
 
 # =======================================================================
 
-class MerakiToolMixin(MerakiUpdater, SopBaseScriptMixin):
+class MerakiToolMixin(NetboxSiteMerakiUpdater, SopBaseScriptMixin):
     pass
 
 
 # =======================================================================
 
-
-def prepare_create_vlan(vlan):
-    posargs = {"networkId": vlan["networkId"], "id": vlan["id"], "name": vlan["name"]}
-    kwargs = {k: v for k, v in vlan.items()}
-    del kwargs["networkId"]
-    del kwargs["id"]
-    del kwargs["name"]
-    if "ipv6" in kwargs:
-        del kwargs["ipv6"]
-    posargs.update(kwargs)
-    return posargs
-
-
-def prepare_put_vlan(vlan):
-    posargs = {"networkId": vlan["networkId"], "vlanId": vlan["id"]}
-    kwargs = {k: v for k, v in vlan.items()}
-    del kwargs["networkId"]
-    del kwargs["id"]
-    if "ipv6" in kwargs:
-        del kwargs["ipv6"]
-    posargs.update(kwargs)
-    return posargs
-
-
-def prepare_create_route(vlan):
-    posargs = {
-        "networkId": vlan["networkId"],
-    }
-    kwargs = {k: v for k, v in vlan.items()}
-    del kwargs["networkId"]
-    if "gatewayVlanId" in kwargs:
-        del kwargs["gatewayVlanId"]
-    posargs.update(kwargs)
-    return posargs
-
-
-def prepare_put_route(vlan):
-    posargs = {"networkId": vlan["networkId"], "staticRouteId": vlan["id"]}
-    kwargs = {k: v for k, v in vlan.items()}
-    del kwargs["networkId"]
-    del kwargs["id"]
-    if "gatewayVlanId" in kwargs:
-        del kwargs["gatewayVlanId"]
-    posargs.update(kwargs)
-    return posargs

@@ -6,11 +6,12 @@ from django.db.models import Count
 from netbox.jobs import JobRunner, Job
 
 from dcim.models import Site
-from sop_infra.utils.meraki_tools import MerakiUpdater
+from sop_infra.utils.meraki_utils import SopMerakiUtils
+from sop_infra.utils.meraki_tools import NetboxSiteMerakiUpdater
 from tenancy.models import Contact, Tenant
 
 # TODO sopmerakiutils -> sop_infra.utils
-from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg, SopMerakiUtils
+from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
 from sop_infra.utils.ad_utils import ADCountersUpd, user_info, user_infos
 from sop_infra.utils.mixins import JobRunnerLogMixin
 
@@ -132,7 +133,7 @@ class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
         try:
             sites=kwargs.pop('sites', None)
             details=kwargs.pop('details', False)
-            MerakiUpdater.push_to_sites(self, settings.DEBUG, sites, details)
+            NetboxSiteMerakiUpdater.push_to_sites(self, settings.DEBUG, sites, details)
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"

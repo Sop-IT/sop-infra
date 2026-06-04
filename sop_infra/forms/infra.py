@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 
-from sop_infra.models.sopmeraki import SopMerakiUtils
+from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraConstants
 from sop_utils.regexps import SopRegExps
 from utilities.forms.fields import DynamicModelChoiceField

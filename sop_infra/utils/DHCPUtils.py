@@ -591,7 +591,7 @@ class GroupPolicy():
 
 # =======================================================================
 
-class TargetNetwork():
+class TargetPrefix():
 
     prefix_str:str=None
     dhcp_settings:DhcpSettings=None
@@ -693,10 +693,10 @@ class TargetNetwork():
     def is_valid(self, logger)->bool:
         nbp=self.nb_prefix
         if not(self.meraki_visible):
-            logger.log_info(f"Ignoring meraki invisible network : {self.prefix_str}")
+            logger.log_info(f"Prefix {self.prefix_str} : NOT meraki visible -> IGNORED ")
             return False
         if self.wan_facing_vlan:
-            logger.log_info(f"Ignoring WAN facing network : {self.prefix_str}")
+            logger.log_info(f"Prefix {self.prefix_str} : WAN facing -> IGNORED ")
             return False
         if nbp.status in ['reserved','active','noncompliant','decommissioning']:
             # dans ces cas on doit soit avoir un VLAN soit une route
@@ -710,8 +710,8 @@ class TargetNetwork():
         return True
 
     @staticmethod
-    def netbox_get_tagged_prefixes(logger, site:Site, details:bool=False) -> list:
-        dhcp_prefixes:list[TargetNetwork] = []
+    def netbox_get_tagged_prefixes(logger, site:Site, details:bool=False) -> list[TargetPrefix]:
+        dhcp_prefixes:list[TargetPrefix] = []
         from django.db.models import Q
         site_ct=ObjectType.objects.get_by_natural_key('dcim', 'site')
         #flt=Q(Q(custom_field_data__dhcp_dhcp_mode='enabled')|Q(custom_field_data__dhcp_dhcp_mode='disabled'))
@@ -735,7 +735,7 @@ class TargetNetwork():
                 if (su:=site_umbrellas.get(pfix.scope.slug)) is None:
                     su=DHCPUtils.netbox_get_site_umbrella_servers(pfix.scope)
                     site_umbrellas[pfix.scope.slug]=su
-                tgt=TargetNetwork(pfix, su, logger, details)
+                tgt=TargetPrefix(pfix, su, logger, details)
                 if tgt.is_valid(logger):
                     dhcp_prefixes.append(tgt)
             logger.log_debug(f"netbox_get_tagged_prefixes({site}) computed {len(dhcp_prefixes)} TargetNetworks")

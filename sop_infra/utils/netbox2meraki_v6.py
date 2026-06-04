@@ -78,7 +78,7 @@ class UpdateSitesGroups(MerakiToolMixin, Script):
         if details:
             self.log_debug(f"UpdateSitesGroups run : {data}")
       
-        self.meraki_connect_to_dashboard(simulate=not(commit))
+        self.__meraki_connect(simulate=not(commit))
 
         sites:list[Site]=[]
         sites.extend(Site.objects.filter(group_id=group.id).filter(sopinfra__master_site=None))
@@ -126,7 +126,7 @@ class UpdateSitesGroupsSingleThread(MerakiToolMixin, Script):
         if group is None:
             raise AbortScript("Missing site parameter...")
         
-        self.meraki_connect_to_dashboard(simulate=not(commit))
+        self.__meraki_connect(simulate=not(commit))
 
         sites:list[Site]=[]
         sites.extend(Site.objects.filter(group_id=group.id).filter(sopinfra__master_site=None))
@@ -175,7 +175,7 @@ class UpdateSitesRegions(MerakiToolMixin, Script):
         if region is None:
             raise AbortScript("Missing site parameter...")
         
-        self.meraki_connect_to_dashboard(simulate=not(commit))
+        self.__meraki_connect(simulate=not(commit))
 
         sites:list[Site]=[]
         sites.extend(Site.objects.filter(region_id=region.id).filter(sopinfra__master_site=None))
@@ -219,7 +219,7 @@ class UpdateSitesRegionsSingleThread(MerakiToolMixin, Script):
         if region is None:
             raise AbortScript("Missing site parameter...")
         
-        self.meraki_connect_to_dashboard(simulate=not(commit))
+        self.__meraki_connect(simulate=not(commit))
 
         sites:list[Site]=[]
         sites.extend(Site.objects.filter(region_id=region.id).filter(sopinfra__master_site=None))
@@ -288,7 +288,7 @@ class UpdateOneSite(MerakiToolMixin, Script):
 
         details:bool=SopUtils.extract_script_param(data, 'details', False)
 
-        self.meraki_connect_to_dashboard(simulate=not(commit))
+        self.__meraki_connect(simulate=not(commit))
         
         self.enforce_one_netbox_site(site, details)
 
@@ -391,7 +391,7 @@ class UpdateSelectedSitesSingleThread(MerakiToolMixin, Script):
         
         # Load meraki API keys from local json file
         
-        self.meraki_connect_to_dashboard(simulate=not(commit))
+        self.__meraki_connect(simulate=not(commit))
         
         for site in sites:
             if SopInfraUtils.get_sopinfra_site_master_site_id(site) is not None:
@@ -422,12 +422,12 @@ class HubReport(MerakiToolMixin, Script):
 
     def run(self, data, commit):
 
-        self.meraki_connect_to_dashboard(simulate=not(commit))
+        self.__meraki_connect(simulate=not(commit))
         
         all_net_mer=[]
-        for org in self.get_dashboard().organizations.getOrganizations():
+        for org in self.__get_dash().organizations.getOrganizations():
             self.log_info(f"Scanning Meraki organizations : id {org['id']}")
-            all_net_mer.extend(self.get_dashboard().organizations.getOrganizationNetworks(org['id'], total_pages=-1))
+            all_net_mer.extend(self.__get_dash().organizations.getOrganizationNetworks(org['id'], total_pages=-1))
         self.log_info("Meraki organization scan finished OK")        
         
         hubrep=[]
@@ -435,10 +435,10 @@ class HubReport(MerakiToolMixin, Script):
             if not("appliance" in net['productTypes']):
                 self.log_info(f"No appliance in {net['name']}")    
                 continue
-            if len(self.get_dashboard().organizations.getOrganizationDevices(organizationId=net['organizationId'], networkIds=[net['id']], productTypes=['appliance'])) <= 0  :
+            if len(self.__get_dash().organizations.getOrganizationDevices(organizationId=net['organizationId'], networkIds=[net['id']], productTypes=['appliance'])) <= 0  :
                 self.log_info(f"No appliance in {net['name']}")    
                 continue
-            x=self.get_dashboard().appliance.getNetworkApplianceVpnSiteToSiteVpn(net["id"])
+            x=self.__get_dash().appliance.getNetworkApplianceVpnSiteToSiteVpn(net["id"])
             if x['mode']!='spoke':
                 self.log_info(f"Not a spoke {net['name']}")
                 continue    

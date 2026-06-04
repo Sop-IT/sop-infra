@@ -36,7 +36,9 @@ urlpatterns = [
 
     path('trisearch', SopMerakiTriSearchView.as_view(), name='trisearch'),
     path('sync_ad_users', SopInfraSyncAdUsers.as_view(), name='sync_ad_users'),
+
     path('sopmeraki/push', SopMerakiPushSiteView.as_view(), name='sopmeraki_push'),
+    path('sopmeraki/<int:pk>/push/', SopMerakiPushSiteView.as_view(), name='sopmeraki_post_conf'),
 
     path('jsonexports/adusers', SopInfraJsonExportsAdUsers.as_view(), name='jsonexports_adusers'),
     path('jsonexports/adsites', SopInfraJsonExportsAdSites.as_view(), name='jsonexports_adsites'),
