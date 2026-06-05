@@ -1316,14 +1316,16 @@ class NetboxSiteMerakiUpdater():
             # ----------------- UMBRELLA ------------------
             # Force umbrella credentials
             self.__get_dash().appliance.connectNetworkApplianceUmbrellaAccount(mn.id, SopUmbrellaUtils.get_legacy_api_key_for_dash_name("GLOBAL"))
-            aea=EarlyAccessAppliance(self.__get_dash()._session)
-            try:
-                enable=aea.updateUmbrellaNetworkProtection(mn.id,True)
-            except APIError as e:
-                if e.status==405 and "Umbrella protection is already enabled on this entity" in f"{e.message}":
-                    self.__logger.log_info(f"MERAKI NETWORK {mn.name}/{mn.id} : Umbrella protection is already active")
-                else:
-                    raise e
+
+            # # DO NOT ENABLE WHEN WE CAN'T SET EXCEPTIONS
+            # aea=EarlyAccessAppliance(self.__get_dash()._session)
+            # try:
+            #     enable=aea.updateUmbrellaNetworkProtection(mn.id,True)
+            # except APIError as e:
+            #     if e.status==405 and "Umbrella protection is already enabled on this entity" in f"{e.message}":
+            #         self.__logger.log_info(f"MERAKI NETWORK {mn.name}/{mn.id} : Umbrella protection is already active")
+            #     else:
+            #         raise e
 
             
             # ----------------- PRISMA ------------------
@@ -1370,22 +1372,23 @@ class NetboxSiteMerakiUpdater():
                             f"Unkwnown sopinfra enabled value {si.enabled=} !"
                         )
 
-        # PATCH SITE FOR UMBRELLA  (not in the previous loop because of delay to activation)
-        excl=SopUmbrellaUtils.get_umbrella_excluded_domains(self.__site)
-        if excl:
-            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH UMBRELLA DOMAIN EXCLUSIONS")
-            for mn in mns.get_unbound_appliance_nets():
-                for tries in range(1,2):
-                    try:
-                        res=aea.updateUmbrellaExcludedDomains(mn.id, domains=excl)
-                        print(res)
-                        break
-                    except APIError as e:
-                        print(e)
-                        self.__logger.log_debug(f"MERAKI NETWORK {mn.name}/{mn.id} : updateUmbrellaExcludedDomains failed : sleeping 1s (try {tries})")
-                        time.sleep(1)
-                else:
-                    self.__logger.log_failure(f"MERAKI NETWORK {mn.name}/{mn.id} :  updateUmbrellaExcludedDomains failed {tries} times")
+        # # NOT WORKING FOR NOW
+        # # PATCH SITE FOR UMBRELLA  (not in the previous loop because of delay to activation)
+        # excl=SopUmbrellaUtils.get_umbrella_excluded_domains(self.__site)
+        # if excl:
+        #     self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH UMBRELLA DOMAIN EXCLUSIONS")
+        #     for mn in mns.get_unbound_appliance_nets():
+        #         for tries in range(1,2):
+        #             try:
+        #                 res=aea.updateUmbrellaExcludedDomains(mn.id, domains=excl)
+        #                 print(res)
+        #                 break
+        #             except APIError as e:
+        #                 print(e)
+        #                 self.__logger.log_debug(f"MERAKI NETWORK {mn.name}/{mn.id} : updateUmbrellaExcludedDomains failed : sleeping 1s (try {tries})")
+        #                 time.sleep(1)
+        #         else:
+        #             self.__logger.log_failure(f"MERAKI NETWORK {mn.name}/{mn.id} :  updateUmbrellaExcludedDomains failed {tries} times")
 
         # PATCH ORG FOR PRISMA VPN
         self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORGANISATION SETTINGS")
