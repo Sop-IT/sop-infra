@@ -388,6 +388,7 @@ class GroupPolicy():
             if details:
                 logger.log_debug(f"Prefix {nb_prefix} : build custom l3 policies")
             self.group_policy_list=GroupPolicy.l3rules_copy_normalize_main(self.prefix, dhcp_settings, logger, details)
+        # TODO : ici mettre les overrides umbrella quand les API Meraki seront prêtes
         #logger.log_debug(f"init gp {nb_prefix} -> {self.group_policy_list}")
         
     def __str__(self):
@@ -396,38 +397,47 @@ class GroupPolicy():
     def has_rules(self):
         return self.group_policy_list is not None and len(self.group_policy_list)>0
 
+    # @staticmethod
+    # def umbrella_overides(prefix:Prefix, dhcp_settings:DhcpSettings, logger, details) -> list[dict]:
+    #     # Get umbrella_bypass CF
+    #     rlub = None
+    #     vlub = None
+    #     if prefix.vlan is not None :
+    #         vlub = prefix.vlan.custom_field_data.get('umbrella_bypass')
+    #         if vlub is None and prefix.vlan.role is not None: 
+    #             rlub=prefix.vlan.role.custom_field_data.get('umbrella_bypass') 
+    #     umb_bypass = vlub or rlub
+    #     # Get umbrella_policy CF
+    #     rlup = None
+    #     vlup = None
+    #     if prefix.vlan is not None :
+    #         vlup = prefix.vlan.custom_field_data.get('umbrella_policy')
+    #         if vlup is None and prefix.vlan.role is not None: 
+    #             rlup=prefix.vlan.role.custom_field_data.get('umbrella_policy') 
+    #     umb_policy = vlup or rlup       
+    #     # API is not ready yet at MERAKI
+    #     return ret
+    
     @staticmethod
     def l3rules_copy_normalize_main(prefix:Prefix, dhcp_settings:DhcpSettings, logger, details) -> list[dict]:
-        if prefix.vlan is None:
-            if details:
-                logger.log_debug(f"Prefix {prefix} : prefix.vlan is none")
-            return None
-        if prefix.vlan.role is None:
-            if details:
-                logger.log_debug(f"Prefix {prefix} : prefix.vlan.role is none")
-            return None
-        rl3r=prefix.vlan.role.custom_field_data.get('vlan_l3_rules')
-        vl3r=prefix.vlan.custom_field_data.get('vlan_l3_rules')
-        return GroupPolicy.l3rules_copy_normalize(
-                prefix, rl3r, vl3r, dhcp_settings, logger, details
-            )
+        rl3r = None
+        vl3r = None
+        if prefix.vlan is not None :
+            vl3r = prefix.vlan.custom_field_data.get('vlan_l3_rules')
+            if vl3r is None and prefix.vlan.role is not None: 
+                rl3r=prefix.vlan.role.custom_field_data.get('vlan_l3_rules') 
+        l3r = vl3r or rl3r
+        ret:list[dict]|None=None
+        if l3r is not None:
+            ret = GroupPolicy.l3rules_copy_normalize(prefix, l3r, logger, details)
+        logger.log_debug(f"Prefix {prefix} : l3rules_copy_normalize_main --> {"NO" if ret is None else "BUILT"} policy ( RoleL3R:{rl3r is not None} / VlanL3R:{vl3r is not None} )")
+        return ret
 
     @staticmethod
-    def l3rules_copy_normalize(prefix:Prefix, rl3r:list[dict], vl3r:list[dict], dhcp_settings:DhcpSettings, logger, details) -> list[dict]:
-        toHandle=vl3r
-        if toHandle is None:
-            if details:
-                logger.log_debug(f"Prefix {prefix} : no VL3R -> using RL3R")
-            toHandle=rl3r
-        if toHandle is None:
-            if details:
-                logger.log_debug(f"Prefix {prefix} : no RL3R either, skipping policies")
-            return None
-        if details:
-            logger.log_debug(f"Prefix {prefix} : copy_normalize for {toHandle}")        
+    def l3rules_copy_normalize(prefix:Prefix, l3r:list[dict], dhcp_settings:DhcpSettings, logger, details) -> list[dict]|None:
         ret=[]
         context={'prefix':prefix, 'dhcp_settings':dhcp_settings}
-        for r in toHandle:
+        for r in l3r:
             try:
                 if isinstance(r, dict):
                     n:dict = {k:v for k, v in r.items()}    

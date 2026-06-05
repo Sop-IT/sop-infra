@@ -133,7 +133,7 @@ class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
         try:
             sites=kwargs.pop('sites', None)
             details=kwargs.pop('details', False)
-            NetboxSiteMerakiUpdater.push_to_sites(self, settings.DEBUG, sites, details)
+            NetboxSiteMerakiUpdater.push_to_sites(self, False, sites, details)
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"

@@ -245,6 +245,12 @@ class MerakiNets():
             if v.has_appliances:
                 ret.append(v)
         return ret
+    def get_unbound_appliance_nets(self) -> list[MerakiNetwork]:
+        ret:list[MerakiNetwork]=[]
+        for v in self._nets.values():
+            if v.has_appliances and not v.bound:
+                ret.append(v)
+        return ret
     def has_access_points(self) -> bool:
         for v in self._nets.values():
             if v.has_access_points:

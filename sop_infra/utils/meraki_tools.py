@@ -1,27 +1,23 @@
-
-
+import time
+import meraki  
+import netaddr
+import json
 
 from django.utils.text import slugify
-from django.db.models import Q
 from django.db.models import Min
 from django.db.models.functions.math import Mod
-from django.core.exceptions import ValidationError
 
-from extras.scripts import BooleanVar, ObjectVar, Script
+from sop_infra.models.infra import SopInfra
+from sop_infra.utils.meraki_early_access import EarlyAccessAppliance
 from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.DHCPUtils import TargetPrefix
+from sop_infra.utils.umbrella_utils import SopUmbrellaUtils
 from utilities.exceptions import AbortScript
 
-
-
-import meraki  # type: ignore
 import dcim.models
 
-import netaddr
-
-import json
 from ipam.models import Prefix
-from dcim.models import Site, Device, DeviceType
+from dcim.models import Site, Device
 
 from sop_infra.utils.meraki_objects import *
 from sop_infra.models import SopMerakiNet, SopSwitchTemplate, SopDeviceSetting
@@ -29,6 +25,8 @@ from sop_utils.misc import SopUtils
 from sop_utils.regexps import SopRegExps
 from sop_infra.utils.mixins import JobRunnerLogMixin, SopBaseScriptMixin
 from sop_infra.models.sopmeraki import SopMerakiOrg
+
+from meraki.exceptions import APIError
 
 # =======================================================================
 
@@ -735,6 +733,8 @@ class MerakiNetworkUpdater:
 # =======================================================================
 
 
+
+# =======================================================================
 class NetboxSiteMerakiUpdater():
 
     def __init__(self, site:Site, logger, details:bool, simulate:bool, *args, **kwargs):
@@ -869,7 +869,7 @@ class NetboxSiteMerakiUpdater():
         dflt: bool = False
         sho: str = ""
         try:
-            si = nbs.sopinfra
+            si:SopInfra = nbs.sopinfra
             d = si.hub_default_route_setting
             dflt = d is not None and d.strip() == "true"
             sho = si.hub_order_setting
@@ -878,6 +878,7 @@ class NetboxSiteMerakiUpdater():
         # Sanitize before use
         if sho is None:
             sho = ""
+        # TODO set reasonnable defaut if empty
 
         # Build target
         target = []
@@ -1262,16 +1263,12 @@ class NetboxSiteMerakiUpdater():
         si = self.__site.sopinfra
 
         # PATCH SITE
-        if self.__details:
-            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH MERAKI NETWORKS")
-        for mn in mns.nets.values():
+        self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH NETWORKS SETTINGS")
+        for mn in mns.get_unbound_appliance_nets():
             self.__logger.log_debug(
                 f"MERAKI NETWORK {mn.name}/{mn.id} : {mn.has_appliances=}/{mn.bound=}"
             )
-            # Skip bound networks or non appliance networks
-            if mn.bound or not mn.has_appliances:
-                continue
-        
+                    
             # Save Org ID for later
             if self.__details:
                 self.__logger.log_debug(f"{mn.appliances=}")
@@ -1315,6 +1312,21 @@ class NetboxSiteMerakiUpdater():
                         blockedUrlCategories=[],
                         urlCategoryListSize="topSites",
                     )
+            
+            # ----------------- UMBRELLA ------------------
+            # Force umbrella credentials
+            self.__get_dash().appliance.connectNetworkApplianceUmbrellaAccount(mn.id, SopUmbrellaUtils.get_legacy_api_key_for_dash_name("GLOBAL"))
+            aea=EarlyAccessAppliance(self.__get_dash()._session)
+            try:
+                enable=aea.updateUmbrellaNetworkProtection(mn.id,True)
+            except APIError as e:
+                if e.status==405 and "Umbrella protection is already enabled on this entity" in f"{e.message}":
+                    self.__logger.log_info(f"MERAKI NETWORK {mn.name}/{mn.id} : Umbrella protection is already active")
+                else:
+                    raise e
+
+            
+            # ----------------- PRISMA ------------------
             # Check Prisma Access VPN conf
             if si is not None and si.enabled is not None:
                     # We need to act
@@ -1358,63 +1370,68 @@ class NetboxSiteMerakiUpdater():
                             f"Unkwnown sopinfra enabled value {si.enabled=} !"
                         )
 
+        # PATCH SITE FOR UMBRELLA  (not in the previous loop because of delay to activation)
+        excl=SopUmbrellaUtils.get_umbrella_excluded_domains(self.__site)
+        if excl:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH UMBRELLA DOMAIN EXCLUSIONS")
+            for mn in mns.get_unbound_appliance_nets():
+                for tries in range(1,2):
+                    try:
+                        res=aea.updateUmbrellaExcludedDomains(mn.id, domains=excl)
+                        print(res)
+                        break
+                    except APIError as e:
+                        print(e)
+                        self.__logger.log_debug(f"MERAKI NETWORK {mn.name}/{mn.id} : updateUmbrellaExcludedDomains failed : sleeping 1s (try {tries})")
+                        time.sleep(1)
+                else:
+                    self.__logger.log_failure(f"MERAKI NETWORK {mn.name}/{mn.id} :  updateUmbrellaExcludedDomains failed {tries} times")
+
         # PATCH ORG FOR PRISMA VPN
-        if self.__details:
-            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORG")
+        self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORGANISATION SETTINGS")
         if si is not None:
-            if si.endpoint is not None:
-                if self.__details:
-                    self.__logger.log_debug(
-                        f"enforce_one_netbox_site {self.__site.name} - found Prisma Access conf"
+            if si.endpoint is None:
+                self.__logger.log_info(f"No Prisma config found -> SKIPPING")
+            else:                
+                dict_peers = self.__get_dash().appliance.getOrganizationApplianceVpnThirdPartyVPNPeers(
+                    self.__smorg.meraki_id
+                )
+                current_peers = dict_peers.get("peers")
+                self.__logger.log_debug(
+                    f"enforce_one_netbox_site {self.__site.name} - {self.__smorg.meraki_id=} - {current_peers=}"
+                )
+                for p in current_peers:
+                    if si.endpoint.name == p.get("name"):
+                        self.__logger.log_info(f"Peer {si.endpoint.name} found -> SKIPPING")
+                        break
+                else:
+                    peer = {
+                        "name": si.endpoint.name,
+                        "ikeVersion": "2",
+                        "secret": si.endpoint.psk,
+                        "privateSubnets": ["0.0.0.0/0"],
+                        "ipsecPolicies": {
+                            "ikeCipherAlgo": ["aes256"],
+                            "ikeAuthAlgo": ["sha256"],
+                            "ikePrfAlgo": ["default"],
+                            "ikeDiffieHellmanGroup": ["group2"],
+                            "ikeLifetime": 28800,
+                            "childCipherAlgo": ["aes256"],
+                            "childAuthAlgo": ["sha256"],
+                            "childPfsGroup": ["group2"],
+                            "childLifetime": 10800,
+                        },
+                        "networkTags": [si.endpoint.name],
+                        "localId": si.endpoint.local_id,
+                        "remoteId": si.endpoint.remote_id,
+                        "publicIp": si.endpoint.peer_ip,
+                    }
+                    current_peers.append(peer)
+                    dict_peers = {"peers": current_peers}
+                    self.__logger.log_info(f"Peer {si.endpoint.name} *NOT* found -> PUSHING")
+                    self.__get_dash().appliance.updateOrganizationApplianceVpnThirdPartyVPNPeers(
+                        self.__smorg.meraki_id, peers=current_peers
                     )
-                self.__logger.log_debug(f"enforce_one_netbox_site {self.__site.name} - {org_ids=}")
-                for org_id in org_ids:
-                    dict_peers = self.__get_dash().appliance.getOrganizationApplianceVpnThirdPartyVPNPeers(
-                        org_id
-                    )
-                    current_peers = dict_peers.get("peers")
-                    self.__logger.log_debug(
-                        f"enforce_one_netbox_site {self.__site.name} - {org_id=} - {current_peers=}"
-                    )
-                    found = False
-                    for p in current_peers:
-                        if si.endpoint.name == p.get("name"):
-                            found = True
-                            break
-                    if found:
-                        self.__logger.log_debug(
-                            f"enforce_one_netbox_site {self.__site.name} - {org_id=} - Peer {si.endpoint.name} found -> skipping"
-                        )
-                    else:
-                        peer = {
-                            "name": si.endpoint.name,
-                            "ikeVersion": "2",
-                            "secret": si.endpoint.psk,
-                            "privateSubnets": ["0.0.0.0/0"],
-                            "ipsecPolicies": {
-                                "ikeCipherAlgo": ["aes256"],
-                                "ikeAuthAlgo": ["sha256"],
-                                "ikePrfAlgo": ["default"],
-                                "ikeDiffieHellmanGroup": ["group2"],
-                                "ikeLifetime": 28800,
-                                "childCipherAlgo": ["aes256"],
-                                "childAuthAlgo": ["sha256"],
-                                "childPfsGroup": ["group2"],
-                                "childLifetime": 10800,
-                            },
-                            "networkTags": [si.endpoint.name],
-                            "localId": si.endpoint.local_id,
-                            "remoteId": si.endpoint.remote_id,
-                            "publicIp": si.endpoint.peer_ip,
-                        }
-                        current_peers.append(peer)
-                        dict_peers = {"peers": current_peers}
-                        self.__logger.log_debug(
-                            f"enforce_one_netbox_site {self.__site.name} - {org_id=} - Pushing {dict_peers} "
-                        )
-                        self.__get_dash().appliance.updateOrganizationApplianceVpnThirdPartyVPNPeers(
-                            org_id, peers=current_peers
-                        )
 
         # PATCH PREFIXES
         if self.__details:
@@ -1425,8 +1442,7 @@ class NetboxSiteMerakiUpdater():
             )
             mnu.patch_one_meraki_site_network()
 
-
-        # FETCH HUBS (DEFERRED TO HAVE CURRENT REPRESENTATION)
+        # FETCH HUBS (DEFERRED TO HAVE A CURRENT REPRESENTATION)
         mvh: MerakiVPNHubs = None
         mvh = self._fetch_hubs(mns)
         if self.__details and True:
