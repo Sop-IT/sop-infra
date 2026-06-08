@@ -1480,7 +1480,7 @@ class NetboxSiteMerakiUpdater():
 
     @classmethod
     def push_to_sites(
-        cls, log: JobRunnerLogMixin, simulate: bool, sites: list[Site], details: bool = False
+        cls, log: JobRunnerLogMixin, sites: list[Site], details: bool, simulate: bool
     ):
         if sites is None or len(sites) == 0:
             log.info(f"Nothing to do...")

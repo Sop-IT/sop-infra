@@ -6,7 +6,7 @@ from django.dispatch import receiver
 from netbox.context import current_request
 from netbox.plugins import PluginTemplateExtension
 
-from dcim.models import Site, Device
+from dcim.models import Region, Site, Device, SiteGroup
 
 from sop_infra.models import SopInfra
 from sop_infra.utils.meraki_utils import SopMerakiUtils
@@ -209,17 +209,22 @@ class TrigramSearch(PluginTemplateExtension):
     def navbar(self):
         return self.render("sop_infra/inc/trisearch.html", extra_context={})
 
-
+# ==========================================================
+#region MERAKI PUSH EXTENSIONS
 class MerakiPushPluginExtension(PluginTemplateExtension):
 
-    models = ['dcim.site']
+    models = ['dcim.site','dcim.region', 'dcim.sitegroup']
 
     def buttons(self):
         if self.context.get("object"):
             if isinstance(self.context.get("object"), Site):
-                return self.render("sop_infra/inc/pushconf_btn.html", extra_context={})
+                return self.render("sop_infra/inc/pushconf_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_push_site"})
+            if isinstance(self.context.get("object"), Region):
+                return self.render("sop_infra/inc/pushconf_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_push_region"})
+            if isinstance(self.context.get("object"), SiteGroup):
+                return self.render("sop_infra/inc/pushconf_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_push_group"})
         return ""
-
+#endregion
 
 class DHCPHelperPluginExtension(PluginTemplateExtension):
 

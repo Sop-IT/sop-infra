@@ -14,7 +14,7 @@ from sop_infra.views.infra import SopInfraSyncAdUsers,SopInfraJsonExportsAdUsers
 
 
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
-from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView
+from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView, SopMerakiPushGroupView, SopMerakiPushRegionView
 from sop_infra.views.sopmeraki import SopMerakiOrgListView, SopMerakiOrgView, SopMerakiOrgEditView, SopMerakiOrgDeleteView, SopMerakiOrgRefreshView, SopMerakiOrgRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiNetListView, SopMerakiNetView, SopMerakiNetEditView, SopMerakiNetDeleteView, SopMerakiNetRefreshView, SopMerakiNetRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiDeviceListView, SopMerakiDeviceView, SopMerakiDeviceEditView, SopMerakiDeviceDeleteView
@@ -37,8 +37,10 @@ urlpatterns = [
     path('trisearch', SopMerakiTriSearchView.as_view(), name='trisearch'),
     path('sync_ad_users', SopInfraSyncAdUsers.as_view(), name='sync_ad_users'),
 
-    path('sopmeraki/push', SopMerakiPushSiteView.as_view(), name='sopmeraki_push'),
-    path('sopmeraki/<int:pk>/push/', SopMerakiPushSiteView.as_view(), name='sopmeraki_post_conf'),
+    #path('sopmeraki/pushdbg/site/', SopMerakiPushSiteView.as_view(), name='sopmeraki_push'),
+    path('sopmeraki/push/site/<int:pk>/', SopMerakiPushSiteView.as_view(), name='sopmeraki_push_site'),
+    path('sopmeraki/push/region/<int:pk>/', SopMerakiPushRegionView.as_view(), name='sopmeraki_push_region'),
+    path('sopmeraki/push/group/<int:pk>/', SopMerakiPushGroupView.as_view(), name='sopmeraki_push_group'),
 
     path('jsonexports/adusers', SopInfraJsonExportsAdUsers.as_view(), name='jsonexports_adusers'),
     path('jsonexports/adsites', SopInfraJsonExportsAdSites.as_view(), name='jsonexports_adsites'),

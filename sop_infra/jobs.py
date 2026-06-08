@@ -122,6 +122,8 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
         return SopMerakiNetRefreshJob.enqueue(nets=nets, details=details)
 
 
+#region PUSH MERAKI SITE CONFIGS
+
 class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
@@ -133,7 +135,8 @@ class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
         try:
             sites=kwargs.pop('sites', None)
             details=kwargs.pop('details', False)
-            NetboxSiteMerakiUpdater.push_to_sites(self, False, sites, details)
+            simulate=kwargs.pop('simulate', False)
+            NetboxSiteMerakiUpdater.push_to_sites(self, sites, details, simulate)
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
@@ -144,11 +147,13 @@ class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
             self.job.data = self.get_job_data()       
 
     @staticmethod
-    def launch_manual(sites:list[Site], details:bool)->Job:
-        if settings.DEBUG:
-            return SopMerakiPushSiteJob.enqueue(immediate=True, sites=sites, details=details)
-        return SopMerakiPushSiteJob.enqueue(sites=sites, details=details)
+    def launch_manual(sites:list[Site], details:bool, simulate:bool, immediate:bool)->Job:
+        return SopMerakiPushSiteJob.enqueue(immediate=immediate, sites=sites, details=details, simulate=simulate)
 
+#endregion
+
+
+#region AD SYNC
 
 class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
 
@@ -337,3 +342,4 @@ class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
                     self.tenant_nonO365_domain_names[dns.lower()]=s
         self.log_info(f"  --> {len(self.tenant_nonO365_domain_names.keys())} domains loaded")
         
+#endregion

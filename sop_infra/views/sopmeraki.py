@@ -2,12 +2,14 @@ from django.contrib import messages
 from django.db.models import Count
 from django.shortcuts import render, redirect
 from django.views import View
+from django.conf import settings
 
 from django.http import HttpRequest
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import AccessMixin
 
+from sop_infra.utils.netbox_utils import SopInfraUtils
 from utilities.views import ObjectPermissionRequiredMixin, register_model_view
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
@@ -15,7 +17,7 @@ from utilities.forms import restrict_form_fields
 from netbox.views import generic
 from netbox.jobs import Job
 
-from dcim.models import Site
+from dcim.models import Region, Site, SiteGroup
 from sop_infra.jobs import (
     SopMerakiCreateNetworkJob,
     SopMerakiDashRefreshJob,
@@ -31,34 +33,118 @@ from sop_infra.models import SopMerakiDash, SopMerakiOrg, SopMerakiNet, SopMerak
 from sop_infra.filtersets import SopMerakiDashFilterSet, SopMerakiOrgFilterSet, SopMerakiNetFilterSet, SopMerakiDeviceFilterSet, SopMerakiSwitchStackFilterSet
 
 
+# ========================================================================
+#region MERAKI CONFIG PUSH VIEWS
+
+
+
+class SopMerakiPushGroupView(View):
+
+    """
+    Push Meraki configurations for a whole region
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_push_group")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = "/dcim/site-groups"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Fetch region and build a site list
+        group = get_object_or_404(SiteGroup, pk=pk)
+        sites:list[Site]=[]
+        sites.extend(Site.objects.filter(group_id=group.id).filter(sopinfra__master_site=None))
+        for sg in group.get_descendants():
+            sites.extend(Site.objects.filter(group_id=sg.id).filter(sopinfra__master_site=None))
+        if settings.DEBUG:
+            print(f"group={group} / descendants={group.get_descendants()} / sites : {sites}")
+        # Let's queue updates
+        count:int=0
+        for site in sites:
+            if SopInfraUtils.get_sopinfra_site_master_site_id(site) is not None:
+                print(f"Site {site} is slave -> no need to update ")
+            else:
+                j: Job = SopMerakiPushSiteJob.launch_manual(sites=site, details=True, simulate=settings.DEBUG, immediate=False)
+                count=count+1
+                print(f"Queued UpdateOneSite for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {count} site pushes for group {group}")
+        return redirect(return_url)
+
+
+class SopMerakiPushRegionView(View):
+
+    """
+    Push Meraki configurations for a whole region
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_push_region")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = "/dcim/regions"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Fetch region and build a site list
+        region = get_object_or_404(Region, pk=pk)
+        sites:list[Site]=[]
+        sites.extend(Site.objects.filter(region_id=region.id).filter(sopinfra__master_site=None))
+        for reg in region.get_descendants():
+            sites.extend(Site.objects.filter(region_id=reg.id).filter(sopinfra__master_site=None))
+        if settings.DEBUG:
+            print(f"region={region} / descendants={region.get_descendants()} / sites : {sites}")
+        # Let's queue updates
+        count:int=0
+        for site in sites:
+            if SopInfraUtils.get_sopinfra_site_master_site_id(site) is not None:
+                print(f"Site {site} is slave -> no need to update ")
+            else:
+                j: Job = SopMerakiPushSiteJob.launch_manual(sites=site, details=True, simulate=settings.DEBUG, immediate=False)
+                count=count+1
+                print(f"Queued UpdateOneSite for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {count} site pushes for region {region}")
+        return redirect(return_url)
+
+
 class SopMerakiPushSiteView(View):
 
     """
     Push Meraki configurations
     """
 
-    def get(self, request, *args, **kwargs):
+    # POST is blocking -> avoids to have several times the same job running
+    # But we need to be able to test and override some params for easier debugging/testing
+    # def get(self, request, *args, **kwargs):
 
-        if not request.user.has_perm(get_permission_for_model(Site, f"helper_push_site")):
-            return self.handle_no_permission()
+    #     if not settings.DEBUG:
+    #         return self.handle_no_permission()
         
-        return_url = "/dcim/sites"
-        if request.GET.get("return_url"):
-            return_url = request.GET.get("return_url")
+    #     if not request.user.has_perm(get_permission_for_model(Site, f"helper_push_site")):
+    #         return self.handle_no_permission()
+        
+    #     return_url = "/dcim/sites"
+    #     if request.GET.get("return_url"):
+    #         return_url = request.GET.get("return_url")
 
-        pk_str: str|None = request.GET.get("pk")
-        if pk_str is None or pk_str.strip() == "":
-            # TODO message PK manquante 
-            messages.error(request, f"Missing PK !")
-            return redirect(return_url)
+    #     pk_str: str|None = request.GET.get("pk")
+    #     if pk_str is None or pk_str.strip() == "":
+    #         # TODO message PK manquante 
+    #         messages.error(request, f"Missing PK !")
+    #         return redirect(return_url)
 
-        sites = Site.objects.filter(pk=pk_str.strip().lower())
-        if sites.count() == 0:
-            messages.error(request, f"Site not found {pk_str} !")
-            return redirect(return_url)
+    #     sites = Site.objects.filter(pk=pk_str.strip().lower())
+    #     if sites.count() == 0:
+    #         messages.error(request, f"Site not found {pk_str} !")
+    #         return redirect(return_url)
 
-        j: Job = SopMerakiPushSiteJob.launch_manual(sites=sites.all(), details=True)
-        return redirect(reverse("extras:script_result", args=[j.pk]))
+    #     simulate_str: str|None = request.GET.get("simulate", "yes")
+    #     simulate:bool=not(simulate_str=="yes")
+
+    #     j: Job = SopMerakiPushSiteJob.launch_manual(sites=sites.all(), details=True, simulate=simulate, immediate=True)
+    #     return redirect(reverse("extras:script_result", args=[j.pk]))
+
 
     def post(self, request, pk, *args, **kwargs):
 
@@ -78,7 +164,7 @@ class SopMerakiPushSiteView(View):
             return self.handle_no_permission()
 
         # Launch job
-        j: Job = SopMerakiPushSiteJob.launch_manual(sites=[instance], details=True)
+        j: Job = SopMerakiPushSiteJob.launch_manual(sites=[instance], details=True, simulate=settings.DEBUG, immediate=True)
 
         # Send to script result
         url = reverse("extras:script_result", args=[j.pk])
@@ -86,6 +172,8 @@ class SopMerakiPushSiteView(View):
         #     url+="?log_threshold=debug"
         return redirect(url)
 
+
+#endregion
 
 class SopMerakiTriSearchView(View):
     
@@ -109,7 +197,7 @@ class SopMerakiTriSearchView(View):
 
 
 # ========================================================================
-# SopMerakiDash
+#region SopMerakiDash
 
 
 class SopMerakiDashView(generic.ObjectView):
@@ -214,10 +302,10 @@ class SopMerakiDashRefreshView(View, ObjectPermissionRequiredMixin):
         # if details:
         #     url+="?log_threshold=debug"
         return redirect(url)
-
+#endregion
 
 # ========================================================================
-# SopMerakiOrg
+#region SopMerakiOrg
 
 
 class SopMerakiOrgView(generic.ObjectView):
@@ -317,10 +405,11 @@ class SopMerakiOrgRefreshView(AccessMixin, View):
         # if details:
         #     url+="?log_threshold=debug"
         return redirect(url)
+#endregion
 
 
 # ========================================================================
-# SopMerakiNet
+#region SopMerakiNet
 
 
 class SopMerakiNetView(generic.ObjectView):
@@ -420,10 +509,10 @@ class SopMerakiNetRefreshView(AccessMixin, View):
         # if details:
         #     url+="?log_threshold=debug"
         return redirect(url)
-
+#endregion
 
 # ========================================================================
-# SopMerakiSwitchStack
+#region SopMerakiSwitchStack
 
 @register_model_view(SopMerakiSwitchStack)
 class SopMerakiSwitchStackView(generic.ObjectView):
@@ -448,10 +537,10 @@ class SopMerakiSwitchStackEditView(generic.ObjectEditView):
 @register_model_view(SopMerakiSwitchStack, 'delete')
 class SopMerakiSwitchStackDeleteView(generic.ObjectDeleteView):
     queryset = SopMerakiSwitchStack.objects.all()
-
+#endregion
 
 # ========================================================================
-# SopMerakiDevice
+#region SopMerakiDevice
 
 @register_model_view(SopMerakiDevice)
 class SopMerakiDeviceView(generic.ObjectView):
@@ -476,3 +565,4 @@ class SopMerakiDeviceEditView(generic.ObjectEditView):
 @register_model_view(SopMerakiDevice, 'delete')
 class SopMerakiDeviceDeleteView(generic.ObjectDeleteView):
     queryset = SopMerakiDevice.objects.all()
+#endregion
