@@ -137,27 +137,6 @@ class SopMerakiUtils:
             SopMerakiNetUtils.refresh_from_meraki(smn, conn, smo, log, details)
 
     @classmethod
-    def refresh_networks_devices(
-        cls, log: JobRunnerLogMixin, simulate: bool, nets: list, details: bool = False
-    ):
-        if nets is None or len(nets) == 0:
-            nets = SopMerakiNet.objects.all()  # type: ignore
-        smn:SopMerakiNet
-        for smn in nets:
-            smo:SopMerakiOrg=smn.org
-            smd:SopMerakiDash=smo.dash
-            if log:
-                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
-            conn = cls.connect(smd.nom, smd.api_url, simulate)
-            if log:
-                log.info(f"Trying to refresh '{smn.nom}'")
-            for dev in conn.organizations.getOrganizationDevices(
-                smo.meraki_id, networkIds=[smn.meraki_id], total_pages=-1
-            ):
-                smdev = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'])
-                SopMerakiDeviceUtils.refresh_from_meraki_data(smdev, conn, dev, smo, log, details)
-
-    @classmethod
     def create_meraki_networks(
         cls, log: JobRunnerLogMixin, simulate: bool, site: Site, details: bool = False
     ):
@@ -608,13 +587,13 @@ class SopMerakiNetUtils:
         for dev in conn.organizations.getOrganizationDevices(
             org.meraki_id, networkIds=[smn.meraki_id], total_pages=-1
         ):
-            smdev = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'])
+            smdev = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'],dev['name'])
             SopMerakiDeviceUtils.refresh_from_meraki_data(smdev, conn, dev, org, log, details)
 
         # Refresh stacks from this net
         if "switch" in smn.ptypes :
             for st in conn.switch.getNetworkSwitchStacks(smn.meraki_id):
-                SopMerakiSwitchStack.create_or_refresh(conn, st, smn, log, details)
+                SopMerakiSwitchStackUtils.create_or_refresh(conn, st, smn, log, details)
 
         return save
 
@@ -627,9 +606,9 @@ class SopMerakiDeviceUtils:
         return devs[0] if devs.exists() else None
 
     @staticmethod
-    def get_by_serial_or_create(serial:str):
+    def get_by_serial_or_create(serial:str, name:str):
         ret=SopMerakiDeviceUtils.get_by_serial(serial)
-        return SopMerakiDevice() if ret is None else ret
+        return SopMerakiDevice(serial=serial, nom=f"NEW : {name}") if ret is None else ret
 
     def refresh_from_meraki_data(
         smd:SopMerakiDevice,
@@ -734,7 +713,16 @@ class SopMerakiDeviceUtils:
                     log.warning(f"Deleting duplicate of '[{ds[0].name}]' Netbox Device : '[{d.name}]({d.serial})' ")
                     d.delete()
                 d = ds[0]
+            # First remove existing link if it will block the onetoonerelationship
+            if d is not None and hasattr(d, "meraki_device") and d.meraki_device != smd:
+                print(f" REMOVING 1to1 between {d.meraki_device=} AND {d=}")
+                md=d.meraki_device
+                d.meraki_device=None
+                d.save()
+                md.netbox_device=None
+                md.save()
             if smd.netbox_device != d:
+                print(f" ADDING 1to1 between {smd=} AND {d=}")
                 smd.netbox_device = d
                 save = True
             if smd.netbox_device is not None:
@@ -811,7 +799,7 @@ class SopMerakiSwitchStackUtils:
             sms = SopMerakiSwitchStack()
         else:
             sms = SopMerakiSwitchStack.objects.get(meraki_id=stack["id"])
-        sms.refresh_from_meraki(conn, stack, smnet, log, details)
+        SopMerakiSwitchStackUtils.refresh_from_meraki(sms, conn, stack, smnet, log, details)
 
     def refresh_from_meraki(
         smss:SopMerakiSwitchStack,
@@ -949,7 +937,7 @@ class SopMerakiOrgUtils:
             if dev.get("networkId", None) is not None:
                 continue
             # refresh "no net" devices
-            smd = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'])
+            smd = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'], dev['name'])
             SopMerakiDeviceUtils.refresh_from_meraki_data(smd, conn, dev, smo, log, details)
         # Remove devices that are not in this org anymore
         if log:
