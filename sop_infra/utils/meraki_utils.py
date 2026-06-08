@@ -993,7 +993,7 @@ class SopMerakiDashUtils:
                 smo = SopMerakiOrg()
             else:
                 smo = SopMerakiOrg.objects.get(meraki_id=org["id"])
-            smo.refresh_from_meraki_data(conn, org, smd, log, details)
+            SopMerakiOrgUtils.refresh_from_meraki_data(smo, conn, org, smd, log, details)
 
         if log:
             log.info(f"Done looping on '{smd.nom}' organizations, starting cleanup...")
