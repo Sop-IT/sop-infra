@@ -101,7 +101,7 @@ class SopMerakiUtils:
             conn = cls.connect(smd.nom, smd.api_url, simulate)
             if log:
                 log.info(f"Trying to refresh '{smd.nom}'")
-            smd.refresh_from_meraki(conn, log, details)
+            SopMerakiDashUtils.refresh_from_meraki(smd, conn, log, details)
 
     @classmethod
     def refresh_organizations(
@@ -117,7 +117,7 @@ class SopMerakiUtils:
             conn = cls.connect(smd.nom, smd.api_url, simulate)
             if log:
                 log.info(f"Trying to refresh '{smo.nom}'")
-            smo.refresh_from_meraki(conn, smd, log, details)
+            SopMerakiOrgUtils.refresh_from_meraki(smo, conn, smd, log, details)
 
     @classmethod
     def refresh_networks(
@@ -896,7 +896,7 @@ class SopMerakiOrgUtils:
         details: bool,
     ):
         org_data=conn.organizations.getOrganization(smo.meraki_id)
-        return SopMerakiOrg.refresh_from_meraki_data(smo, conn, org_data, dash, log, details)
+        return SopMerakiOrgUtils.refresh_from_meraki_data(smo, conn, org_data, dash, log, details)
 
     @staticmethod
     def refresh_from_meraki_data(
@@ -968,12 +968,52 @@ class SopMerakiOrgUtils:
             org_data["id"], total_pages=-1
         ):
             net_ids.append(net["id"])
-            SopMerakiNet.create_or_refresh(conn, net, smo, log, details)
+            SopMerakiNetUtils.create_or_refresh(conn, net, smo, log, details)
         if log:
             log.info(f"Done looping on '{smo.nom}' networks, starting cleanup...")
         for smn in smo.nets.all():  # type: ignore
             if smn.meraki_id not in net_ids:
                 log.info(f"Deleting '{smn.nom}'...")
                 smn.delete()
+
+        return save
+    
+
+class SopMerakiDashUtils: 
+    
+    @staticmethod
+    def refresh_from_meraki(
+        smd, conn: meraki.DashboardAPI, log: JobRunnerLogMixin, details: bool
+    ):
+        save = smd.pk is None
+
+        if save:
+            smd.full_clean()
+            smd.save()
+
+        org_ids = []
+        smo: SopMerakiOrg
+        if log:
+            log.info(f"Looping on '{smd.nom}' organizations...")
+        for org in conn.organizations.getOrganizations():
+            org_ids.append(org["id"])
+            if not SopMerakiOrg.objects.filter(meraki_id=org["id"]).exists():
+                if log:
+                    log.info(
+                        f"Creating ORG for '{org['name']}' on DASH '{smd.nom}'..."
+                    )
+                smo = SopMerakiOrg()
+            else:
+                smo = SopMerakiOrg.objects.get(meraki_id=org["id"])
+            smo.refresh_from_meraki_data(conn, org, smd, log, details)
+
+        if log:
+            log.info(f"Done looping on '{smd.nom}' organizations, starting cleanup...")
+        for smo in smd.orgs.all():  # type: ignore
+            if smo.meraki_id not in org_ids:
+                log.info(f"Deleting ORG '{smo.nom}' / {smo.meraki_id}")
+                smo.delete()
+        if log:
+            log.info(f"Done cleaning up '{smd.nom}' !")
 
         return save
