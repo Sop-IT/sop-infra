@@ -73,11 +73,11 @@ class SopInfra(NetBoxModel):
         blank=True,
         verbose_name=_("Industrial"),
     )
-    criticity_stars = models.CharField(
+    criticality_stars = models.CharField(
         max_length=6,
         null=True,
         blank=True,
-        verbose_name=_("Criticity stars"),
+        verbose_name=_("Criticality stars"),
         editable=False,
     )
     site_phone_critical = models.CharField(
@@ -332,14 +332,14 @@ class SopInfra(NetBoxModel):
             return "green"
         return "red"
 
-    def get_criticity_stars(self) -> str | None:
+    def get_criticality_stars(self) -> str | None:
 
-        if self.criticity_stars is None:
+        if self.criticality_stars is None:
             return None
 
         html: list[str] = [
             '<span class="mdi mdi-star-outline" style="color: rgba(218, 165, 32, 1);"></span>'
-            for _ in self.criticity_stars
+            for _ in self.criticality_stars
         ]
         return mark_safe("".join(html))
 
@@ -439,15 +439,15 @@ class SopInfra(NetBoxModel):
             self.sdwanha = "-NO NETWORK-"
             self.sdwan1_bw = None
             self.sdwan2_bw = None
-            self.criticity_stars = None
+            self.criticality_stars = None
             self.site_infra_sysinfra = None
         else:
             # compute sdwanha for normal sites
             self.sdwanha = "-NHA-"
-            self.criticity_stars = "*"
+            self.criticality_stars = "*"
             if self.site_type_vip == "true":
                 self.sdwanha = "-HA-"
-                self.criticity_stars = "***"
+                self.criticality_stars = "***"
             # no -HAS- because there is no site_type_indus == IPL
             elif (
                 self.site_type_indus == "fac"
@@ -458,7 +458,7 @@ class SopInfra(NetBoxModel):
                 or self.site_user_count in ["50<100", "100<200", "200<500", ">500"]
             ):
                 self.sdwanha = "-HA-"
-                self.criticity_stars = "**"
+                self.criticality_stars = "**"
 
     # ===================================================
     # FIELDS ENFORCING
@@ -475,7 +475,7 @@ class SopInfra(NetBoxModel):
         self.site_infra_sysinfra = None
         self.site_type_indus = None
         self.wan_reco_bw = None
-        self.criticity_stars = None
+        self.criticality_stars = None
         self.site_mx_model = None
 
     def enforce_dc_fields(self):
@@ -486,7 +486,7 @@ class SopInfra(NetBoxModel):
         self.wan_reco_bw = None
         self.wan_computed_users_wc = None
         self.wan_computed_users_bc = None
-        self.criticity_stars = "****"
+        self.criticality_stars = "****"
         self.site_mx_model = "MX450"
 
     # ===================================================

@@ -147,7 +147,7 @@ class SopInfraClassificationTable(NetBoxTable):
     status = tables.Column(accessor="site__status", linkify=True)
     site_infra_sysinfra = tables.Column(linkify=True)
     site_type_indus = tables.Column(linkify=True)
-    criticity_stars = tables.Column(linkify=True)
+    criticality_stars = tables.Column(linkify=True)
     site_phone_critical = ChoiceFieldColumn(linkify=True)
     site_type_red = ChoiceFieldColumn(linkify=True)
     site_type_vip = ChoiceFieldColumn(linkify=True)
@@ -178,7 +178,7 @@ class SopInfraClassificationTable(NetBoxTable):
             "site_type_red",
             "site_type_vip",
             "site_type_wms",
-            "criticity_stars",
+            "criticality_stars",
         )
         order_by = ("site",)
 
@@ -194,11 +194,11 @@ class SopInfraClassificationTable(NetBoxTable):
             f'<span class="badge text-bg-{bg_color}">{value.title()}</span>'
         )
 
-    def render_criticity_stars(self, record):
-        if not record.criticity_stars:
+    def render_criticality_stars(self, record):
+        if not record.criticality_stars:
             return None
 
-        return record.get_criticity_stars()
+        return record.get_criticality_stars()
 
 
 class SopInfraTable(NetBoxTable):
@@ -231,7 +231,7 @@ class SopInfraTable(NetBoxTable):
             "ad_direct_users_ext",
             "ad_direct_users_nom",
             "site_mx_model",
-            "criticity_stars",
+            "criticality_stars",
             "sdwanha",
             "hub_order_setting",
             "hub_default_route_setting",
@@ -250,7 +250,7 @@ class SopInfraTable(NetBoxTable):
             "id",
             "site",
             "site__status",
-            "criticity_stars",
+            "criticality_stars",
             "sdwanha",
             "wan_computed_users_wc",
             "tunnel",
@@ -270,11 +270,11 @@ class SopInfraTable(NetBoxTable):
             f'<span class="badge text-bg-{bg_color}">{value.title()}</span>'
         )
 
-    def render_criticity_stars(self, record):
-        if not record.criticity_stars:
+    def render_criticality_stars(self, record):
+        if not record.criticality_stars:
             return None
 
-        return record.get_criticity_stars()
+        return record.get_criticality_stars()
 
 
 

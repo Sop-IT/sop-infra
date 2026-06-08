@@ -339,7 +339,7 @@ class SopInfraFilterset(NetBoxModelFilterSet):
             "master_site_id",
             "site_infra_sysinfra",
             "site_type_indus",
-            "criticity_stars",
+            "criticality_stars",
             "site_phone_critical",
             "site_type_red",
             "site_type_vip",
@@ -379,7 +379,7 @@ class SopInfraFilterset(NetBoxModelFilterSet):
             | Q(site__status__icontains=value)
             | Q(site_infra_sysinfra__icontains=value)
             | Q(site_type_indus__icontains=value)
-            | Q(criticity_stars__icontains=value)
+            | Q(criticality_stars__icontains=value)
             | Q(est_cumulative_users_wc__icontains=value)
             | Q(est_cumulative_users_bc__icontains=value)
             | Q(est_cumulative_users_ext__icontains=value)

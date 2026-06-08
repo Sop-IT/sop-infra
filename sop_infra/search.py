@@ -29,7 +29,7 @@ class SopInfraSearchIndex(SearchIndex):
         ("site_type_red", 1000),
         ("site_type_vip", 1000),
         ("site_type_wms", 1000),
-        ("criticity_stars", 100),
+        ("criticality_stars", 100),
         ("est_cumulative_users_wc", 500),
         ("est_cumulative_users_bc", 500),
         ("est_cumulative_users_ext", 500),

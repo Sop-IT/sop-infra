@@ -280,18 +280,18 @@ class SopInfraMasterModelTestCase(TestCase):
         self.infra3.save()
 
         self.assertEqual(self.infra1.sdwanha, '-HA-')
-        self.assertEqual(self.infra1.criticity_stars, '**')
+        self.assertEqual(self.infra1.criticality_stars, '**')
 
         self.assertEqual(self.infra2.sdwanha, '-HA-')
-        self.assertEqual(self.infra2.criticity_stars, '***')
+        self.assertEqual(self.infra2.criticality_stars, '***')
 
         self.assertEqual(self.infra3.sdwanha, '-NO NETWORK-')
-        self.assertEqual(self.infra3.criticity_stars, None)
+        self.assertEqual(self.infra3.criticality_stars, None)
 
         self.infra1.ad_direct_users_wc = 9
         self.infra1.full_clean()
         self.infra1.save()
 
         self.assertEqual(self.infra1.sdwanha, '-NHA-')
-        self.assertEqual(self.infra1.criticity_stars, '*')
+        self.assertEqual(self.infra1.criticality_stars, '*')
 

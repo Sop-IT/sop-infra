@@ -36,9 +36,9 @@ The `SopInfra` model represents an infrastructure associated with a site. It ens
   - WRK - Workshop
   - FAC - Factory
 
-### Criticity Stars
+### Criticality Stars
 
-- **Field:** `criticity_stars`
+- **Field:** `criticality_stars`
 - **Type:** `CharField`
 - **Details:**
   - Criticality ratings
