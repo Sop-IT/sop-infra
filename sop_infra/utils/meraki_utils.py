@@ -71,7 +71,7 @@ class SopMerakiUtils:
         if api_key is None or api_key.strip() == "":
             raise Exception(f"APIKEY is empty ! ")
         return meraki.DashboardAPI(
-            api_key=api_key, base_url=api_url, suppress_logging=True, simulate=simulate
+            api_key=api_key, base_url=api_url, suppress_logging=True, simulate=simulate, maximum_retries=10,
         )
 
     @classmethod
