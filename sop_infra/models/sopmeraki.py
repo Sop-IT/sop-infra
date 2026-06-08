@@ -51,41 +51,6 @@ class SopMerakiDash(NetBoxModel):
         verbose_name = "Meraki dashboard"
         verbose_name_plural = "Meraki dashboards"
 
-    def refresh_from_meraki(
-        self, conn: meraki.DashboardAPI, log: JobRunnerLogMixin, details: bool
-    ):
-        save = self.pk is None
-
-        if save:
-            self.full_clean()
-            self.save()
-
-        org_ids = []
-        smo: SopMerakiOrg
-        if log:
-            log.info(f"Looping on '{self.nom}' organizations...")
-        for org in conn.organizations.getOrganizations():
-            org_ids.append(org["id"])
-            if not SopMerakiOrg.objects.filter(meraki_id=org["id"]).exists():
-                if log:
-                    log.info(
-                        f"Creating ORG for '{org['name']}' on DASH '{self.nom}'..."
-                    )
-                smo = SopMerakiOrg()
-            else:
-                smo = SopMerakiOrg.objects.get(meraki_id=org["id"])
-            smo.refresh_from_meraki_data(conn, org, self, log, details)
-
-        if log:
-            log.info(f"Done looping on '{self.nom}' organizations, starting cleanup...")
-        for smo in self.orgs.all():  # type: ignore
-            if smo.meraki_id not in org_ids:
-                log.info(f"Deleting ORG '{smo.nom}' / {smo.meraki_id}")
-                smo.delete()
-        if log:
-            log.info(f"Done cleaning up '{self.nom}' !")
-
-        return save
 
 
 class SopMerakiOrg(NetBoxModel):
