@@ -235,11 +235,16 @@ class MerakiNetworkUpdater:
             if self.details:
                 self.__logger.log_success(f"   Removed route : {route}")
 
-    def __remove_meraki_route(self, subnet: str):
+    def __find_meraki_route(self, subnet: str):
         for index in range(len(self.site_routes)):
             if subnet == self.site_routes[index].get("subnet"):
-                self.site_routes.pop(index)
-                break
+                return index
+        return -1
+    
+    def __remove_meraki_route(self, subnet: str):
+        index = self.__find_meraki_route(subnet)
+        if index >= 0:
+            self.site_routes.pop(index)
 
     #endregion
 
