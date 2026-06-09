@@ -429,7 +429,7 @@ class GroupPolicy():
         l3r = vl3r or rl3r
         ret:list[dict]|None=None
         if l3r is not None:
-            ret = GroupPolicy.l3rules_copy_normalize(prefix, l3r, logger, details)
+            ret = GroupPolicy.l3rules_copy_normalize(prefix, l3r, dhcp_settings, logger, details)
         logger.log_debug(f"Prefix {prefix} : l3rules_copy_normalize_main --> {"NO" if ret is None else "BUILT"} policy ( RoleL3R:{rl3r is not None} / VlanL3R:{vl3r is not None} )")
         return ret
 
