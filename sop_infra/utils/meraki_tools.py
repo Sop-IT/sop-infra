@@ -832,7 +832,7 @@ class NetboxSiteMerakiUpdater():
             if z is not None:
                 break
         if z is None:
-            if nbp.status not in ["retired", "reserved"]:
+            if nbp.status not in ["retired", "reserved", "container"]:
                 self.__logger.log_warning(
                     f"Prefix {nbp.prefix} not found on site {nbp.scope.name}."
                 )
