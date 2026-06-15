@@ -278,7 +278,7 @@ class SopInfraUtils:
         if vl is None or not isinstance(vl, VLAN):
             raise Exception(f"vl must be a VLAN instance")
         # Ignore retired vlans
-        if vl.status=="retired":
+        if vl.status=="deprecated":
             return True
         # Tenant SOPIT -> exemption
         if vl.tenant is not None and vl.tenant.slug=="sopit":
@@ -725,7 +725,9 @@ class SopInfraUtils:
         ret:list[str]=list()
         if site.tenant is None:
             msg=f"Missing tenant !"
-            ret.append(msg)           
+            ret.append(msg)
+        elif site.tenant.slug=="sopit":
+            return ret           
         else:
             if SopInfraUtils.has_tenant_compliance_danger_messages(site.tenant):
                 msg=f'Non compliant tenant <a href="{site.tenant.get_absolute_url()}">{site.tenant.name}</a> !'
