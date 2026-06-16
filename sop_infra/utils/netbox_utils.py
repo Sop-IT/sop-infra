@@ -448,9 +448,9 @@ class SopInfraUtils:
             if "warning"==tg_data.get("vat_number_requirement") and StringUtils.is_none_or_empty(tn_data.get("vat_number")):
                 ret.append("Missing VAT Number")
             if "warning"==tg_data.get("billing_mastersite_requirement") and StringUtils.is_none_or_empty(tn_data.get("obs_billing_master_site")):
-                ret.append("Missing billing site")
+                ret.append("Missing invoicing site")
             if "warning"==tg_data.get("billing_email_requirement") and  StringUtils.is_none_or_empty(tn_data.get("obs_billing_email")):
-                ret.append("Missing billing email")
+                ret.append("Missing invoicing email")
         return ret
 
     @staticmethod
@@ -472,9 +472,9 @@ class SopInfraUtils:
             if "critical"==tg_data.get("vat_number_requirement") and StringUtils.is_none_or_empty(tn_data.get("vat_number")):
                 ret.append("Missing VAT Number")
             if "critical"==tg_data.get("billing_mastersite_requirement") and StringUtils.is_none_or_empty(tn_data.get("obs_billing_master_site")):
-                ret.append("Missing billing site")
+                ret.append("Missing invoicing site")
             if "critical"==tg_data.get("billing_email_requirement") and  StringUtils.is_none_or_empty(tn_data.get("obs_billing_email")):
-                ret.append("Missing billing email")
+                ret.append("Missing invoicing email")
             if status=="candidate":
                 lstv=Site.objects.filter(tenant=tn).filter(status__in=["staging","starting","active","decommissioning"]).all()
                 if len(lstv)>0:
