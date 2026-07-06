@@ -959,6 +959,7 @@ class NetboxSiteMerakiUpdater():
             .exclude(sopdevicesetting__switch_template=None)
             .exclude(meraki_device=None)
             .filter(meraki_device__stack=None)
+            .exclude(meraki_device__meraki_network=None)
             .exclude(meraki_device__meraki_network__bound_to_template=True)
             .annotate(
                 modul=Mod("sopdevicesetting__switch_template__stp_prio", 4096)
@@ -1319,8 +1320,8 @@ class NetboxSiteMerakiUpdater():
                     )
             
             # ----------------- UMBRELLA ------------------
-            # Force umbrella credentials
-            self.__get_dash().appliance.connectNetworkApplianceUmbrellaAccount(mn.id, SopUmbrellaUtils.get_legacy_api_key_for_dash_name("GLOBAL"))
+            # Force umbrella credentials --> nope, this is done manually
+            #self.__get_dash().appliance.connectNetworkApplianceUmbrellaAccount(mn.id, SopUmbrellaUtils.get_legacy_api_key_for_dash_name("GLOBAL"))
 
             # # DO NOT ENABLE WHEN WE CAN'T SET EXCEPTIONS
             # aea=EarlyAccessAppliance(self.__get_dash()._session)
