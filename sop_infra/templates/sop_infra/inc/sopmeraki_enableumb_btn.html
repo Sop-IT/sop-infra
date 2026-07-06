@@ -1,0 +1,12 @@
+{% load i18n %}
+{# PUSH CONFIG TO MERAKI button #}
+<form action="{% url post_url object.pk %}?return_url={{ request.get_full_path }}" method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary btn-yellow">
+    <i class="mdi mdi-shield-check" aria-hidden="true"></i> (Re)enable UMBRELLA
+  </button>
+</form>
+
+ 
+
+
