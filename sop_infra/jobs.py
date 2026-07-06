@@ -57,7 +57,7 @@ class SopMerakiLinkSiteToUmbrellaJob(JobRunnerLogMixin, JobRunner):
         try:
             #CHINA voir si spécifique à coder
             api_keys=SopUmbrellaUtils.get_legacy_api_key_for_dash_name('GLOBAL')
-            SopMerakiUtils.connect_to_umbrella_dash(self, False, kwargs.pop('site'), api_keys, kwargs.pop('details'))
+            SopMerakiUtils.connect_to_umbrella_dash(self, False, kwargs.pop('sites'), api_keys, kwargs.pop('details'))
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
@@ -68,10 +68,10 @@ class SopMerakiLinkSiteToUmbrellaJob(JobRunnerLogMixin, JobRunner):
             self.job.data = self.get_job_data()       
 
     @staticmethod
-    def launch_manual(site:Site, details:bool=False)->Job:
+    def launch_manual(sites:list[Site], details:bool=False)->Job:
         if settings.DEBUG:
-            return SopMerakiLinkSiteToUmbrellaJob.enqueue(immediate=True, site=site, details=details)
-        return SopMerakiLinkSiteToUmbrellaJob.enqueue(site=site, details=details)
+            return SopMerakiLinkSiteToUmbrellaJob.enqueue(immediate=True, sites=sites, details=details)
+        return SopMerakiLinkSiteToUmbrellaJob.enqueue(sites=sites, details=details)
 
 class SopMerakiEnableUmbrellaJob(JobRunnerLogMixin, JobRunner):
 
@@ -82,9 +82,8 @@ class SopMerakiEnableUmbrellaJob(JobRunnerLogMixin, JobRunner):
         job:Job=self.job
         obj = job.object
         try:
-            site:Site=kwargs.pop('site')
-            excluded_domains=SopUmbrellaUtils.get_umbrella_excluded_domains(site)
-            SopMerakiUtils.enable_umbrella_protection(self, False, site, excluded_domains, kwargs.pop('details'))
+            sites:Site=kwargs.pop('sites')
+            SopMerakiUtils.enable_umbrella_protection(self, False, sites, kwargs.pop('details'))
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
@@ -95,10 +94,10 @@ class SopMerakiEnableUmbrellaJob(JobRunnerLogMixin, JobRunner):
             self.job.data = self.get_job_data()       
 
     @staticmethod
-    def launch_manual(site:Site, details:bool=False)->Job:
+    def launch_manual(sites:list[Site], details:bool=False)->Job:
         if settings.DEBUG:
-            return SopMerakiEnableUmbrellaJob.enqueue(immediate=True, site=site, details=details)
-        return SopMerakiEnableUmbrellaJob.enqueue(site=site, details=details)
+            return SopMerakiEnableUmbrellaJob.enqueue(immediate=True, sites=sites, details=details)
+        return SopMerakiEnableUmbrellaJob.enqueue(sites=sites, details=details)
     
 #endregion
 
