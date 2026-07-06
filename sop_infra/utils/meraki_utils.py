@@ -243,7 +243,7 @@ class SopMerakiUtils:
             # Enroll the Meraki Network in Umbrella
             conn.appliance.connectNetworkApplianceUmbrellaAccount(networkId=net.meraki_id, api=api_keys)
             if log and details:
-                log.log_debug(f"connected network {net.nom} to Umbrella key {key}")
+                log.log_debug(f"connected network {net.nom} to Umbrella")
         if log:
             log.log_success(f"Done connecting Umbrella for site {site.name} !")            
 
