@@ -65,12 +65,12 @@ class JobRunnerLogMixin:
         super().__init__(*args, **kwargs)
 
         # init log storage
-        self.messages = []  # Primary script log
+        # self.messages = []  # Primary script log
         self.raiseError = False
         self.raiseWarning = False
 
         # Initiate the log
-        self.logger = logging.getLogger(f"{__name__}")
+        #self.logger = logging.getLogger(f"{__name__}")
 
     #
     # Logging
@@ -84,15 +84,15 @@ class JobRunnerLogMixin:
 
         if message:
             # Record to the script's log
-            self.messages.append(
-                {
-                    "time": datetime.now().isoformat(),
-                    "status": level,
-                    "message": str(message),
-                    "obj": str(obj) if obj else None,
-                    "url": obj.get_absolute_url() if hasattr(obj, "get_absolute_url") else None,  # type: ignore
-                }
-            )
+            # self.messages.append(
+            #     {
+            #         "time": datetime.now().isoformat(),
+            #         "status": level,
+            #         "message": str(message),
+            #         "obj": str(obj) if obj else None,
+            #         "url": obj.get_absolute_url() if hasattr(obj, "get_absolute_url") else None,  # type: ignore
+            #     }
+            # )
             # Record to the system log
             if obj:
                 message = f"{obj}: {message}"
@@ -130,11 +130,11 @@ class JobRunnerLogMixin:
         self._log(message, obj, level=LogLevelChoices.LOG_FAILURE)
         self.raiseError = True
 
-    def get_job_data(self):
-        """
-        Return a dictionary of data to attach to the script's Job.
-        """
-        return {
-            "log": self.messages,
-        }
+    # def get_job_data(self):
+    #     """
+    #     Return a dictionary of data to attach to the script's Job.
+    #     """
+    #     return {
+    #         "log": self.messages,
+    #     }
 
