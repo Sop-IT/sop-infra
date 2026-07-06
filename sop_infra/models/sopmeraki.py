@@ -170,49 +170,6 @@ class SopMerakiNet(NetBoxModel):
         verbose_name_plural = "Meraki Networks"
 
 
-    @staticmethod
-    def get_appliance_networks(site: Site) -> list:
-        ret: list[SopMerakiNet] = list()
-        smns: list[SopMerakiNet] = site.meraki_nets  # type: ignore
-        # loop on the site networks
-        for smn in smns:
-            # skip bound networks
-            if smn.bound_to_template:
-                continue
-            # skip non appliance networks
-            if "appliance" not in smn.ptypes:  # type: ignore
-                continue
-            # add to tentative list
-            ret.append(smn)
-        # return the list
-        return ret
-
-    @staticmethod
-    def get_all_networks(site: Site) -> list:
-        ret: list[SopMerakiNet] = list()
-        smns: list[SopMerakiNet] = site.meraki_nets  # type: ignore
-        # loop on the site networks
-        for smn in smns:
-            # add to tentative list
-            ret.append(smn)
-        # return the list
-        return ret
-
-    @staticmethod
-    def get_bound_networks(site: Site) -> list:
-        ret: list[SopMerakiNet] = list()
-        smns: list[SopMerakiNet] = site.meraki_nets  # type: ignore
-        # loop on the site networks
-        for smn in smns:
-            # skip not bound networks
-            if not smn.bound_to_template:
-                continue
-            # add to tentative list
-            ret.append(smn)
-        # return the list
-        return ret
-
-
 class SopMerakiSwitchStack(
     BookmarksMixin,
     ChangeLoggingMixin,
@@ -481,6 +438,7 @@ class SopMerakiDevice(
         self.full_clean()
         self.save()
 
+
 class SopMerakiSwitchSettings(NetBoxModel):
 
     nom = models.CharField(
@@ -532,7 +490,6 @@ class SopMerakiSwitchPortSettings(NetBoxModel):
         choices=SopMerakiStpGuardChoices,
         null=False, blank=False, default="disabled",
     )
-
 
     def __str__(self):
         return f"{self.port_id}-{self.nom}"
