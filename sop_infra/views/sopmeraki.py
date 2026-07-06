@@ -107,7 +107,7 @@ class SopMerakiPushGroupView(SiteHierarchicalTaskMixin, View):
         # Let's queue updates
         messages.info(request, f"Starting to queue Umbrella site linking jobs for site group {group} : {sites}")
         for site in sites:
-                j: Job = SopMerakiPushSiteJob.launch_background(request, message=False, site=site, details=True, simulate=settings.DEBUG, immediate=False)
+                j: Job = SopMerakiPushSiteJob.launch_background(request, message=False, site=site, details=True, simulate=settings.DEBUG)
                 print(f"Queued UpdateOneSite for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
         # report and return
         messages.success(request, f"Queued {len(sites)} site config pushes for site group {group}")
@@ -131,7 +131,7 @@ class SopMerakiPushRegionView(SiteHierarchicalTaskMixin, View):
         # Let's queue updates
         messages.info(request, f"Starting to queue Umbrella site linking jobs for region {region} : {sites}")
         for site in sites:
-                j: Job = SopMerakiPushSiteJob.launch_background(request, message=False, site=site, details=True, simulate=settings.DEBUG, immediate=False)
+                j: Job = SopMerakiPushSiteJob.launch_background(request, message=False, site=site, details=True, simulate=settings.DEBUG)
                 print(f"Queued UpdateOneSite for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
         # report and return
         messages.success(request, f"Queued {len(sites)} site pushes for region {region}")
@@ -166,7 +166,7 @@ class SopMerakiPushSiteView(View):
         if settings.DEBUG:
             simulate=("yes"==request.GET.get("simulate"))
         # Launch job
-        j: Job = SopMerakiPushSiteJob.launch_interactive(request, message=True, site=instance, details=True, simulate=simulate, immediate=True)
+        j: Job = SopMerakiPushSiteJob.launch_interactive(request, message=True, site=instance, details=True, simulate=simulate)
         # Send to return url or script result
         url = request.GET.get("return_url") or reverse("core:job", args=[j.pk])
         return redirect(url)
