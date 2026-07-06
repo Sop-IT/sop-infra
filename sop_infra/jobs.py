@@ -26,25 +26,25 @@ class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
         name = "Refresh Meraki dashboards"
 
     def run(self, *args, **kwargs):
-        job:Job=self.job
-        obj = job.object
-        try:
-            SopMerakiUtils.create_meraki_networks(self, False, kwargs.pop('site'), kwargs.pop('details'))
-        except Exception as e:
-            stacktrace = traceback.format_exc()
-            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
-            self.log_failure(text)
-            self.job.error = text
-            raise
-        # finally:
-        #     self.job.data = self.get_job_data()       
+        SopMerakiUtils.create_meraki_networks(self, False, kwargs.pop('site'), kwargs.pop('details'))
 
     @staticmethod
-    def launch_manual(request, site:Site, details:bool=False)->Job:
-        if settings.DEBUG:
-            return SopMerakiCreateNetworkJob.enqueue(immediate=True, user=request.user, site=site, details=details)
-        return SopMerakiCreateNetworkJob.enqueue(user=request.user, site=site, details=details)
-
+    def launch_interactive(request, message:bool, site:Site, details:bool=False)->Job:
+        job:Job=SopMerakiCreateNetworkJob.enqueue(user=request.user, immediate=True, site=site, details=details)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Created Meraki Networks for site {site} !')
+            else:
+                messages.error(request, f'Failed to create Meraki Networks for site {site}, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, site:Site, details:bool=False)->Job:    
+        job:Job=SopMerakiCreateNetworkJob.enqueue(user=request.user, site=site, details=details)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to create Meraki Networks for site {site} !')           
+        return job
+    
 
 
 
@@ -64,7 +64,6 @@ class SopMerakiLinkSiteToUmbrellaJob(JobRunnerLogMixin, JobRunner):
     @staticmethod
     def launch_interactive(request, message:bool, site:Site, details:bool=False)->Job:
         job:Job=SopMerakiLinkSiteToUmbrellaJob.enqueue(user=request.user, immediate=True, site=site, details=details)
-        # url = reverse("core:job", args=[job.pk])
         if message:
             if job.status==JobStatusChoices.STATUS_COMPLETED:
                 messages.success(request, f'Linked site {site} to Umbrella !')
@@ -109,7 +108,7 @@ class SopMerakiEnableUmbrellaJob(JobRunnerLogMixin, JobRunner):
 #endregion
 
 
-#region DASHBOARD SYNC
+#region PULL FROM DASHBOARD
 class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
@@ -191,7 +190,7 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
 #endregion
 
 
-#region PUSH SITE CONFIGS
+#region PUSH TO DASHBOARD
 
 class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
 
@@ -199,26 +198,29 @@ class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
         name = "Push configs to Meraki"
 
     def run(self, *args, **kwargs):
-        job:Job=self.job
-        obj = job.object
-        try:
-            sites=kwargs.pop('sites', None)
-            details=kwargs.pop('details', False)
-            simulate=kwargs.pop('simulate', False)
-            NetboxSiteMerakiUpdater.push_to_sites(self, sites, details, simulate)
-        except Exception as e:
-            stacktrace = traceback.format_exc()
-            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
-            self.log_failure(text)
-            self.job.error = text
-            raise
-        # finally:
-        #     self.job.data = self.get_job_data()       
+        site=kwargs.pop('site', None)
+        details=kwargs.pop('details', False)
+        simulate=kwargs.pop('simulate', False)
+        NetboxSiteMerakiUpdater.push_to_meraki_dashboard(self, site, details, simulate)
 
     @staticmethod
-    def launch_manual(request, sites:list[Site], details:bool, simulate:bool, immediate:bool)->Job:
-        return SopMerakiPushSiteJob.enqueue(user=request.user, immediate=immediate, sites=sites, details=details, simulate=simulate)
-
+    def launch_interactive(request, message:bool, site:Site, simulate:bool, details:bool=False)->Job:
+        job:Job=SopMerakiPushSiteJob.enqueue(user=request.user, immediate=True, site=site, details=details, simulate=simulate)
+        # url = reverse("core:job", args=[job.pk])
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Pushed {site} config to Meraki !')
+            else:
+                messages.error(request, f'Failed to push site {site} config to Meraki, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, site:Site, simulate:bool, details:bool=False)->Job:    
+        job:Job=SopMerakiPushSiteJob.enqueue(user=request.user, site=site, details=details, simulate=simulate)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to link site {site} to Umbrella !')           
+        return job
+    
 #endregion
 
 

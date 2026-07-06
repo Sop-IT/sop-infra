@@ -1484,18 +1484,16 @@ class NetboxSiteMerakiUpdater():
 
 
     @classmethod
-    def push_to_sites(
-        cls, log: JobRunnerLogMixin, sites: list[Site], details: bool, simulate: bool
+    def push_to_meraki_dashboard(
+        cls, log: JobRunnerLogMixin, site: Site, details: bool, simulate: bool
     ):
-        if sites is None or len(sites) == 0:
+        if site is None:
             log.info(f"Nothing to do...")
             return
-        s:Site
-        for s in sites:
-            if log :
-                log.info(f"MerakiUpdater:push_to_sites handling '{s.name}'...")
-            upd:NetboxSiteMerakiUpdater=NetboxSiteMerakiUpdater(s, log, details, simulate)
-            upd.enforce_one_netbox_site()
+        if log :
+            log.info(f"MerakiUpdater:push_to_sites handling '{site.name}'...")
+        upd:NetboxSiteMerakiUpdater=NetboxSiteMerakiUpdater(site, log, details, simulate)
+        upd.enforce_one_netbox_site()
 
 
 

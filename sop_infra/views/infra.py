@@ -116,7 +116,7 @@ class SopInfraSyncAdUsers(View):
         # restrict_form_fields(self.form(), request.user)
 
         j: Job = SopSyncAdUsers.launch_manual()
-        return redirect(reverse("extras:script_result", args=[j.pk]))
+        return redirect(reverse("core:job", args=[j.pk]))
 
 
 class SopInfraJsonExportsAdUsers(View):
@@ -552,9 +552,9 @@ class SopMerakiCreateNetworksView(AccessMixin, View):
         # Fetch details param
         details: bool = request.GET["details"] == "True"
         # Launch job
-        j: Job = SopMerakiCreateNetworkJob.launch_manual(request, site, details)
+        j: Job = SopMerakiCreateNetworkJob.launch_interactive(request, message=True, site=site, details=details)
         # Send to script result
-        url = reverse("extras:script_result", args=[j.pk])
+        url = reverse("core:job", args=[j.pk])
         if details:
             url += "?log_threshold=debug"
         return redirect(url)

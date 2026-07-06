@@ -254,16 +254,16 @@ class MerakiLinkUmbrellaPluginExtension(PluginTemplateExtension):
         if object is None:
             return ""
         if isinstance(self.context.get("object"), Region):
-            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella_region")):
+            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella")):
                 return self.render("sop_infra/inc/sopmeraki_linkumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umblink_region"})
         if isinstance(self.context.get("object"), Tenant):
-            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella_tenant")):
+            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella")):
                 return self.render("sop_infra/inc/sopmeraki_linkumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umblink_tenant"})
         if isinstance(self.context.get("object"), SiteGroup):
-            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella_sitegroup")):
+            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella")):
                 return self.render("sop_infra/inc/sopmeraki_linkumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umblink_sitegroup"})
         if isinstance(self.context.get("object"), TenantGroup):
-            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella_tenantgroup")):
+            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella")):
                 return self.render("sop_infra/inc/sopmeraki_linkumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umblink_tenantgroup"})
         return ""
     
@@ -281,16 +281,16 @@ class MerakiEnableUmbrellaPluginExtension(PluginTemplateExtension):
         if object is None:
             return ""
         if isinstance(self.context.get("object"), Region):
-            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella_region")):
+            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella")):
                 return self.render("sop_infra/inc/sopmeraki_enableumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umbenable_region"})
         if isinstance(self.context.get("object"), Tenant):
-            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella_tenant")):
+            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella")):
                 return self.render("sop_infra/inc/sopmeraki_enableumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umbenable_tenant"})
         if isinstance(self.context.get("object"), SiteGroup):
-            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella_sitegroup")):
+            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella")):
                 return self.render("sop_infra/inc/sopmeraki_enableumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umbenable_sitegroup"})
         if isinstance(self.context.get("object"), TenantGroup):
-            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella_tenantgroup")):
+            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella")):
                 return self.render("sop_infra/inc/sopmeraki_enableumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umbenable_tenantgroup"})
         return ""   
 
