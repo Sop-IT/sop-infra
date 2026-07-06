@@ -6,14 +6,15 @@ from django.db.models import Count
 from netbox.jobs import JobRunner, Job
 
 from dcim.models import Site
-from sop_infra.utils.meraki_utils import SopMerakiUtils
-from sop_infra.utils.meraki_tools import NetboxSiteMerakiUpdater
 from tenancy.models import Contact, Tenant
 
-# TODO sopmerakiutils -> sop_infra.utils
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
+
 from sop_infra.utils.ad_utils import ADCountersUpd, user_info, user_infos
+from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.mixins import JobRunnerLogMixin
+from sop_infra.utils.meraki_tools import NetboxSiteMerakiUpdater
+from sop_infra.utils.umbrella_utils import SopUmbrellaUtils
 
 
 class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
@@ -40,8 +41,69 @@ class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
         if settings.DEBUG:
             return SopMerakiCreateNetworkJob.enqueue(immediate=True, site=site, details=details)
         return SopMerakiCreateNetworkJob.enqueue(site=site, details=details)
-    
 
+
+# --------------------------------------------------------------------------------------------------------
+#region UMBRELLA JOBS
+
+class SopMerakiLinkSiteToUmbrellaJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Link Meraki to Umbrella"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            #CHINA voir si spécifique à coder
+            api_keys=SopUmbrellaUtils.get_legacy_api_key_for_dash_name('GLOBAL')
+            SopMerakiUtils.connect_to_umbrella_dash(self, False, kwargs.pop('site'), api_keys, kwargs.pop('details'))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        finally:
+            self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(site:Site, details:bool=False)->Job:
+        if settings.DEBUG:
+            return SopMerakiLinkSiteToUmbrellaJob.enqueue(immediate=True, site=site, details=details)
+        return SopMerakiLinkSiteToUmbrellaJob.enqueue(site=site, details=details)
+
+class SopMerakiEnableUmbrellaJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Enable Umbrella Protection"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            site:Site=kwargs.pop('site')
+            excluded_domains=SopUmbrellaUtils.get_umbrella_excluded_domains(site)
+            SopMerakiUtils.enable_umbrella_protection(self, False, site, excluded_domains, kwargs.pop('details'))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        finally:
+            self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(site:Site, details:bool=False)->Job:
+        if settings.DEBUG:
+            return SopMerakiEnableUmbrellaJob.enqueue(immediate=True, site=site, details=details)
+        return SopMerakiEnableUmbrellaJob.enqueue(site=site, details=details)
+    
+#endregion
+
+
+#region DASHBOARD SYNC
 class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
@@ -120,9 +182,10 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
         if settings.DEBUG:
             return SopMerakiNetRefreshJob.enqueue(immediate=True, nets=nets, details=details)
         return SopMerakiNetRefreshJob.enqueue(nets=nets, details=details)
+#endregion
 
 
-#region PUSH MERAKI SITE CONFIGS
+#region PUSH SITE CONFIGS
 
 class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
 
