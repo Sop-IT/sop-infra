@@ -7,6 +7,7 @@ from netbox.context import current_request
 from netbox.plugins import PluginTemplateExtension
 
 from dcim.models import Region, Site, Device, SiteGroup
+from tenancy.models import Tenant, TenantGroup
 
 from sop_infra.models import SopInfra
 from sop_infra.utils.meraki_utils import SopMerakiUtils
@@ -209,21 +210,92 @@ class TrigramSearch(PluginTemplateExtension):
     def navbar(self):
         return self.render("sop_infra/inc/trisearch.html", extra_context={})
 
+
+
+
+
 # ==========================================================
-#region MERAKI PUSH EXTENSIONS
+#region MERAKI PUSH 
+
 class MerakiPushPluginExtension(PluginTemplateExtension):
 
     models = ['dcim.site','dcim.region', 'dcim.sitegroup']
 
     def buttons(self):
-        if self.context.get("object"):
-            if isinstance(self.context.get("object"), Site):
+        from utilities.permissions import get_permission_for_model
+        request=self.context.get("request")
+        if request is None:
+            return ""
+        object=self.context.get("object")
+        if object is None:
+            return ""
+        if isinstance(object, Site):
+            if request.user.has_perm(get_permission_for_model(object, "helper_push_site")):
                 return self.render("sop_infra/inc/pushconf_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_push_site"})
-            if isinstance(self.context.get("object"), Region):
+        if isinstance(object, Region):
+            if request.user.has_perm(get_permission_for_model(object, "helper_push_region")):
                 return self.render("sop_infra/inc/pushconf_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_push_region"})
-            if isinstance(self.context.get("object"), SiteGroup):
+        if isinstance(object, SiteGroup):
+            if request.user.has_perm(get_permission_for_model(object, "helper_push_group")):
                 return self.render("sop_infra/inc/pushconf_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_push_group"})
         return ""
+    
+
+class MerakiLinkUmbrellaPluginExtension(PluginTemplateExtension):
+
+    models = ['dcim.region', 'dcim.sitegroup', 'tenancy.tenant', 'tenancy.tenantgroup']
+
+    def buttons(self):
+        from utilities.permissions import get_permission_for_model
+        request=self.context.get("request")
+        if request is None:
+            return ""
+        object=self.context.get("object")
+        if object is None:
+            return ""
+        if isinstance(self.context.get("object"), Region):
+            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella_region")):
+                return self.render("sop_infra/inc/sopmeraki_linkumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umblink_region"})
+        if isinstance(self.context.get("object"), Tenant):
+            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella_tenant")):
+                return self.render("sop_infra/inc/sopmeraki_linkumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umblink_tenant"})
+        if isinstance(self.context.get("object"), SiteGroup):
+            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella_sitegroup")):
+                return self.render("sop_infra/inc/sopmeraki_linkumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umblink_sitegroup"})
+        if isinstance(self.context.get("object"), TenantGroup):
+            if request.user.has_perm(get_permission_for_model(object, "helper_link_umbrella_tenantgroup")):
+                return self.render("sop_infra/inc/sopmeraki_linkumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umblink_tenantgroup"})
+        return ""
+    
+
+class MerakiEnableUmbrellaPluginExtension(PluginTemplateExtension):
+
+    models = ['dcim.region', 'dcim.sitegroup', 'tenancy.tenant', 'tenancy.tenantgroup' ]
+
+    def buttons(self):
+        from utilities.permissions import get_permission_for_model
+        request=self.context.get("request")
+        if request is None:
+            return ""
+        object=self.context.get("object")
+        if object is None:
+            return ""
+        if isinstance(self.context.get("object"), Region):
+            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella_region")):
+                return self.render("sop_infra/inc/sopmeraki_enableumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umbenable_region"})
+        if isinstance(self.context.get("object"), Tenant):
+            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella_tenant")):
+                return self.render("sop_infra/inc/sopmeraki_enableumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umbenable_tenant"})
+        if isinstance(self.context.get("object"), SiteGroup):
+            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella_sitegroup")):
+                return self.render("sop_infra/inc/sopmeraki_enableumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umbenable_sitegroup"})
+        if isinstance(self.context.get("object"), TenantGroup):
+            if request.user.has_perm(get_permission_for_model(object, "helper_enable_umbrella_tenantgroup")):
+                return self.render("sop_infra/inc/sopmeraki_enableumb_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_umbenable_tenantgroup"})
+        return ""   
+
+
+
 #endregion
 
 class DHCPHelperPluginExtension(PluginTemplateExtension):
@@ -252,3 +324,5 @@ template_extensions.append(NetboxVlanGroupPluginExtension)
 template_extensions.append(TrigramSearch)  
 template_extensions.append(DHCPHelperPluginExtension)  
 template_extensions.append(MerakiPushPluginExtension)
+template_extensions.append(MerakiLinkUmbrellaPluginExtension)
+template_extensions.append(MerakiEnableUmbrellaPluginExtension)

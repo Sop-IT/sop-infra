@@ -18,6 +18,8 @@ from netbox.views import generic
 from netbox.jobs import Job
 
 from dcim.models import Region, Site, SiteGroup
+from tenancy.models import Tenant, TenantGroup
+
 from sop_infra.jobs import (
     SopMerakiCreateNetworkJob,
     SopMerakiDashRefreshJob,
@@ -47,7 +49,7 @@ class SopMerakiPushGroupView(View):
     """
     def post(self, request, pk, *args, **kwargs):
         # check perms
-        if not request.user.has_perm(get_permission_for_model(Site, "helper_push_group")):
+        if not request.user.has_perm(get_permission_for_model(SiteGroup, "helper_push_group")):
             return self.handle_no_permission()
         # return url when done
         return_url = "/dcim/site-groups"
@@ -67,7 +69,7 @@ class SopMerakiPushGroupView(View):
             if SopInfraUtils.get_sopinfra_site_master_site_id(site) is not None:
                 print(f"Site {site} is slave -> no need to update ")
             else:
-                j: Job = SopMerakiPushSiteJob.launch_manual(sites=site, details=True, simulate=settings.DEBUG, immediate=False)
+                j: Job = SopMerakiPushSiteJob.launch_manual(request, sites=site, details=True, simulate=settings.DEBUG, immediate=False)
                 count=count+1
                 print(f"Queued UpdateOneSite for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
         # report and return
@@ -82,7 +84,7 @@ class SopMerakiPushRegionView(View):
     """
     def post(self, request, pk, *args, **kwargs):
         # check perms
-        if not request.user.has_perm(get_permission_for_model(Site, "helper_push_region")):
+        if not request.user.has_perm(get_permission_for_model(Region, "helper_push_region")):
             return self.handle_no_permission()
         # return url when done
         return_url = "/dcim/regions"
@@ -102,7 +104,7 @@ class SopMerakiPushRegionView(View):
             if SopInfraUtils.get_sopinfra_site_master_site_id(site) is not None:
                 print(f"Site {site} is slave -> no need to update ")
             else:
-                j: Job = SopMerakiPushSiteJob.launch_manual(sites=site, details=True, simulate=settings.DEBUG, immediate=False)
+                j: Job = SopMerakiPushSiteJob.launch_manual(request, sites=site, details=True, simulate=settings.DEBUG, immediate=False)
                 count=count+1
                 print(f"Queued UpdateOneSite for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
         # report and return
@@ -166,7 +168,7 @@ class SopMerakiPushSiteView(View):
             return self.handle_no_permission()
 
         # Launch job
-        j: Job = SopMerakiPushSiteJob.launch_manual(sites=[instance], details=True, simulate=settings.DEBUG, immediate=True)
+        j: Job = SopMerakiPushSiteJob.launch_manual(request, sites=[instance], details=True, simulate=settings.DEBUG, immediate=True)
 
         # Send to script result
         url = reverse("extras:script_result", args=[j.pk])
@@ -177,73 +179,283 @@ class SopMerakiPushSiteView(View):
 
 #endregion
 
+
+class SiteHierarchicalTaskMixin():
+
+    # TODO refactor out of here
+
+    def get_sites_for_tenant(self, pk)->tuple[Tenant,list[Site]]:
+        # Fetch region and build a site list
+        tenant = get_object_or_404(Tenant, pk=pk)
+        sites:list[Site]=[]
+        sites.extend(Site.objects.filter(tenant_id=tenant.id).filter(sopinfra__master_site=None))
+        if settings.DEBUG:
+            print(f"tenant={tenant} / sites : {sites}")
+        return tenant,sites
+    
+    def get_sites_for_tenantgroup(self, pk)->tuple[TenantGroup,list[Site]]:
+        # Fetch region and build a site list
+        group = get_object_or_404(TenantGroup, pk=pk)
+        sites:list[Site]=[]
+        sites.extend(Site.objects.filter(tenant_id__in=group.tenants.all()).filter(sopinfra__master_site=None))
+        for tg in group.get_descendants():
+            sites.extend(Site.objects.filter(tenant_id__in=tg.tenants.all()).filter(sopinfra__master_site=None))
+        if settings.DEBUG:
+            print(f"tenantgroup={group} / descendants={group.get_descendants()} / sites : {sites}")
+        return group,sites
+    
+    def get_sites_for_sitegroup(self, pk)->tuple[SiteGroup,list[Site]]:
+        # Fetch region and build a site list
+        group = get_object_or_404(SiteGroup, pk=pk)
+        sites:list[Site]=[]
+        sites.extend(Site.objects.filter(group_id=group.id).filter(sopinfra__master_site=None))
+        for sg in group.get_descendants():
+            sites.extend(Site.objects.filter(group_id=sg.id).filter(sopinfra__master_site=None))
+        if settings.DEBUG:
+            print(f"sitegroup={group} / descendants={group.get_descendants()} / sites : {sites}")
+        return group,sites
+    
+    def get_sites_for_region(self, pk)->tuple[Region,list[Site]]:
+        # Fetch region and build a site list
+        region = get_object_or_404(Region, pk=pk)
+        sites:list[Site]=[]
+        sites.extend(Site.objects.filter(region_id=region.id).filter(sopinfra__master_site=None))
+        for reg in region.get_descendants():
+            sites.extend(Site.objects.filter(region_id=reg.id).filter(sopinfra__master_site=None))
+        if settings.DEBUG:
+            print(f"region={region} / descendants={region.get_descendants()} / sites : {sites}")
+        return region,sites
+    
+
+
 # ========================================================================
 #region MERAKI UMBRELLA
 
+    
+
+class SopMerakiLinkUmbrellaTenantView(SiteHierarchicalTaskMixin, View):
+    """
+    Link an Umbrella dashboard to Meraki Networks for a whole Tenant
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_link_umbrella_tenant")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = f"/tenancy/tenants"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Calc sites
+        tenant,sites = self.get_sites_for_tenant(pk)
+        # Let's queue updates
+        messages.info(request, f"Starting to queue Umbrella site linking jobs for tenant {tenant} : {sites}")
+        for site in sites:
+            j: Job = SopMerakiLinkSiteToUmbrellaJob.launch_background(request, message=False, site=site, details=True)
+            print(f"Queued SopMerakiLinkSiteToUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {len(sites)} Umbrella site linking jobs for tenant {tenant}")
+        return redirect(return_url)
+
+
+class SopMerakiLinkUmbrellaTenantGroupView(SiteHierarchicalTaskMixin, View):
+    """
+    Link an Umbrella dashboard to Meraki Networks for a whole TenantGroup
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_link_umbrella_tenantgroup")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = f"/tenancy/tenant-groups"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Calc sites
+        group,sites = self.get_sites_for_tenantgroup(pk)
+        # Let's queue updates
+        messages.info(request, f"Starting to queue Umbrella site linking jobs for tenant group {group} : {sites}")
+        for site in sites:
+            j: Job = SopMerakiLinkSiteToUmbrellaJob.launch_background(request, message=False, site=site, details=True)
+            print(f"Queued SopMerakiLinkSiteToUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {len(sites)} Umbrella site linking jobs for tenant group {group}")
+        return redirect(return_url)
+    
+
+class SopMerakiLinkUmbrellaSiteGroupView(SiteHierarchicalTaskMixin, View):
+    """
+    Link an Umbrella dashboard to Meraki Networks for a whole SiteGroup
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_link_umbrella_sitegroup")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = "/dcim/site-groups"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Calc sites
+        group,sites = self.get_sites_for_sitegroup(pk)
+        # Let's queue updates
+        messages.info(request, f"Starting to queue Umbrella site linking jobs for site group {group} : {sites}")
+        for site in sites:
+            j: Job = SopMerakiLinkSiteToUmbrellaJob.launch_background(request, message=False, site=site, details=True)
+            print(f"Queued SopMerakiLinkSiteToUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {len(sites)} Umbrella site linking jobs for site group {group}")
+        return redirect(return_url)
+
+
+class SopMerakiLinkUmbrellaRegionView(SiteHierarchicalTaskMixin, View):
+    """
+    Link an Umbrella dashboard to Meraki Networks for a whole region
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_link_umbrella_region")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = "/dcim/regions"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Calc sites
+        region,sites = self.get_sites_for_region(pk)
+        # Let's queue updates
+        messages.info(request, f"Starting to queue Umbrella site linking jobs for region {region} : {sites}")
+        for site in sites:
+            j: Job = SopMerakiLinkSiteToUmbrellaJob.launch_background(request, message=False, site=site, details=True)
+            print(f"Queued SopMerakiLinkSiteToUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {len(sites)} Umbrella site linking jobs for region {region}")
+        return redirect(return_url)
+
 
 class SopMerakiLinkUmbrellaSiteView(View):
-
     """
     Link an Umbrella dashboard to Meraki Networks for a Site
     """
-
     def post(self, request, pk, *args, **kwargs):
-
-        # additional security
-        if not request.user.has_perm(get_permission_for_model(Site, "helper_link_umbrella")):
-            return self.handle_no_permission()
-
-        # data=request.POST
-        # if not "pk" in data.keys():
-        #     return
-
-        # pk = data ["pk"]
-
+        # Fetch site
         instance = get_object_or_404(Site, pk=pk)
-
-        if not SopUtils.check_permission(request.user, instance, "helper_link_umbrella"):
+        # Check perms
+        if not SopUtils.check_permission(request.user, instance, "helper_link_umbrella_site"):
             return self.handle_no_permission()
-
         # Launch job
-        j: Job = SopMerakiLinkSiteToUmbrellaJob.launch_manual(sites=[instance], details=True)
-
-        # Send to script result
-        url = reverse("extras:script_result", args=[j.pk])
-        # if details:
-        #     url+="?log_threshold=debug"
+        j: Job = SopMerakiLinkSiteToUmbrellaJob.launch_interactive(request, message=True, site=instance, details=True)
+        # Send to return url or script result
+        url = request.GET.get("return_url") or reverse("core:job", args=[j.pk])
         return redirect(url)
 
 
-class SopMerakiEnableUmbrellaSiteView(View):
+class SopMerakiEnableUmbrellaTenantView(SiteHierarchicalTaskMixin, View):
+    """
+    Enable Umbrella protection for Meraki Networks for a whole Tenant
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_enable_umbrella_tenant")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = "/tenancy/tenants"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Calc sites
+        tenant,sites = self.get_sites_for_tenant(pk)
+        # Let's queue updates
+        messages.info(request, f"Starting to queue Umbrella protection enable jobs for tenant {tenant} : {sites}")
+        for site in sites:
+            j: Job = SopMerakiEnableUmbrellaJob.launch_background(request, message=False, site=site, details=True)
+            print(f"Queued SopMerakiEnableUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {len(sites)} Umbrella protection enable jobs for tenant {tenant}")
+        return redirect(return_url)
+    
 
+class SopMerakiEnableUmbrellaTenantGroupView(SiteHierarchicalTaskMixin, View):
+    """
+    Enable Umbrella protection for Meraki Networks for a whole TenantGroup
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_enable_umbrella_tenantgroup")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = "/tenancy/tenant-groups"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Calc sites
+        group,sites = self.get_sites_for_tenantgroup(pk)
+        # Let's queue updates
+        messages.info(request, f"Starting to queue Umbrella protection enable jobs for tenant group {group} : {sites}")
+        for site in sites:
+            j: Job = SopMerakiEnableUmbrellaJob.launch_background(request, message=False, site=site, details=True)
+            print(f"Queued SopMerakiEnableUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {len(sites)} Umbrella protection enable jobs for tenant group {group}")
+        return redirect(return_url)
+
+
+class SopMerakiEnableUmbrellaSiteGroupView(SiteHierarchicalTaskMixin, View):
+    """
+    Enable Umbrella protection for Meraki Networks for a whole SiteGroup
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_enable_umbrella_sitegroup")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = "/dcim/site-groups"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Calc sites
+        group,sites = self.get_sites_for_sitegroup(pk)
+        # Let's queue updates
+        messages.info(request, f"Starting to queue Umbrella protection enable jobs for site group {group} : {sites}")
+        for site in sites:
+            j: Job = SopMerakiEnableUmbrellaJob.launch_background(request, message=False, site=site, details=True)
+            print(f"Queued SopMerakiEnableUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {len(sites)} Umbrella protection enable jobs for site group {group}")
+        return redirect(return_url)
+
+
+class SopMerakiEnableUmbrellaRegionView(SiteHierarchicalTaskMixin, View):
+    """
+    Enable Umbrella protection for Meraki Networks for a whole region
+    """
+    def post(self, request, pk, *args, **kwargs):
+        # check perms
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_enable_umbrella_region")):
+            return self.handle_no_permission()
+        # return url when done
+        return_url = "/dcim/regions"
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Calc sites
+        region,sites = self.get_sites_for_region(pk)
+        # Let's queue updates
+        messages.info(request, f"Starting to queue Umbrella protection enable jobs for region {region} : {sites}")
+        for site in sites:
+            j: Job = SopMerakiEnableUmbrellaJob.launch_background(request, message=False, site=site, details=True)
+            print(f"Queued SopMerakiEnableUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
+        # report and return
+        messages.success(request, f"Queued {len(sites)} Umbrella protection enable jobs for region {region}")
+        return redirect(return_url)
+
+
+class SopMerakiEnableUmbrellaSiteView(View):
     """
     Enable Umbrella protection for Meraki Networks for a Site
     """
-
     def post(self, request, pk, *args, **kwargs):
-
-        # additional security
-        if not request.user.has_perm(get_permission_for_model(Site, "helper_enable_umbrella")):
-            return self.handle_no_permission()
-
-        # data=request.POST
-        # if not "pk" in data.keys():
-        #     return
-
-        # pk = data ["pk"]
-
+        # Fetch site
         instance = get_object_or_404(Site, pk=pk)
-
-        if not SopUtils.check_permission(request.user, instance, "helper_enable_umbrella"):
+        # Check perms
+        if not SopUtils.check_permission(request.user, instance, "helper_enable_umbrella_site"):
             return self.handle_no_permission()
-
         # Launch job
-        j: Job = SopMerakiEnableUmbrellaJob.launch_manual(sites=[instance], details=True)
-
-        # Send to script result
-        url = reverse("extras:script_result", args=[j.pk])
-        # if details:
-        #     url+="?log_threshold=debug"
+        j: Job = SopMerakiEnableUmbrellaJob.launch_interactive(request, message=True, site=instance, details=True)
+        # Send to return url or script result
+        url = request.GET.get("return_url") or reverse("core:job", args=[j.pk])
         return redirect(url)
 
 

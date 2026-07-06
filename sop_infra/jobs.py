@@ -1,12 +1,15 @@
 import traceback, ldap
 
 from django.conf import settings
+from django.contrib import messages
+from django.urls import reverse
 from django.db.models import Count
 
-from netbox.jobs import JobRunner, Job
+from netbox.jobs import JobRunner, Job, JobStatusChoices
 
 from dcim.models import Site
 from tenancy.models import Contact, Tenant
+from extras.models import Notification
 
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
 
@@ -33,14 +36,16 @@ class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
             self.log_failure(text)
             self.job.error = text
             raise
-        finally:
-            self.job.data = self.get_job_data()       
+        # finally:
+        #     self.job.data = self.get_job_data()       
 
     @staticmethod
-    def launch_manual(site:Site, details:bool=False)->Job:
+    def launch_manual(request, site:Site, details:bool=False)->Job:
         if settings.DEBUG:
-            return SopMerakiCreateNetworkJob.enqueue(immediate=True, site=site, details=details)
-        return SopMerakiCreateNetworkJob.enqueue(site=site, details=details)
+            return SopMerakiCreateNetworkJob.enqueue(immediate=True, user=request.user, site=site, details=details)
+        return SopMerakiCreateNetworkJob.enqueue(user=request.user, site=site, details=details)
+
+
 
 
 # --------------------------------------------------------------------------------------------------------
@@ -52,26 +57,28 @@ class SopMerakiLinkSiteToUmbrellaJob(JobRunnerLogMixin, JobRunner):
         name = "Link Meraki to Umbrella"
 
     def run(self, *args, **kwargs):
-        job:Job=self.job
-        obj = job.object
-        try:
-            #CHINA voir si spécifique à coder
-            api_keys=SopUmbrellaUtils.get_legacy_api_key_for_dash_name('GLOBAL')
-            SopMerakiUtils.connect_to_umbrella_dash(self, False, kwargs.pop('sites'), api_keys, kwargs.pop('details'))
-        except Exception as e:
-            stacktrace = traceback.format_exc()
-            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
-            self.log_failure(text)
-            self.job.error = text
-            raise
-        finally:
-            self.job.data = self.get_job_data()       
+        #CHINA voir si spécifique à coder
+        api_keys=SopUmbrellaUtils.get_legacy_api_key_for_dash_name('GLOBAL')
+        SopMerakiUtils.connect_to_umbrella_dash(self, False, kwargs.pop('site'), api_keys, kwargs.pop('details'))
 
     @staticmethod
-    def launch_manual(sites:list[Site], details:bool=False)->Job:
-        if settings.DEBUG:
-            return SopMerakiLinkSiteToUmbrellaJob.enqueue(immediate=True, sites=sites, details=details)
-        return SopMerakiLinkSiteToUmbrellaJob.enqueue(sites=sites, details=details)
+    def launch_interactive(request, message:bool, site:Site, details:bool=False)->Job:
+        job:Job=SopMerakiLinkSiteToUmbrellaJob.enqueue(user=request.user, immediate=True, site=site, details=details)
+        # url = reverse("core:job", args=[job.pk])
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Linked site {site} to Umbrella !')
+            else:
+                messages.error(request, f'Failed to link site {site} to Umbrella, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, site:Site, details:bool=False)->Job:    
+        job:Job=SopMerakiLinkSiteToUmbrellaJob.enqueue(user=request.user, site=site, details=details)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to link site {site} to Umbrella !')           
+        return job
+    
 
 class SopMerakiEnableUmbrellaJob(JobRunnerLogMixin, JobRunner):
 
@@ -79,26 +86,26 @@ class SopMerakiEnableUmbrellaJob(JobRunnerLogMixin, JobRunner):
         name = "Enable Umbrella Protection"
 
     def run(self, *args, **kwargs):
-        job:Job=self.job
-        obj = job.object
-        try:
-            sites:Site=kwargs.pop('sites')
-            SopMerakiUtils.enable_umbrella_protection(self, False, sites, kwargs.pop('details'))
-        except Exception as e:
-            stacktrace = traceback.format_exc()
-            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
-            self.log_failure(text)
-            self.job.error = text
-            raise
-        finally:
-            self.job.data = self.get_job_data()       
+        SopMerakiUtils.enable_umbrella_protection(self, False, kwargs.pop('site'), kwargs.pop('details'))   
 
     @staticmethod
-    def launch_manual(sites:list[Site], details:bool=False)->Job:
-        if settings.DEBUG:
-            return SopMerakiEnableUmbrellaJob.enqueue(immediate=True, sites=sites, details=details)
-        return SopMerakiEnableUmbrellaJob.enqueue(sites=sites, details=details)
+    def launch_interactive(request, message:bool, site:Site, details:bool=False)->Job:
+        job:Job=SopMerakiEnableUmbrellaJob.enqueue(user=request.user, immediate=True, site=site, details=details)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Enabled Umbrella for site {site} !')
+            else:
+                messages.error(request, f'Failed to enable Umbrella protection for site {site}, see logs for job #{job.pk} !')
+        return job
     
+    @staticmethod
+    def launch_background(request, message:bool, site:Site, details:bool=False)->Job:
+        job:Job=SopMerakiEnableUmbrellaJob.enqueue(user=request.user, site=site, details=details)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to enable Umbrella protection for site {site} !')           
+        return job
+
+
 #endregion
 
 
@@ -119,8 +126,8 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
             self.log_failure(text)
             self.job.error = text
             raise
-        finally:
-            self.job.data = self.get_job_data()       
+        # finally:
+        #     self.job.data = self.get_job_data()       
 
     @staticmethod
     def launch_manual(dashs:list[SopMerakiDash], details:bool)->Job:
@@ -145,8 +152,8 @@ class SopMerakiOrgRefreshJob(JobRunnerLogMixin, JobRunner):
             self.log_failure(text)
             self.job.error = text
             raise
-        finally:
-            self.job.data = self.get_job_data()       
+        # finally:
+        #     self.job.data = self.get_job_data()       
 
     @staticmethod
     def launch_manual(orgs:list[SopMerakiOrg], details:bool)->Job:
@@ -173,8 +180,8 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
             self.log_failure(text)
             self.job.error = text
             raise
-        finally:
-            self.job.data = self.get_job_data()       
+        # finally:
+        #     self.job.data = self.get_job_data()       
 
     @staticmethod
     def launch_manual(nets:list[SopMerakiNet], details:bool)->Job:
@@ -205,12 +212,12 @@ class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
             self.log_failure(text)
             self.job.error = text
             raise
-        finally:
-            self.job.data = self.get_job_data()       
+        # finally:
+        #     self.job.data = self.get_job_data()       
 
     @staticmethod
-    def launch_manual(sites:list[Site], details:bool, simulate:bool, immediate:bool)->Job:
-        return SopMerakiPushSiteJob.enqueue(immediate=immediate, sites=sites, details=details, simulate=simulate)
+    def launch_manual(request, sites:list[Site], details:bool, simulate:bool, immediate:bool)->Job:
+        return SopMerakiPushSiteJob.enqueue(user=request.user, immediate=immediate, sites=sites, details=details, simulate=simulate)
 
 #endregion
 
@@ -327,8 +334,8 @@ class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
             self.failure(text)
             self.job.error = text
             raise
-        finally:
-            self.job.data = self.get_job_data()  
+        # finally:
+        #     self.job.data = self.get_job_data()  
 
 
     ldap_basedn = "DC=ad,DC=soprema,DC=com"

@@ -552,7 +552,7 @@ class SopMerakiCreateNetworksView(AccessMixin, View):
         # Fetch details param
         details: bool = request.GET["details"] == "True"
         # Launch job
-        j: Job = SopMerakiCreateNetworkJob.launch_manual(site, details)
+        j: Job = SopMerakiCreateNetworkJob.launch_manual(request, site, details)
         # Send to script result
         url = reverse("extras:script_result", args=[j.pk])
         if details:

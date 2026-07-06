@@ -14,7 +14,7 @@ from sop_infra.views.infra import SopInfraSyncAdUsers,SopInfraJsonExportsAdUsers
 
 
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
-from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView, SopMerakiEnableUmbrellaSiteView, SopMerakiLinkUmbrellaSiteView, SopMerakiPushGroupView, SopMerakiPushRegionView
+from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView, SopMerakiEnableUmbrellaSiteGroupView, SopMerakiEnableUmbrellaRegionView, SopMerakiEnableUmbrellaSiteView, SopMerakiEnableUmbrellaTenantGroupView, SopMerakiEnableUmbrellaTenantView, SopMerakiLinkUmbrellaSiteGroupView, SopMerakiLinkUmbrellaRegionView, SopMerakiLinkUmbrellaSiteView, SopMerakiLinkUmbrellaTenantGroupView, SopMerakiLinkUmbrellaTenantView, SopMerakiPushGroupView, SopMerakiPushRegionView
 from sop_infra.views.sopmeraki import SopMerakiOrgListView, SopMerakiOrgView, SopMerakiOrgEditView, SopMerakiOrgDeleteView, SopMerakiOrgRefreshView, SopMerakiOrgRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiNetListView, SopMerakiNetView, SopMerakiNetEditView, SopMerakiNetDeleteView, SopMerakiNetRefreshView, SopMerakiNetRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiDeviceListView, SopMerakiDeviceView, SopMerakiDeviceEditView, SopMerakiDeviceDeleteView
@@ -42,9 +42,19 @@ urlpatterns = [
     path('sopmeraki/push/region/<int:pk>/', SopMerakiPushRegionView.as_view(), name='sopmeraki_push_region'),
     path('sopmeraki/push/group/<int:pk>/', SopMerakiPushGroupView.as_view(), name='sopmeraki_push_group'),
 
+
+    # MERAKI UMBRELLA views
     path('sopmeraki/umblink/site/<int:pk>/', SopMerakiLinkUmbrellaSiteView.as_view(), name='sopmeraki_umblink_site'),
+    path('sopmeraki/umblink/region/<int:pk>/', SopMerakiLinkUmbrellaRegionView.as_view(), name='sopmeraki_umblink_region'),
+    path('sopmeraki/umblink/sitegroup/<int:pk>/', SopMerakiLinkUmbrellaSiteGroupView.as_view(), name='sopmeraki_umblink_sitegroup'),
+    path('sopmeraki/umblink/tenant/<int:pk>/', SopMerakiLinkUmbrellaTenantView.as_view(), name='sopmeraki_umblink_tenant'),
+    path('sopmeraki/umblink/tenantgroup/<int:pk>/', SopMerakiLinkUmbrellaTenantGroupView.as_view(), name='sopmeraki_umblink_tenantgroup'),
 
     path('sopmeraki/umbenable/site/<int:pk>/', SopMerakiEnableUmbrellaSiteView.as_view(), name='sopmeraki_umbenable_site'),
+    path('sopmeraki/umbenable/region/<int:pk>/', SopMerakiEnableUmbrellaRegionView.as_view(), name='sopmeraki_umbenable_region'),
+    path('sopmeraki/umbenable/sitegroup/<int:pk>/', SopMerakiEnableUmbrellaSiteGroupView.as_view(), name='sopmeraki_umbenable_sitegroup'),
+    path('sopmeraki/umbenable/tenant/<int:pk>/', SopMerakiEnableUmbrellaTenantView.as_view(), name='sopmeraki_umbenable_tenant'),
+    path('sopmeraki/umbenable/tenantgroup/<int:pk>/', SopMerakiEnableUmbrellaTenantGroupView.as_view(), name='sopmeraki_umbenable_tenantgroup'),
 
 
     path('jsonexports/adusers', SopInfraJsonExportsAdUsers.as_view(), name='jsonexports_adusers'),
