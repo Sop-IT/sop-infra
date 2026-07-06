@@ -21,6 +21,8 @@ from dcim.models import Region, Site, SiteGroup
 from sop_infra.jobs import (
     SopMerakiCreateNetworkJob,
     SopMerakiDashRefreshJob,
+    SopMerakiEnableUmbrellaJob,
+    SopMerakiLinkSiteToUmbrellaJob,
     SopMerakiOrgRefreshJob,
     SopMerakiNetRefreshJob,
     SopMerakiPushSiteJob,
@@ -34,7 +36,7 @@ from sop_infra.filtersets import SopMerakiDashFilterSet, SopMerakiOrgFilterSet, 
 
 
 # ========================================================================
-#region MERAKI CONFIG PUSH VIEWS
+#region MERAKI PUSH VIEWS
 
 
 
@@ -174,6 +176,82 @@ class SopMerakiPushSiteView(View):
 
 
 #endregion
+
+# ========================================================================
+#region MERAKI UMBRELLA
+
+
+class SopMerakiLinkUmbrellaSiteView(View):
+
+    """
+    Link an Umbrella dashboard to Meraki Networks for a Site
+    """
+
+    def post(self, request, pk, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_link_umbrella")):
+            return self.handle_no_permission()
+
+        # data=request.POST
+        # if not "pk" in data.keys():
+        #     return
+
+        # pk = data ["pk"]
+
+        instance = get_object_or_404(Site, pk=pk)
+
+        if not SopUtils.check_permission(request.user, instance, "helper_link_umbrella"):
+            return self.handle_no_permission()
+
+        # Launch job
+        j: Job = SopMerakiLinkSiteToUmbrellaJob.launch_manual(sites=[instance], details=True)
+
+        # Send to script result
+        url = reverse("extras:script_result", args=[j.pk])
+        # if details:
+        #     url+="?log_threshold=debug"
+        return redirect(url)
+
+
+class SopMerakiEnableUmbrellaSiteView(View):
+
+    """
+    Enable Umbrella protection for Meraki Networks for a Site
+    """
+
+    def post(self, request, pk, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(Site, "helper_enable_umbrella")):
+            return self.handle_no_permission()
+
+        # data=request.POST
+        # if not "pk" in data.keys():
+        #     return
+
+        # pk = data ["pk"]
+
+        instance = get_object_or_404(Site, pk=pk)
+
+        if not SopUtils.check_permission(request.user, instance, "helper_enable_umbrella"):
+            return self.handle_no_permission()
+
+        # Launch job
+        j: Job = SopMerakiEnableUmbrellaJob.launch_manual(sites=[instance], details=True)
+
+        # Send to script result
+        url = reverse("extras:script_result", args=[j.pk])
+        # if details:
+        #     url+="?log_threshold=debug"
+        return redirect(url)
+
+
+
+#endregion
+
+# ========================================================================
+
 
 class SopMerakiTriSearchView(View):
     
