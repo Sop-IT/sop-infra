@@ -5,6 +5,7 @@ from netbox.context import current_request
 from sop_infra.models.infra import SopDeviceSetting
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiDevice, SopMerakiNet, SopMerakiOrg, SopMerakiSwitchStack
 from sop_infra.utils.mixins import JobRunnerLogMixin
+from sop_infra.utils.umbrella_utils import SopUmbrellaUtils
 from sop_utils.arrays import ArrayUtils
 from sop_utils.misc import SopUtils
 from sop_utils.regexps import SopRegExps
@@ -226,53 +227,64 @@ class SopMerakiUtils:
 
     @classmethod
     def connect_to_umbrella_dash(
-        cls, log: JobRunnerLogMixin, simulate: bool, site: Site, api_keys:dict[str,str], details: bool = False
+        cls, log: JobRunnerLogMixin, simulate: bool, sites: list[Site], api_keys:dict[str,str], details: bool = False
     ):
-        if log and details:
-            log.log_debug(f"connect_to_umbrella_dash for site {site}")
-        # Find Meraki Network(s) with appliances for this site
-        app_nets:list[SopMerakiNet]=SopMerakiNetUtils.get_appliance_networks(site)
-        # Loop on those
-        net:SopMerakiNet
-        for net in app_nets:
-            smo:SopMerakiOrg = net.org
-            smd:SopMerakiDash = smo.dash
-            if log:
-                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
-            conn = cls.connect(smd.nom, smd.api_url, simulate)       
-            # Enroll the Meraki Network in Umbrella
-            conn.appliance.connectNetworkApplianceUmbrellaAccount(networkId=net.meraki_id, api=api_keys)
+        site:Site
+        for site in sites:
             if log and details:
-                log.log_debug(f"connected network {net.nom} to Umbrella")
-        if log:
-            log.log_success(f"Done connecting Umbrella for site {site.name} !")            
+                log.log_debug(f"connecting site {site.name} to umbrella")
+            # Find Meraki Network(s) with appliances for this site
+            app_nets:list[SopMerakiNet]=SopMerakiNetUtils.get_appliance_networks(site)
+            # Loop on those
+            net:SopMerakiNet
+            for net in app_nets:
+                smo:SopMerakiOrg = net.org
+                smd:SopMerakiDash = smo.dash
+                if log:
+                    log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+                conn = cls.connect(smd.nom, smd.api_url, simulate)       
+                # Enroll the Meraki Network in Umbrella
+                conn.appliance.connectNetworkApplianceUmbrellaAccount(networkId=net.meraki_id, api=api_keys)
+                if log :
+                    log.log_success(f"connected network {net.nom} to Umbrella")
+      
 
     @classmethod
     def enable_umbrella_protection(
-        cls, log: JobRunnerLogMixin, simulate: bool, site: Site, excluded_domains=list[str], details: bool = False
+        cls, log: JobRunnerLogMixin, simulate: bool, sites: list[Site], details: bool = False
     ):
-        if log and details:
-            log.log_debug(f"enable_umbrella_protection for site {site}")
-        # Find Meraki Network(s) with appliances for this site
-        app_nets:list[SopMerakiNet]=SopMerakiNetUtils.get_appliance_networks(site)
-        # Loop on those
-        net:SopMerakiNet
-        for net in app_nets:
-            smo:SopMerakiOrg = net.org
-            smd:SopMerakiDash = smo.dash
-            if log:
-                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
-            conn = cls.connect(smd.nom, smd.api_url, simulate)       
-            # Enable Umbrella protection
-            conn.appliance.protectionNetworkApplianceUmbrella(networkId=net.meraki_id, enabled=True)
+        site:Site
+        for site in sites:
             if log and details:
-                log.log_debug(f"enabled Umbrella network protection for network {net.nom}")
-            # Set exclusion domains
-            conn.appliance.exclusionsNetworkApplianceUmbrellaDomains(networkId=net.meraki_id, domains=excluded_domains)
-            if log and details:
-                log.log_debug(f"added Umbrella domain exclusions {excluded_domains} for network {net.nom}")
-        if log:
-            log.log_success(f"Done enabling Umbrella network protection for site {site.name} !")            
+                    log.log_debug(f"enabling Umbrella protection for site {site.name}")
+            # Find Meraki Network(s) with appliances for this site
+            app_nets:list[SopMerakiNet]=SopMerakiNetUtils.get_appliance_networks(site)
+            # Loop on those
+            net:SopMerakiNet
+            for net in app_nets:
+                smo:SopMerakiOrg = net.org
+                smd:SopMerakiDash = smo.dash
+                if log:
+                    log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+                conn = cls.connect(smd.nom, smd.api_url, simulate)       
+                # Try enable Umbrella protection
+                try:
+                    conn.appliance.protectionNetworkApplianceUmbrella(networkId=net.meraki_id, enabled=True)
+                except meraki.exceptions.APIError as ex:
+                    if ex.status==405:
+                        if log :
+                            log.log_debug(f"Umbrella network protection was already enabled for network {net.nom}")
+                    else:
+                        raise ex  
+                else:
+                    if log :
+                        log.log_success(f"enabled Umbrella network protection for network {net.nom}")
+                # Set exclusion domains
+                excluded_domains=SopUmbrellaUtils.get_umbrella_excluded_domains(site)
+                conn.appliance.exclusionsNetworkApplianceUmbrellaDomains(networkId=net.meraki_id, domains=excluded_domains)
+                if log :
+                    log.log_success(f"added Umbrella domain exclusions {excluded_domains} for network {net.nom}")
+       
 
     # @classmethod
     # def claim_meraki_device(
@@ -674,7 +686,7 @@ class SopMerakiNetUtils:
         ret: list[SopMerakiNet] = list()
         smns: list[SopMerakiNet] = site.meraki_nets  # type: ignore
         # loop on the site networks
-        for smn in smns:
+        for smn in smns.all():
             # skip bound networks
             if smn.bound_to_template:
                 continue
@@ -691,7 +703,7 @@ class SopMerakiNetUtils:
         ret: list[SopMerakiNet] = list()
         smns: list[SopMerakiNet] = site.meraki_nets  # type: ignore
         # loop on the site networks
-        for smn in smns:
+        for smn in smns.all():
             # add to tentative list
             ret.append(smn)
         # return the list
@@ -702,7 +714,7 @@ class SopMerakiNetUtils:
         ret: list[SopMerakiNet] = list()
         smns: list[SopMerakiNet] = site.meraki_nets  # type: ignore
         # loop on the site networks
-        for smn in smns:
+        for smn in smns.all():
             # skip not bound networks
             if not smn.bound_to_template:
                 continue
