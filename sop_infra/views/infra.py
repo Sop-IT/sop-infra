@@ -180,6 +180,8 @@ class SopInfraJsonExportsAdSites(View):
             exp.append(d)
         return JsonResponse(exp, safe=False)
 
+# ===========================================================================================
+#region SITE TABS
 
 @register_model_view(Site, name="infra", detail=True)
 class SopInfraSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
@@ -208,7 +210,7 @@ class SopInfraSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
 @register_model_view(Site, name="sopmeraki")
 class SopMerakiSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
     """
-    creates an "SOP Meraki" tab on the site page
+    creates a "SOP Meraki" tab on the site page
     """
 
     tab = ViewTab(
@@ -228,8 +230,14 @@ class SopMerakiSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
         return context
 
 
+
+
+
+# ===========================================================================================
+#region BASE MODEL VIEWS
+
 # ____________________________
-# SOP INFRA BASE MODEL VIEWS
+# SOP INFRA 
 
 
 class SopInfraDeleteView(generic.ObjectDeleteView):
@@ -302,9 +310,11 @@ class SopMerakiEditView(generic.ObjectEditView):
     queryset = SopInfra.objects.all()
     form = SopMerakiForm
 
+#endregion BASE MODEL VIEWS
+
 
 # ======================================================================
-# SWITCH TEMPLATES MODEL VIEWS 
+#region SWITCH TEMPLATES MODEL VIEWS 
 
 
 class SopSwitchTemplateDeleteView(generic.ObjectDeleteView):
@@ -345,10 +355,13 @@ class SopSwitchTemplateListView(generic.ObjectListView):
     filterset = SopSwitchTemplateFilterset
     filterset_form = SopSwitchTemplateFilterForm
 
+#endregion SWITCH TEMPLATES MODEL VIEWS 
+
+
 
 
 # ======================================================================
-# DEVICE SETTINGS MODEL VIEWS
+#region DEVICE SETTINGS MODEL VIEWS
 
 
 class SopDeviceSettingDetailView(generic.ObjectView):
@@ -434,10 +447,11 @@ class DeviceSopDeviceSettingTabViewOnMerakiDevice(generic.ObjectView):
             except SopDeviceSetting.DoesNotExist:
                 context["sopdevicesetting"] =  None
         return context    
+#endregion DEVICE SETTINGS MODEL VIEWS
 
 
 # ======================================================================
-# ACTION VIEWS
+#region ACTION VIEWS
 
 
 class SopMerakiClaimView(AccessMixin, View):
@@ -606,11 +620,11 @@ class SopInfraRefreshView(AccessMixin, View):
         except:
             pass
 
-
+#endregion ACTION VIEWS
 
 
 # ======================================================================
-# HELPER VIEWS
+#region HELPER VIEWS
 
 
 
@@ -1044,4 +1058,4 @@ class SopInfraHelperDhcp(AccessMixin, View):
         return ret
 
 
-
+#endregion HELPER VIEWS
