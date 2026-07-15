@@ -23,10 +23,12 @@ from tenancy.models import Tenant, TenantGroup
 from sop_infra.jobs import (
     SopMerakiCreateNetworkJob,
     SopMerakiDashRefreshJob,
+    SopMerakiDashVpnStatusesJob,
     SopMerakiEnableUmbrellaJob,
     SopMerakiLinkSiteToUmbrellaJob,
     SopMerakiOrgRefreshJob,
     SopMerakiNetRefreshJob,
+    SopMerakiOrgVpnStatusesJob,
     SopMerakiPushSiteJob,
 )
 
@@ -531,7 +533,25 @@ class SopMerakiDashRefreshView(View, ObjectPermissionRequiredMixin):
         # Send to script result
         url = reverse("core:job", args=[j.pk])
         return redirect(url)
-    
+
+
+class SopMerakiDashVpnStatusesView(View, ObjectPermissionRequiredMixin):
+
+    def post(self, request, pk, *args, **kwargs):
+
+        instance = get_object_or_404(SopMerakiDash, pk=pk)
+
+        if not SopUtils.check_permission(request.user, instance, "vpnstatuses"):
+            return self.handle_no_permission()
+
+        # Launch job
+        j: Job = SopMerakiDashVpnStatusesJob.launch_manual(dashs=[instance], details=False)
+
+        # Send to script result
+        url = reverse("core:job", args=[j.pk])
+        return redirect(url)
+
+
 #endregion
 
 # ========================================================================
@@ -622,7 +642,26 @@ class SopMerakiOrgRefreshView(AccessMixin, View):
         # Send to script result
         url = reverse("core:job", args=[j.pk])
         return redirect(url)
-    
+
+
+class SopMerakiOrgVpnStatusesView(AccessMixin, View):
+
+    def post(self, request, pk, *args, **kwargs):
+
+        instance = get_object_or_404(SopMerakiOrg, pk=pk)
+
+        if not SopUtils.check_permission(request.user, instance, "vpnstatuses"):
+            return self.handle_no_permission()
+
+        # Launch job
+        j: Job = SopMerakiOrgVpnStatusesJob.launch_manual(orgs=[instance], details=False)
+
+        # Send to script result
+        url = reverse("core:job", args=[j.pk])
+        return redirect(url)
+
+
+
 #endregion
 
 

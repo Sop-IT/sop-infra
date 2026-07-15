@@ -187,6 +187,63 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
         if settings.DEBUG:
             return SopMerakiNetRefreshJob.enqueue(immediate=True, nets=nets, details=details)
         return SopMerakiNetRefreshJob.enqueue(nets=nets, details=details)
+
+
+class SopMerakiDashVpnStatusesJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Refresh Meraki VPN Statuses"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            SopMerakiUtils.vpnstatuses_dashboards(self, settings.DEBUG, kwargs.pop('dashs', None), kwargs.pop('details', False))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        # finally:
+        #     self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(dashs:list[SopMerakiDash], details:bool)->Job:
+        if settings.DEBUG:
+            return SopMerakiDashVpnStatusesJob.enqueue(immediate=True, dashs=dashs, details=details)
+        return SopMerakiDashVpnStatusesJob.enqueue(dashs=dashs, details=details)
+    
+
+class SopMerakiOrgVpnStatusesJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Refresh Meraki VPN Statuses"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            SopMerakiUtils.vpnstatuses_organizations(self, settings.DEBUG, kwargs.pop('orgs', None), kwargs.pop('details', False))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        # finally:
+        #     self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(orgs:list[SopMerakiOrg], details:bool)->Job:
+        if settings.DEBUG:
+            return SopMerakiOrgVpnStatusesJob.enqueue(immediate=True, orgs=orgs, details=details)
+        return SopMerakiOrgVpnStatusesJob.enqueue(orgs=orgs, details=details)
+
+
+
+
+
 #endregion
 
 

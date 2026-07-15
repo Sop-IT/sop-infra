@@ -82,6 +82,43 @@
         </div>
       </div>
       <div class="card">
+        <h5 class="card-header">VPN Statuses</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">VPN Mode</th>
+              <td>
+                {{ object.vpn_mode }}
+              </td>
+            </tr>  
+            <tr>
+              <th scope="row">Main appliance</th>
+              <td>
+                {{ object.appliance_status }}
+              </td>
+            </tr>   
+            <tr>
+              <th scope="row">Meraki peers</th>
+              <td>
+                {{ object.meraki_peers_reachability }}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Exported subnets</th>
+              <td>
+                {{ object.exp_subnets_count }}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Last stats change</th>
+              <td>
+                {{ object.last_stats_change }}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>    
+      <div class="card">
         <h5 class="card-header">SOP MERAKI</h5>
         <div class="card-body">
           <table class="table table-hover attr-table">

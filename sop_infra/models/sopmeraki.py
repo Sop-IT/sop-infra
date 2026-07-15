@@ -1,7 +1,7 @@
-from zoneinfo import ZoneInfo
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django.utils.timezone import now as django_now
 
 from netbox.models import NetBoxModel
 from netbox.models.features import *
@@ -158,6 +158,37 @@ class SopMerakiNet(NetBoxModel):
     meraki_url = models.URLField(null=True, blank=True)
     meraki_notes = models.CharField(max_length=500, null=True, blank=True)
     timezone = TimeZoneField(null=True, blank=True)
+
+    vpn_mode=models.CharField(
+        verbose_name="VPN Mode",
+        max_length=20,
+        blank=True,
+        null=True,    
+    )
+    appliance_status=models.CharField(
+        verbose_name="Appliance status",
+        max_length=20,
+        blank=True,
+        null=True,    
+    )
+    meraki_peers_reachability=models.CharField(
+        verbose_name="Meraki peers reachability",
+        max_length=20,
+        blank=True,
+        null=True,    
+    )
+    exp_subnets_count=models.IntegerField(
+        verbose_name="# of exported subnets",
+        blank=True,
+        null=True,    
+    )
+    last_stats_change=models.DateTimeField(
+        verbose_name="Last stats change",
+        default=django_now,
+        blank=True,
+        null=True,    
+    )
+
 
     def __str__(self):
         return f"{self.nom}"

@@ -14,7 +14,7 @@ from sop_infra.views.infra import SopInfraSyncAdUsers,SopInfraJsonExportsAdUsers
 
 
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
-from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView, SopMerakiEnableUmbrellaSiteGroupView, SopMerakiEnableUmbrellaRegionView, SopMerakiEnableUmbrellaSiteView, SopMerakiEnableUmbrellaTenantGroupView, SopMerakiEnableUmbrellaTenantView, SopMerakiLinkUmbrellaSiteGroupView, SopMerakiLinkUmbrellaRegionView, SopMerakiLinkUmbrellaSiteView, SopMerakiLinkUmbrellaTenantGroupView, SopMerakiLinkUmbrellaTenantView, SopMerakiPushGroupView, SopMerakiPushRegionView
+from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView, SopMerakiDashVpnStatusesView, SopMerakiEnableUmbrellaSiteGroupView, SopMerakiEnableUmbrellaRegionView, SopMerakiEnableUmbrellaSiteView, SopMerakiEnableUmbrellaTenantGroupView, SopMerakiEnableUmbrellaTenantView, SopMerakiLinkUmbrellaSiteGroupView, SopMerakiLinkUmbrellaRegionView, SopMerakiLinkUmbrellaSiteView, SopMerakiLinkUmbrellaTenantGroupView, SopMerakiLinkUmbrellaTenantView, SopMerakiOrgVpnStatusesView, SopMerakiPushGroupView, SopMerakiPushRegionView
 from sop_infra.views.sopmeraki import SopMerakiOrgListView, SopMerakiOrgView, SopMerakiOrgEditView, SopMerakiOrgDeleteView, SopMerakiOrgRefreshView, SopMerakiOrgRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiNetListView, SopMerakiNetView, SopMerakiNetEditView, SopMerakiNetDeleteView, SopMerakiNetRefreshView, SopMerakiNetRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiDeviceListView, SopMerakiDeviceView, SopMerakiDeviceEditView, SopMerakiDeviceDeleteView
@@ -143,6 +143,7 @@ urlpatterns = [
     path('sopmerakidash/<int:pk>/delete/', SopMerakiDashDeleteView.as_view(), name='sopmerakidash_delete'),
     path('sopmerakidash/refresh/', SopMerakiDashRefreshChooseView.as_view(), name='sopmerakidash_refresh_choose'),
     path('sopmerakidash/<int:pk>/refresh/', SopMerakiDashRefreshView.as_view(), name='sopmerakidash_refresh'),
+    path('sopmerakidash/<int:pk>/vpnstatuses/', SopMerakiDashVpnStatusesView.as_view(), name='sopmerakidash_vpnstatuses'),
     path('sopmerakidash/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakidash_changelog', kwargs={'model': SopMerakiDash}),
 
     # ========================================================================
@@ -154,8 +155,8 @@ urlpatterns = [
     path('sopmerakiorg/<int:pk>/delete/', SopMerakiOrgDeleteView.as_view(), name='sopmerakiorg_delete'),
     path('sopmerakiorg/refresh/', SopMerakiOrgRefreshChooseView.as_view(), name='sopmerakiorg_refresh_choose'),
     path('sopmerakiorg/<int:pk>/refresh/', SopMerakiOrgRefreshView.as_view(), name='sopmerakiorg_refresh'),
+    path('sopmerakiorg/<int:pk>/vpnstatuses/', SopMerakiOrgVpnStatusesView.as_view(), name='sopmerakiorg_vpnstatuses'),
     path('sopmerakiorg/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakiorg_changelog', kwargs={'model': SopMerakiOrg}),
-
 
     # ========================================================================
     # SopMerakiNet

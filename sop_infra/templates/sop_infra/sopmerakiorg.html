@@ -8,6 +8,9 @@
   {% if request.user|can_refresh:object %}
     {% refresh_button object %}
   {% endif %}
+  {% if request.user|can_vpnstatuses:object %}
+    {% vpnstatuses_button object %}
+  {% endif %}
 {% endblock extra_controls %}
 
 {% block content %}
