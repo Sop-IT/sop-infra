@@ -208,7 +208,7 @@ class SopMerakiUtils:
         )
         if log and details:
             log.log_debug(f"created SDWAN network {sdwan=}")
-        SopMerakiNet.create_or_refresh(conn, sdwan, org, log, details)
+        SopMerakiNetUtils.create_or_refresh(conn, sdwan, org, log, details)
         switches = conn.organizations.createOrganizationNetwork(
             org.meraki_id,
             name=switch_name,
@@ -217,11 +217,11 @@ class SopMerakiUtils:
         )
         if log and details:
             log.log_debug(f"created Switch + Wifi network {switches=}")
-        SopMerakiNet.create_or_refresh(conn, switches, org, log, details)
+        SopMerakiNetUtils.create_or_refresh(conn, switches, org, log, details)
         bind = conn.networks.bindNetwork(switches["id"], "L_731271989494293752")
         if log and details:
             log.log_debug(f"bound network {bind=}")
-        SopMerakiNet.create_or_refresh(conn, bind, org, log, details)
+        SopMerakiNetUtils.create_or_refresh(conn, bind, org, log, details)
         if log:
             log.log_success(f"Done creating networks !")
 
@@ -337,7 +337,7 @@ class SopMerakiUtils:
     #         log.log_debug(
     #             f"created SDWAN network {sdwan=}"
     #         )
-    #     SopMerakiNet.create_or_refresh(conn, sdwan, org, log)
+    #     SopMerakiNetUtils.create_or_refresh(conn, sdwan, org, log)
     #     switches=conn.organizations.createOrganizationNetwork(
     #         org.meraki_id,
     #         name=switch_name,
@@ -348,13 +348,13 @@ class SopMerakiUtils:
     #         log.log_debug(
     #             f"created Switch + Wifi network {switches=}"
     #         )
-    #     SopMerakiNet.create_or_refresh(conn, switches, org, log)
+    #     SopMerakiNetUtils.create_or_refresh(conn, switches, org, log)
     #     bind=conn.networks.bindNetwork(switches["id"], "L_731271989494293752")
     #     if log and details:
     #         log.log_debug(
     #             f"bound network {bind=}"
     #         )
-    #     SopMerakiNet.create_or_refresh(conn, bind, org, log)
+    #     SopMerakiNetUtils.create_or_refresh(conn, bind, org, log)
     #     if log:
     #         log.log_success(
     #             f"Done creating networks !"
