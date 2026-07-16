@@ -69,7 +69,7 @@
         <div class="card-body">
           <table class="table table-hover attr-table">
             <tr>
-              <th scope="row">MX 1</th>
+              <th scope="row">Primary MX</th>
               <td>
                 {% if object.primary_mx %}
                 <a href="{{ object.primary_mx.get_absolute_url }}">{{ object.primary_mx }}</a>
@@ -79,7 +79,7 @@
               </td>
             </tr>  
             <tr>
-              <th scope="row">MX 2</th>
+              <th scope="row">Secondary MX</th>
               <td>
                 {% if object.secondary_mx %}
                 <a href="{{ object.secondary_mx.get_absolute_url }}">{{ object.secondary_mx }}</a>
@@ -118,7 +118,7 @@
               </td>
             </tr>   
             <tr>
-              <th scope="row">Meraki peers reachability</th>
+              <th scope="row">Meraki VPN peers reachability</th>
               <td>
                 {{ object.meraki_peers_reachability }}
               </td>

@@ -4,10 +4,11 @@ from django.shortcuts import render, redirect
 from django.views import View
 from django.conf import settings
 
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import AccessMixin
+
 
 from sop_infra.utils.netbox_utils import SopInfraUtils
 from utilities.views import ObjectPermissionRequiredMixin, register_model_view
@@ -18,6 +19,7 @@ from netbox.views import generic
 from netbox.jobs import Job
 
 from dcim.models import Region, Site, SiteGroup
+from ipam.models import IPAddress, Prefix
 from tenancy.models import Tenant, TenantGroup
 
 from sop_infra.jobs import (
@@ -86,6 +88,36 @@ class SiteHierarchicalTaskMixin():
         return region,sites
     
 
+
+class SopMerakiJsonConnectivityStatusSite(View):
+    """
+    Returns json with site connectivy statuses for the site based on the management IP address
+    """
+    def get(self, request: HttpRequest, ip:str, *args, **kwargs):
+        exp: list[dict[str, str]] = []
+        preflst=Prefix.objects.filter(vrf=None).filter(prefix__net_contains=f"{ip}/32").filter(_children=0)
+        if preflst.count()!=1:
+            raise Exception(f"We expected a single prefix for this IP : {ip} !")
+        pref:Prefix=preflst[0]
+        smnlst=pref.scope.meraki_nets.filter(vpn_mode="spoke").filter(exp_subnets_count__gt=0)
+        if smnlst.count()!=1:
+            raise Exception(f"We expected a single announcing SopMerakiNet for this IP : {ip} !")
+        smn:SopMerakiNet=smnlst[0]
+        d: dict[str, str] = dict()
+        d["net_name"] = smn.nom
+        d["net_appliance_status"] = smn.appliance_status
+        d["last_statuses_change"] = smn.last_stats_change
+        d["mx1wan1ip"] = smn.primary_mx.wan1ip if smn.primary_mx else "none"
+        d["mx1wan2ip"] = smn.primary_mx.wan2ip if smn.primary_mx else "none"
+        d["mx1wan1status"] = smn.primary_mx.wan1status if smn.primary_mx else "none"
+        d["mx1wan2status"] = smn.primary_mx.wan2status if smn.primary_mx else "none"
+        d["mx2wan1ip"] = smn.secondary_mx.wan1ip if smn.secondary_mx else "none"
+        d["mx2wan2ip"] = smn.secondary_mx.wan2ip if smn.secondary_mx else "none"
+        d["mx2wan1status"] = smn.secondary_mx.wan1status if smn.secondary_mx else "none"
+        d["mx2wan2status"] = smn.secondary_mx.wan2status if smn.secondary_mx else "none"
+        d["last_uplinkstatuses_fetch"] = smn.last_uplinksstatuses_fetch
+        return JsonResponse(d, safe=False)
+    
 
 # ========================================================================
 #region MERAKI PUSH VIEWS

@@ -1397,7 +1397,7 @@ class SopMerakiOrgUtils:
             d:dict[str,dict]=by_net.get(net_id,{})
             d[uplink_stat['highAvailability']['role']]=(uplink_stat)
             by_net[net_id]=d
-        print(by_net)
+        #print(by_net)
         # then handle network by network
         net:SopMerakiNet
         done:list[str]=[]
