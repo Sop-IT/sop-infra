@@ -5,6 +5,7 @@ from django.db.models import Q, F
 from utilities.filters import TreeNodeMultipleChoiceFilter, MultiValueCharFilter
 
 from netbox.filtersets import NetBoxModelFilterSet
+from utilities.filtersets import register_filterset
 
 from ipam.models import Prefix
 from dcim.choices import SiteStatusChoices
@@ -17,6 +18,7 @@ from sop_infra.models import *
 # SOPMERAKI
 
 
+@register_filterset
 class SopMerakiDashFilterSet(NetBoxModelFilterSet):
 
     class Meta:
@@ -36,6 +38,7 @@ class SopMerakiDashFilterSet(NetBoxModelFilterSet):
         )
 
 
+@register_filterset
 class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
 
     class Meta:
@@ -59,6 +62,7 @@ class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
         )
 
 
+@register_filterset
 class SopMerakiNetFilterSet(NetBoxModelFilterSet):
 
     class Meta:
@@ -78,6 +82,14 @@ class SopMerakiNetFilterSet(NetBoxModelFilterSet):
             "meraki_tags",
             "org__dash",
             "org__dash_id",
+            "vpn_mode",
+            "appliance_status",
+            "meraki_peers_reachability",
+            "exp_subnets_count",
+            "last_stats_change",
+            "primary_mx",
+            "secondary_mx",
+            "last_uplinksstatuses_fetch",
         )
         filter_overrides = {
             models.JSONField: {
@@ -98,6 +110,7 @@ class SopMerakiNetFilterSet(NetBoxModelFilterSet):
         )
 
 
+@register_filterset
 class SopMerakiSwitchStackFilterSet(NetBoxModelFilterSet):
 
     class Meta:
@@ -126,6 +139,7 @@ class SopMerakiSwitchStackFilterSet(NetBoxModelFilterSet):
         return queryset.filter(Q(nom__icontains=value) | Q(meraki_id__icontains=value))
 
 
+@register_filterset
 class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
 
     has_netbox_device = django_filters.BooleanFilter(method="filter_custom")
@@ -173,6 +187,7 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             "ptype",
             "meraki_tags",
             "meraki_details",
+            "meraki_url",
             "firmware",
             "site",
             "site_id",
@@ -186,6 +201,15 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             "org__dash_id",
             "netbox_device",
             "netbox_device_id",
+            "lan_ip",
+            "cfg_updated_at",
+            "latitude",
+            "longitude",
+            "wan1ip",
+            "wan2ip",
+            "wan1status",
+            "wan2status",
+            "last_reported_at",
         )
         filter_overrides = {
             models.JSONField: {
@@ -211,6 +235,7 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
 # PRISMA
 
 
+@register_filterset
 class PrismaComputedAccessLocationFilterset(NetBoxModelFilterSet):
 
     class Meta:
@@ -235,6 +260,7 @@ class PrismaComputedAccessLocationFilterset(NetBoxModelFilterSet):
         )
 
 
+@register_filterset
 class PrismaAccessLocationFilterset(NetBoxModelFilterSet):
 
     time_zone = MultiValueCharFilter()
@@ -269,6 +295,7 @@ class PrismaAccessLocationFilterset(NetBoxModelFilterSet):
         )
 
 
+@register_filterset
 class PrismaEndpointFilterset(NetBoxModelFilterSet):
 
     ip_address = django_filters.ModelMultipleChoiceFilter(
@@ -309,6 +336,7 @@ class PrismaEndpointFilterset(NetBoxModelFilterSet):
 # SopInfra
 
 
+@register_filterset
 class SopInfraFilterset(NetBoxModelFilterSet):
     site_id = django_filters.ModelMultipleChoiceFilter(
         queryset=Site.objects.all(), field_name="site"
@@ -406,6 +434,7 @@ class SopInfraFilterset(NetBoxModelFilterSet):
         )
 
 
+@register_filterset
 class SopSwitchTemplateFilterset(NetBoxModelFilterSet):
 
     class Meta:
@@ -422,6 +451,7 @@ class SopSwitchTemplateFilterset(NetBoxModelFilterSet):
         return queryset.filter(Q(nom__icontains=value) | Q(stp_prio__icontains=value))
 
 
+@register_filterset
 class SopDeviceSettingFilterset(NetBoxModelFilterSet):
 
     class Meta:
