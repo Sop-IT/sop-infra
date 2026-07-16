@@ -59,25 +59,45 @@
           </table>
         </div>
       </div>
+      {% include 'inc/panels/tags.html' %}
       {% include 'inc/panels/custom_fields.html' %}
     </div>
     <div class="col col-md-6">
-      {% include 'inc/panels/tags.html' %}
       {% include 'inc/panels/comments.html' %}
       <div class="card">
-        <h5 class="card-header">Netbox</h5>
+        <h5 class="card-header">Connectivity</h5>
         <div class="card-body">
           <table class="table table-hover attr-table">
             <tr>
-              <th scope="row">Site</th>
+              <th scope="row">MX 1</th>
               <td>
-                {% if object.site %}
-                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
+                {% if object.primary_mx %}
+                <a href="{{ object.primary_mx.get_absolute_url }}">{{ object.primary_mx }}</a>
                 {% else %}
-                &mdash; 
+                &mdash;
                 {% endif %}
               </td>
-            </tr>             
+            </tr>  
+            <tr>
+              <th scope="row">MX 2</th>
+              <td>
+                {% if object.secondary_mx %}
+                <a href="{{ object.secondary_mx.get_absolute_url }}">{{ object.secondary_mx }}</a>
+                {% else %}
+                &mdash;
+                {% endif %}
+              </td>
+            </tr>   
+            <tr>
+              <th scope="row">Last uplink status fetch (UTC)</th>
+              <td>
+                {% if object.last_uplinksstatuses_fetch %}
+                {{ object.last_uplinksstatuses_fetch|isodatetime:"seconds" }}
+                {% else %}
+                &mdash;
+                {% endif %}
+              </td>
+            </tr>         
           </table>
         </div>
       </div>
@@ -92,36 +112,46 @@
               </td>
             </tr>  
             <tr>
-              <th scope="row">Main appliance</th>
+              <th scope="row">Main appliance status</th>
               <td>
                 {{ object.appliance_status }}
               </td>
             </tr>   
             <tr>
-              <th scope="row">Meraki peers</th>
+              <th scope="row">Meraki peers reachability</th>
               <td>
                 {{ object.meraki_peers_reachability }}
               </td>
             </tr>
             <tr>
-              <th scope="row">Exported subnets</th>
+              <th scope="row">Exported subnets count</th>
               <td>
                 {{ object.exp_subnets_count }}
               </td>
             </tr>
             <tr>
-              <th scope="row">Last stats change</th>
+              <th scope="row">Last stats change (UTC)</th>
               <td>
-                {{ object.last_stats_change }}
+                {{ object.last_stats_change|isodatetime:"seconds" }}
               </td>
             </tr>
           </table>
         </div>
       </div>    
       <div class="card">
-        <h5 class="card-header">SOP MERAKI</h5>
+        <h5 class="card-header">Related objects</h5>
         <div class="card-body">
           <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Netbox site</th>
+              <td>
+                {% if object.site %}
+                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
+                {% else %}
+                &mdash; 
+                {% endif %}
+              </td>
+            </tr>    
             <tr>
               <th scope="row">Meraki Dashboard</th>
               <td>

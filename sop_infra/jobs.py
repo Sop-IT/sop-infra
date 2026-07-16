@@ -189,16 +189,16 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
         return SopMerakiNetRefreshJob.enqueue(nets=nets, details=details)
 
 
-class SopMerakiDashVpnStatusesJob(JobRunnerLogMixin, JobRunner):
+class SopMerakiDashUpdateConnectivyStatusesJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
-        name = "Refresh Meraki VPN Statuses"
+        name = "Refresh Meraki Connectivity Statuses"
 
     def run(self, *args, **kwargs):
         job:Job=self.job
         obj = job.object
         try:
-            SopMerakiUtils.vpnstatuses_dashboards(self, settings.DEBUG, kwargs.pop('dashs', None), kwargs.pop('details', False))
+            SopMerakiUtils.update_vpn_statuses_dashboards(self, settings.DEBUG, kwargs.pop('dashs', None), kwargs.pop('details', False))
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
@@ -211,20 +211,20 @@ class SopMerakiDashVpnStatusesJob(JobRunnerLogMixin, JobRunner):
     @staticmethod
     def launch_manual(dashs:list[SopMerakiDash], details:bool)->Job:
         if settings.DEBUG:
-            return SopMerakiDashVpnStatusesJob.enqueue(immediate=True, dashs=dashs, details=details)
-        return SopMerakiDashVpnStatusesJob.enqueue(dashs=dashs, details=details)
+            return SopMerakiDashUpdateConnectivyStatusesJob.enqueue(immediate=True, dashs=dashs, details=details)
+        return SopMerakiDashUpdateConnectivyStatusesJob.enqueue(dashs=dashs, details=details)
     
 
-class SopMerakiOrgVpnStatusesJob(JobRunnerLogMixin, JobRunner):
+class SopMerakiOrgConnectivityStatusesJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
-        name = "Refresh Meraki VPN Statuses"
+        name = "Refresh Meraki Connectivity Statuses"
 
     def run(self, *args, **kwargs):
         job:Job=self.job
         obj = job.object
         try:
-            SopMerakiUtils.vpnstatuses_organizations(self, settings.DEBUG, kwargs.pop('orgs', None), kwargs.pop('details', False))
+            SopMerakiUtils.update_connectivity_statuses_organizations(self, settings.DEBUG, kwargs.pop('orgs', None), kwargs.pop('details', False))
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
@@ -237,8 +237,8 @@ class SopMerakiOrgVpnStatusesJob(JobRunnerLogMixin, JobRunner):
     @staticmethod
     def launch_manual(orgs:list[SopMerakiOrg], details:bool)->Job:
         if settings.DEBUG:
-            return SopMerakiOrgVpnStatusesJob.enqueue(immediate=True, orgs=orgs, details=details)
-        return SopMerakiOrgVpnStatusesJob.enqueue(orgs=orgs, details=details)
+            return SopMerakiOrgConnectivityStatusesJob.enqueue(immediate=True, orgs=orgs, details=details)
+        return SopMerakiOrgConnectivityStatusesJob.enqueue(orgs=orgs, details=details)
 
 
 

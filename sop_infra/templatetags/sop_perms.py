@@ -4,7 +4,7 @@ from sop_utils.misc import SopUtils
 
 __all__ = (
     'can_refresh',
-    'can_vpnstatuses',
+    'can_update_connectivity_statuses',
 )
 
 register = template.Library()
@@ -16,5 +16,5 @@ def can_refresh(user, instance):
     return SopUtils.check_permission(user, instance, 'refresh')
 
 @register.filter()
-def can_vpnstatuses(user, instance):
-    return SopUtils.check_permission(user, instance, 'vpnstatuses')
+def can_update_connectivity_statuses(user, instance):
+    return SopUtils.check_permission(user, instance, 'update_connectivity_statuses')

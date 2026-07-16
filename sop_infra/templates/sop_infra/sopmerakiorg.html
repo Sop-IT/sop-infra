@@ -8,8 +8,8 @@
   {% if request.user|can_refresh:object %}
     {% refresh_button object %}
   {% endif %}
-  {% if request.user|can_vpnstatuses:object %}
-    {% vpnstatuses_button object %}
+  {% if request.user|can_update_connectivity_statuses:object %}
+    {% update_connectivity_statuses_button object %}
   {% endif %}
 {% endblock extra_controls %}
 
@@ -75,13 +75,13 @@
           </table>
         </div>
       </div>
+      {% include 'inc/panels/tags.html' %}
       {% include 'inc/panels/custom_fields.html' %}
     </div>
     <div class="col col-md-6">
-      {% include 'inc/panels/tags.html' %}
       {% include 'inc/panels/comments.html' %}
       <div class="card">
-        <h5 class="card-header">SOP MERAKI</h5>
+        <h5 class="card-header">Related objects</h5>
         <div class="card-body">
           <table class="table table-hover attr-table">
             <tr>

@@ -4,7 +4,7 @@ from utilities.views import get_viewname
 
 __all__ = (
     'refresh_button',
-    'vpnstatuses_button',
+    'update_connectivity_statuses_button',
 )
 
 register = template.Library()
@@ -18,9 +18,9 @@ def refresh_button(instance):
         'url': url,
     }
 
-@register.inclusion_tag('buttons/vpnstatuses.html')
-def vpnstatuses_button(instance):
-    viewname = get_viewname(instance, 'vpnstatuses')
+@register.inclusion_tag('buttons/update_connectivity_statuses.html')
+def update_connectivity_statuses_button(instance):
+    viewname = get_viewname(instance, 'update_connectivity_statuses')
     url = reverse(viewname, kwargs={'pk': instance.pk})
 
     return {

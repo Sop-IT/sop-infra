@@ -1,13 +1,13 @@
 from django.conf import settings
 from core.choices import JobIntervalChoices
 from netbox.jobs import system_job
-from sop_infra.jobs import SopMerakiDashVpnStatusesJob
+from sop_infra.jobs import SopMerakiDashUpdateConnectivyStatusesJob
 
 @system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY)
-class SopMerakiDashAutoVpnStatusesJob(SopMerakiDashVpnStatusesJob):
+class SopMerakiDashAutoUpdateConnectivityStatusesJob(SopMerakiDashUpdateConnectivyStatusesJob):
 
     class Meta:  # type: ignore
-        name = "Auto VPN Statuses Meraki dashboards, only in prod"
+        name = "Auto Update Connectivity Statuses Meraki dashboards, only in prod"
 
     def run(self, *args, **kwargs):
 

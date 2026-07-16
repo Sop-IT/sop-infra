@@ -23,12 +23,12 @@ from tenancy.models import Tenant, TenantGroup
 from sop_infra.jobs import (
     SopMerakiCreateNetworkJob,
     SopMerakiDashRefreshJob,
-    SopMerakiDashVpnStatusesJob,
+    SopMerakiDashUpdateConnectivyStatusesJob,
     SopMerakiEnableUmbrellaJob,
     SopMerakiLinkSiteToUmbrellaJob,
     SopMerakiOrgRefreshJob,
     SopMerakiNetRefreshJob,
-    SopMerakiOrgVpnStatusesJob,
+    SopMerakiOrgConnectivityStatusesJob,
     SopMerakiPushSiteJob,
 )
 
@@ -535,17 +535,17 @@ class SopMerakiDashRefreshView(View, ObjectPermissionRequiredMixin):
         return redirect(url)
 
 
-class SopMerakiDashVpnStatusesView(View, ObjectPermissionRequiredMixin):
+class SopMerakiDashConnectivityStatusesView(View, ObjectPermissionRequiredMixin):
 
     def post(self, request, pk, *args, **kwargs):
 
         instance = get_object_or_404(SopMerakiDash, pk=pk)
 
-        if not SopUtils.check_permission(request.user, instance, "vpnstatuses"):
+        if not SopUtils.check_permission(request.user, instance, "update_connectivity_statuses"):
             return self.handle_no_permission()
 
         # Launch job
-        j: Job = SopMerakiDashVpnStatusesJob.launch_manual(dashs=[instance], details=False)
+        j: Job = SopMerakiDashUpdateConnectivyStatusesJob.launch_manual(dashs=[instance], details=False)
 
         # Send to script result
         url = reverse("core:job", args=[j.pk])
@@ -644,17 +644,17 @@ class SopMerakiOrgRefreshView(AccessMixin, View):
         return redirect(url)
 
 
-class SopMerakiOrgVpnStatusesView(AccessMixin, View):
+class SopMerakiOrgUpdateConnectivityStatusesView(AccessMixin, View):
 
     def post(self, request, pk, *args, **kwargs):
 
         instance = get_object_or_404(SopMerakiOrg, pk=pk)
 
-        if not SopUtils.check_permission(request.user, instance, "vpnstatuses"):
+        if not SopUtils.check_permission(request.user, instance, "update_connectivity_statuses"):
             return self.handle_no_permission()
 
         # Launch job
-        j: Job = SopMerakiOrgVpnStatusesJob.launch_manual(orgs=[instance], details=False)
+        j: Job = SopMerakiOrgConnectivityStatusesJob.launch_manual(orgs=[instance], details=False)
 
         # Send to script result
         url = reverse("core:job", args=[j.pk])

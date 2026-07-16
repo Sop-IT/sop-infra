@@ -113,6 +113,8 @@ class SopMerakiOrg(NetBoxModel):
             ),
         ]
 
+
+
 class SopMerakiNet(NetBoxModel):
     """
     Represents a Meraki Network on the dashboard
@@ -189,7 +191,29 @@ class SopMerakiNet(NetBoxModel):
         null=True,    
     )
 
-
+    primary_mx=models.OneToOneField(
+        to="SopMerakiDevice",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Primary MX",
+        related_name="net_where_primary",
+    )
+    secondary_mx=models.OneToOneField(
+        to="SopMerakiDevice",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Secondary MX",
+        related_name="net_where_secondary",
+    )
+    last_uplinksstatuses_fetch=models.DateTimeField(
+        verbose_name="Last uplink status fetch",
+        default=None,
+        blank=True,
+        null=True,    
+    )
+    
     def __str__(self):
         return f"{self.nom}"
 
@@ -199,6 +223,25 @@ class SopMerakiNet(NetBoxModel):
     class Meta(NetBoxModel.Meta):
         verbose_name = "Meraki Network"
         verbose_name_plural = "Meraki Networks"
+
+    @property
+    def is_ha(self) -> bool:
+        pmx:SopMerakiDevice|None
+        try:
+            pmx = self.primary_mx
+        except SopMerakiDevice.DoesNotExist:
+            pmx =  None
+        if pmx is None:
+            return False
+        smx:SopMerakiDevice|None
+        try:
+            smx = self.secondary_mx
+        except SopMerakiDevice.DoesNotExist:
+            smx =  None
+        if smx is None:
+            return False
+        return True
+    
 
 
 class SopMerakiSwitchStack(
@@ -256,6 +299,7 @@ class SopMerakiSwitchStack(
     class Meta(NetBoxModel.Meta): # pyright: ignore[reportIncompatibleVariableOverride]
         verbose_name = "Meraki Switch Stack"
         verbose_name_plural = "Meraki Switch Stacks"
+
 
 
 class SopMerakiDevice(
@@ -397,6 +441,37 @@ class SopMerakiDevice(
         help_text=_('GPS coordinate in decimal format (xx.yyyyyy)')
     )
 
+    wan1ip = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=False,
+    )
+    wan2ip = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=False,
+    )
+    wan1status = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=False,
+    )
+    wan2status = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=False,
+    )
+    last_reported_at=models.DateTimeField(
+        verbose_name="Last reported at",
+        default=django_now,
+        blank=True,
+        null=True,    
+    )
+
     def __str__(self):
         return f"{self.nom}"
 
@@ -468,6 +543,7 @@ class SopMerakiDevice(
         self.site = None
         self.full_clean()
         self.save()
+
 
 
 class SopMerakiSwitchSettings(NetBoxModel):
