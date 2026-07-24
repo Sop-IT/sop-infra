@@ -720,7 +720,7 @@ class TargetPrefix:
         return True
 
     @staticmethod
-    def netbox_get_tagged_prefixes(logger, site:Site, details:bool=False) -> list:
+    def netbox_get_tagged_prefixes(logger, site:Site, details:bool=False) -> list[TargetPrefix] :
         dhcp_prefixes:list[TargetPrefix] = []
         from django.db.models import Q
         site_ct=ObjectType.objects.get_by_natural_key('dcim', 'site')
@@ -730,7 +730,7 @@ class TargetPrefix:
         else:
             flt=Q(scope_type_id=site_ct.id)&Q(scope_id=site.id)
             flt&=Q(status__in=['reserved','active','noncompliant','decommissioning'])
-            print(f"filter {flt}")
+            #print(f"filter {flt}")
             site_umbrellas:dict[str,str]={}
             # check if we need to generate artificial prefix for MX native vlan 
             vid1=ipam.models.Prefix.objects.filter(flt&Q(vlan__vid=1))
