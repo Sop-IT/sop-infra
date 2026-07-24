@@ -8,6 +8,7 @@ from django.db.models import Case, Value, When
 
 from dcim.models import Site, Device
 from ipam.models import Prefix, VLANGroup, VLAN, vlans, Role, VRF, IPAddress
+from netbox.models import NestedGroupModel, NetBoxModel
 from tenancy.models import Contact, ContactAssignment, ContactRole, Tenant, TenantGroup
 
 from sop_utils.strings import StringUtils
@@ -769,6 +770,58 @@ class NetboxHelpers():
 
     def __init__(self, logger):
         self.logger=logger
+
+
+    @staticmethod
+    def __resolve_netbox_model_from_list_of_ids(model:NetBoxModel, ids:list[int]):
+        ret:list=list()
+        if ids is not None:
+            for id in ids:
+                ret.append(NetboxHelpers.__resolve_netbox_model_from_id(model, id))
+        return ret
+    
+    @staticmethod
+    def __resolve_netbox_model_from_id(model:NetBoxModel, id:int):
+        return model.objects.get(pk=id)
+
+    @staticmethod
+    def __get_site_hierarchy_cf(model:NetBoxModel, site:Site, cf:str)->list:
+        # List to accumulate in
+        ret:list=list()
+        # First get the site cf value
+        data=site.custom_field_data.get(cf)
+        ret.extend(NetboxHelpers.__resolve_netbox_model_from_list_of_ids(model, data))
+        # Now, we walk the site group hierarchy
+        ret.extend(NetboxHelpers.__get_cf_hierarchy_cf(model, site.group, cf))
+        # Now we walk the region hierarchy
+        ret.extend(NetboxHelpers.__get_cf_hierarchy_cf(model, site.region, cf))
+        # Now walk the tenants hierarchy
+        t:Tenant=site.tenant
+        if t is not None:
+            data=t.custom_field_data.get(cf)
+            ret.extend(NetboxHelpers.__resolve_netbox_model_from_list_of_ids(model, data))
+            ret.extend(NetboxHelpers.__get_cf_hierarchy_cf(model, t.group, cf))
+        # All done, return
+        return ret
+
+    @staticmethod
+    def __get_cf_hierarchy_cf(model, ngm:NestedGroupModel, cf:str)->list:
+        ret:list=[]
+        if ngm is not None:
+            data=ngm.custom_field_data.get(cf)
+            ret.extend(NetboxHelpers.__resolve_netbox_model_from_list_of_ids(model, data))
+            ret.extend(NetboxHelpers.__get_cf_hierarchy_cf(model, ngm.parent, cf))
+        return ret
+    
+    @staticmethod
+    def get_vpn_excluded_prefixes_for_site(site:Site)->list[Prefix]:
+        cf="vpnexclude_prefix"
+        return NetboxHelpers.__get_site_hierarchy_cf(Prefix, site, cf)
+
+    @staticmethod
+    def get_vpn_excluded_ipaddresses_for_site(site:Site)->list[IPAddress]:
+        cf="vpnexclude_ipaddress"
+        return NetboxHelpers.__get_site_hierarchy_cf(IPAddress, site, cf)
 
     def _get_adm_prefix_for_site(self, site:Site)->Prefix:
         flt=Q(Q(scope_type=NetboxConstants.get_ct_dcim_site())&Q(scope_id=site.pk))
