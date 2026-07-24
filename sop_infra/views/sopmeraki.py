@@ -180,14 +180,14 @@ class SopMerakiPushSiteView(View):
 
     # POST is blocking -> avoids to have several times the same job running
     # But we need to be able to test and override some params for easier debugging/testing
-    def get(self, request, *args, **kwargs):
+    def get(self, request, pk, *args, **kwargs):
         # This is only allowed in debug mode
         if not settings.DEBUG:
             return self.handle_no_permission()
         # pk needs to be passed in the querystring
-        pk: str|None = request.GET.get("pk")
+        #pk: str|None = request.GET.get("pk")
         # then we can exec the POST logic
-        return self.post(self, request, pk, *args, *kwargs)
+        return self.post(request, pk, *args, *kwargs)
 
     def post(self, request, pk, *args, **kwargs):
         # Fetch site
