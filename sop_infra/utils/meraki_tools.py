@@ -7,10 +7,12 @@ from django.utils.text import slugify
 from django.db.models import Min
 from django.db.models.functions.math import Mod
 
+from ipam.models.ip import IPAddress
 from sop_infra.models.infra import SopInfra
 from sop_infra.utils.meraki_early_access import EarlyAccessAppliance
 from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.DHCPUtils import TargetPrefix
+from sop_infra.utils.netbox_utils import NetboxHelpers
 from sop_infra.utils.umbrella_utils import SopUmbrellaUtils
 from utilities.exceptions import AbortScript
 
@@ -52,6 +54,7 @@ class MerakiNetworkUpdater:
         self.site_vlans: list[dict] = []
         self.site_routes: list[dict] = []
         self.site_gps: list[dict] = []
+        self.site_vpn_excl_cust: list[dict] = []
         self.tgt_nets: list[TargetPrefix] = TargetPrefix.netbox_get_tagged_prefixes(
             self.__logger, site, details
         )
@@ -68,15 +71,19 @@ class MerakiNetworkUpdater:
         )
         for v in self.get_dashboard().appliance.getNetworkApplianceVlans(self.net.id):
             self.site_vlans.append(v)
-        for v in self.get_dashboard().appliance.getNetworkApplianceStaticRoutes(
-            self.net.id
-        ):
+        for v in self.get_dashboard().appliance.getNetworkApplianceStaticRoutes(self.net.id):
             self.site_routes.append(v)
-        self.site_gps = self.get_dashboard().networks.getNetworkGroupPolicies(
-            self.net.id
-        )
+        items=self.get_dashboard().appliance.getOrganizationApplianceTrafficShapingVpnExclusionsByNetwork(organizationId=self.net.orgId, total_pages=-1, networkIds=[self.net.id]).get("items")
+        # print(f"{items=}")
+        if items is not None:
+            if len(items)>1:
+                raise Exception(f"NON UNIQUE NETWORK ID DETECTED IN VPN EXCLUSIONS HANDLING - ABORT ABORT")
+            cust=items[0].get('custom')
+            if cust is not None : 
+                self.site_vpn_excl_cust.extend(cust)
+        self.site_gps = self.get_dashboard().networks.getNetworkGroupPolicies(self.net.id)
         self.__logger.log_debug(
-            f"   Analyze done --> found {len(self.site_vlans)} vlans, {len(self.site_routes)} routes and {len(self.site_gps)} group policies "
+            f"   Analyze done --> found {len(self.site_vlans)} vlans, {len(self.site_routes)} routes, {len(self.site_vpn_excl_cust)} custom vpn exclusions and {len(self.site_gps)} group policies "
         )
 
     #---------------------------------------
@@ -636,6 +643,38 @@ class MerakiNetworkUpdater:
 
         # ANALYZE VLANS/ROUTES/POLICIES AND CACHE THEM
         self._refresh_cache()
+
+        # SYNC VPN EXCLUSIONS
+        # Calc what we want to have
+        cum:list[str]=[]
+        expref:list[Prefix]=NetboxHelpers.get_vpn_excluded_prefixes_for_site(self.site)
+        for p in expref:
+            val=f"{p.prefix}"
+            if val not in cum:
+                cum.append(val)
+        exipad:list[IPAddress]=NetboxHelpers.get_vpn_excluded_ipaddresses_for_site(self.site)
+        for i in exipad:
+            val=f"{i.address.ip}/32"
+            if val not in cum:
+                cum.append(val)
+        # Prepare for comparison
+        curdl:list[dict]=list()
+        for net in cum:
+            curdl.append({'protocol': 'any', 'destination': f"{net}", 'port': 'any'})
+        # Compare it to what is set
+        if SopUtils.deep_equals_json(curdl, self.site_vpn_excl_cust):
+            self.__logger.log_info(f"No need to replace custom VPN Exclusion rules, they already match {curdl}")
+        else:
+            # import json
+            # deep1 = json.dumps(curdl, sort_keys=True, indent=2)
+            # deep2 = json.dumps(self.site_vpn_excl_cust, sort_keys=True, indent=2)
+            # print(
+            #     f"DIF DETECTED : Compare {deep1==deep2}vs{SopUtils.deep_equals_json(curdl, self.site_vpn_excl_cust)} -> { deep1} to {deep2}"
+            # )
+            self.get_dashboard().appliance.updateNetworkApplianceTrafficShapingVpnExclusions(self.net.id, custom=curdl)
+            self.__logger.log_success(
+                    f"RESET CUSTOM VPN EXCLUSION RULES TO {curdl}"
+                )
 
         # DELETE PREFIXES OF THE WRONG TYPE (ROUTES VS VLANS)
         self.__logger.log_debug(f'----- DELETING "WRONG" PREFIXES ')
