@@ -255,10 +255,17 @@ class SopMerakiPushSiteJob(JobRunnerLogMixin, JobRunner):
         name = "Push configs to Meraki"
 
     def run(self, *args, **kwargs):
-        site=kwargs.pop('site', None)
-        details=kwargs.pop('details', False)
-        simulate=kwargs.pop('simulate', False)
-        NetboxSiteMerakiUpdater.push_to_meraki_dashboard(self, site, details, simulate)
+        try:
+            site=kwargs.pop('site', None)
+            details=kwargs.pop('details', False)
+            simulate=kwargs.pop('simulate', False)
+            NetboxSiteMerakiUpdater.push_to_meraki_dashboard(self, site, details, simulate)
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            print(text)
+            raise e
+ 
 
     @staticmethod
     def launch_interactive(request, message:bool, site:Site, simulate:bool, details:bool=False)->Job:
