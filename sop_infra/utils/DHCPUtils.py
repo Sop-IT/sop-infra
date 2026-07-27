@@ -720,7 +720,7 @@ class TargetPrefix:
         return True
 
     @staticmethod
-    def netbox_get_tagged_prefixes(logger, site:Site, details:bool=False) -> list[TargetPrefix] :
+    def netbox_get_tagged_prefixes(logger, site:Site, details:bool=False) -> list :
         dhcp_prefixes:list[TargetPrefix] = []
         from django.db.models import Q
         site_ct=ObjectType.objects.get_by_natural_key('dcim', 'site')
