@@ -207,12 +207,7 @@ class SopMerakiNet(NetBoxModel):
         verbose_name="Secondary MX",
         related_name="net_where_secondary",
     )
-    last_uplinksstatuses_fetch=models.DateTimeField(
-        verbose_name="Last uplink status fetch",
-        default=None,
-        blank=True,
-        null=True,    
-    )
+
     
     def __str__(self):
         return f"{self.nom}"

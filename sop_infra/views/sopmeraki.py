@@ -115,7 +115,6 @@ class SopMerakiJsonConnectivityStatusSite(View):
         d["mx2wan2ip"] = smn.secondary_mx.wan2ip if smn.secondary_mx else "none"
         d["mx2wan1status"] = smn.secondary_mx.wan1status if smn.secondary_mx else "none"
         d["mx2wan2status"] = smn.secondary_mx.wan2status if smn.secondary_mx else "none"
-        d["last_uplinkstatuses_fetch"] = smn.last_uplinksstatuses_fetch
         return JsonResponse(d, safe=False)
     
 

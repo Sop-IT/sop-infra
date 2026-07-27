@@ -800,10 +800,21 @@ class SopMerakiNetUtils:
             if spar_stats is not None:
                 spar_dev=SopMerakiDeviceUtils.get_by_serial(spar_stats['serial'])
         # now we can process first the network
-        smn.primary_mx=prim_dev
-        smn.secondary_mx=spar_dev
-        smn.last_uplinksstatuses_fetch=django_now()
-        smn.save()
+        save:bool=False
+        if smn.primary_mx != prim_dev:
+            save=True
+            for x in SopMerakiNet.objects.filter(primary_mx=prim_dev):
+                x.primary_mx=None
+                x.save()
+            smn.primary_mx=prim_dev
+        if smn.secondary_mx != spar_dev:
+            save=True
+            for x in SopMerakiNet.objects.filter(secondary_mx=spar_dev):
+                x.secondary_mx=None
+                x.save()
+            smn.secondary_mx=spar_dev
+        if save:
+            smn.save()
         # then the devices
         SopMerakiDeviceUtils.update_uplinkstatuses(prim_dev, conn, prim_stats, dash, log, details)
         if spar_stats is not None:

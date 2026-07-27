@@ -311,6 +311,9 @@ class DhcpSettings():
                     { 'code': '15', 'type': 'text', 'value': self.dns_search_domain },
                     logger
                 )
+        if self.dns_name_servers is None:
+            # Safe net, because the API call will fail if dns_name_servers is None
+            self.dns_name_servers=DhcpSettings.__external_dns_servers
         # Mandatory DHCP
         x=meraki_current.get("mandatoryDhcp")
         if self.mandatory_dhcp is None :

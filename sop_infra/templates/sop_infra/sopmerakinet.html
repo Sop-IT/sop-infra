@@ -87,17 +87,7 @@
                 &mdash;
                 {% endif %}
               </td>
-            </tr>   
-            <tr>
-              <th scope="row">Last uplink status fetch (UTC)</th>
-              <td>
-                {% if object.last_uplinksstatuses_fetch %}
-                {{ object.last_uplinksstatuses_fetch|isodatetime:"seconds" }}
-                {% else %}
-                &mdash;
-                {% endif %}
-              </td>
-            </tr>         
+            </tr>       
           </table>
         </div>
       </div>

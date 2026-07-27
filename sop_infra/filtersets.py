@@ -89,7 +89,6 @@ class SopMerakiNetFilterSet(NetBoxModelFilterSet):
             "last_stats_change",
             "primary_mx",
             "secondary_mx",
-            "last_uplinksstatuses_fetch",
         )
         filter_overrides = {
             models.JSONField: {
