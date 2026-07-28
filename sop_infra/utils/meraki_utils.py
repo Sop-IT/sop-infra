@@ -735,6 +735,7 @@ class SopMerakiNetUtils:
     def get_appliance_networks(site: Site) -> list[SopMerakiNet]:
         ret: list[SopMerakiNet] = list()
         smns: list[SopMerakiNet] = site.meraki_nets  # type: ignore
+        smn:SopMerakiNet
         # loop on the site networks
         for smn in smns.all():
             # skip bound networks
@@ -742,6 +743,9 @@ class SopMerakiNetUtils:
                 continue
             # skip non appliance networks
             if "appliance" not in smn.ptypes:  # type: ignore
+                continue
+            # skip networks without actual appliances
+            if not smn.devices.filter(ptype="appliance").exists():
                 continue
             # add to tentative list
             ret.append(smn)
@@ -1440,7 +1444,6 @@ class SopMerakiOrgUtils:
                 save=True
             if save:
                 log.log_debug(f"uplinkstatuses_from_meraki_data {net.nom=} CLEARED -> SAVE")
-                net.last_uplinksstatuses_change=django_now()
                 net.save()
             else:
                 #print(f"uplinkstatuses_from_meraki_data {net.nom=} UNCHANGED")    
