@@ -78,11 +78,18 @@ class NetboxDevicePluginExtension(PluginTemplateExtension):
 
     models = ['dcim.device']
     
-    def right_page(self):
-        if self.context.get("object"):
-            if isinstance(self.context.get("object"), Device):
-                return self.render("sop_infra/inc/cards/sopmerakinet_on_device.html", extra_context={})
-        return ""
+    def left_page(self):
+        object = self.context.get("object")
+        if object is None:
+            return ''
+        if not isinstance(object, Device):
+            return ''
+        dt=object.device_type
+        if not "cisco"==dt.manufacturer.slug:
+            return ''
+        if not dt.model.lower().startswith("meraki "):
+            return ''
+        return self.render("sop_infra/inc/cards/sopmerakinet_on_device.html", extra_context={})
     
     def alerts(self):
         ret=""
