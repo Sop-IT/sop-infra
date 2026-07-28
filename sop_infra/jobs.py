@@ -192,13 +192,13 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
 class SopMerakiDashUpdateConnectivyStatusesJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
-        name = "Refresh Meraki Connectivity Statuses"
+        name = "Refresh Meraki Dashboard Connectivity Statuses"
 
     def run(self, *args, **kwargs):
         job:Job=self.job
         obj = job.object
         try:
-            SopMerakiUtils.update_vpn_statuses_dashboards(self, settings.DEBUG, kwargs.pop('dashs', None), kwargs.pop('details', False))
+            SopMerakiUtils.update_connectivity_statuses_dashboards(self, settings.DEBUG, kwargs.pop('dashs', None), kwargs.pop('details', False))
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
@@ -218,7 +218,7 @@ class SopMerakiDashUpdateConnectivyStatusesJob(JobRunnerLogMixin, JobRunner):
 class SopMerakiOrgConnectivityStatusesJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
-        name = "Refresh Meraki Connectivity Statuses"
+        name = "Refresh Meraki Organisation Connectivity Statuses"
 
     def run(self, *args, **kwargs):
         job:Job=self.job
@@ -240,6 +240,31 @@ class SopMerakiOrgConnectivityStatusesJob(JobRunnerLogMixin, JobRunner):
             return SopMerakiOrgConnectivityStatusesJob.enqueue(immediate=True, orgs=orgs, details=details)
         return SopMerakiOrgConnectivityStatusesJob.enqueue(orgs=orgs, details=details)
 
+
+class SopMerakiNetConnectivityStatusesJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Refresh Meraki Network Connectivity Statuses"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            SopMerakiUtils.update_connectivity_statuses_nets(self, settings.DEBUG, kwargs.pop('nets', None), kwargs.pop('details', False))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        # finally:
+        #     self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(nets:list[SopMerakiNet], details:bool)->Job:
+        if settings.DEBUG:
+            return SopMerakiNetConnectivityStatusesJob.enqueue(immediate=True, nets=nets, details=details)
+        return SopMerakiNetConnectivityStatusesJob.enqueue(nets=nets, details=details)
 
 
 

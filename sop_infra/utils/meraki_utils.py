@@ -143,7 +143,7 @@ class SopMerakiUtils:
             SopMerakiNetUtils.refresh_from_meraki(smn, conn, smo, log, details)
 
     @classmethod
-    def update_vpn_statuses_dashboards(
+    def update_connectivity_statuses_dashboards(
         cls, log: JobRunnerLogMixin, simulate: bool, dashs: list, details: bool = False
     ):
         if dashs is None or len(dashs) == 0:
@@ -174,6 +174,23 @@ class SopMerakiUtils:
                 log.info(f"Trying to refresh '{smo.nom}'")
             SopMerakiOrgUtils.update_uplink_statuses(smo, conn, smd, log, details)
             SopMerakiOrgUtils.update_vpn_statuses(smo, conn, smd, log, details)
+            
+    @classmethod
+    def update_connectivity_statuses_nets(
+        cls, log: JobRunnerLogMixin, simulate: bool, nets: list, details: bool = False
+    ):
+        if nets is None or len(nets) == 0:
+            nets = SopMerakiNet.objects.all()  # type: ignore
+        smn:SopMerakiNet
+        for smn in nets:
+            smd:SopMerakiDash=smn.org.dash
+            if log:
+                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+            conn = cls.connect(smd.nom, smd.api_url, simulate)
+            if log:
+                log.info(f"Trying to refresh '{smn.nom}'")
+            SopMerakiNetUtils.update_uplink_statuses(smn, conn, smd, log, details)
+            SopMerakiNetUtils.update_vpn_statuses(smn, conn, smd, log, details)
 
     #endregion
 
@@ -776,13 +793,29 @@ class SopMerakiNetUtils:
             ret.append(smn)
         # return the list
         return ret
-    
+
     @staticmethod
-    def update_uplinkstatuses(
+    def update_uplink_statuses(
+        smn: SopMerakiNet,
+        conn: meraki.DashboardAPI,
+        dash: SopMerakiDash,
+        log: JobRunnerLogMixin,
+        details: bool,
+    ):
+        uplink_status_data:dict
+        try:
+            uplink_status_data=conn.appliance.getOrganizationApplianceUplinkStatuses(smn.org.meraki_id, total_pages=-1, networkIds=[smn.meraki_id])
+        except meraki.exceptions.APIError as ex:
+            raise ex
+        if len(uplink_status_data)!=1:
+            raise Exception(f"Wrong number of networks returned {len(uplink_status_data)}")
+        SopMerakiNetUtils.update_uplink_statuses_from_data(smn, conn, uplink_status_data[0], log, details)
+
+    @staticmethod
+    def update_uplink_statuses_from_data(
         smn: SopMerakiNet,
         conn: meraki.DashboardAPI,
         uplink_statuses:dict[str,dict],
-        dash: SopMerakiDash,
         log: JobRunnerLogMixin,
         details: bool,
     ):
@@ -820,26 +853,85 @@ class SopMerakiNetUtils:
         if save:
             smn.save()
         # then the devices
-        SopMerakiDeviceUtils.update_uplinkstatuses(prim_dev, conn, prim_stats, dash, log, details)
+        SopMerakiDeviceUtils.update_uplink_statuses(prim_dev, prim_stats)
         if spar_stats is not None:
-            SopMerakiDeviceUtils.update_uplinkstatuses(spar_dev, conn, spar_stats, dash, log, details)
+            SopMerakiDeviceUtils.update_uplink_statuses(spar_dev, spar_stats)
    
     @staticmethod
-    def clear_uplinkstatuses(
+    def clear_uplink_statuses(
+        smn: SopMerakiNet,
+    ):
+        if smn.primary_mx is not None:
+            SopMerakiDeviceUtils.clear_uplink_statuses(smn.primary_mx)
+            smn.primary_mx=None
+        if smn.secondary_mx is not None:
+            SopMerakiDeviceUtils.clear_uplink_statuses(smn.secondary_mx)
+            smn.secondary_mx=None
+        smn.save()
+
+    
+    @staticmethod
+    def update_vpn_statuses(
         smn: SopMerakiNet,
         conn: meraki.DashboardAPI,
         dash: SopMerakiDash,
         log: JobRunnerLogMixin,
         details: bool,
     ):
-        if smn.primary_mx is not None:
-            SopMerakiDeviceUtils.clear_uplinkstatuses(smn.primary_mx, conn, dash, log, details)
-            smn.primary_mx=None
-        if smn.secondary_mx is not None:
-            SopMerakiDeviceUtils.clear_uplinkstatuses(smn.secondary_mx, conn, dash, log, details)
-            smn.secondary_mx=None
-        smn.save()
+        vpn_status_data:dict
+        try:
+            vpn_status_data=conn.appliance.getOrganizationApplianceVpnStatuses(smn.org.meraki_id, total_pages=-1, networkIds=[smn.meraki_id])
+        except meraki.exceptions.APIError as ex:
+            raise ex  
+        if len(vpn_status_data)!=1:
+            raise Exception(f"Wrong number of networks returned {len(vpn_status_data)}")
+        SopMerakiNetUtils.update_vpn_statuses_from_data(smn, vpn_status_data[0], log)
 
+
+    @staticmethod
+    def update_vpn_statuses_from_data(
+        smn: SopMerakiNet,
+        net_stat:dict,
+        log: JobRunnerLogMixin,
+    ):
+        save:bool= False
+        # -- device vpnmode
+        vpn_mode:str = net_stat.get("vpnMode", "")
+        if vpn_mode != smn.vpn_mode:
+            smn.vpn_mode=vpn_mode
+            #print(f"vpn_statuses_from_meraki_data {net.nom} : SETTING {net.vpn_mode=}")
+            save=True
+        # -- number of exported subnets
+        exp_subnets:int = len(net_stat.get("exportedSubnets", []))
+        if exp_subnets != smn.exp_subnets_count:
+            smn.exp_subnets_count=exp_subnets
+            #log.log_debug(f"vpn_statuses_from_meraki_data {net.nom} : SETTING {net.exp_subnets_count=}")
+            save=True
+        # -- device status
+        app_status:str = net_stat.get("deviceStatus", "")
+        #print(f"vpn_statuses_from_meraki_data {net.nom=} : {app_status=} VS {net.appliance_status=}")
+        if app_status != smn.appliance_status:
+            smn.appliance_status=app_status
+            print(f"vpn_statuses_from_meraki_data {smn.nom} : SETTING {smn.appliance_status=}")
+            save=True
+        # -- meraki peers reachability
+        net_all_peers_reach="all reachable"
+        for net_peer in net_stat.get("merakiVpnPeers"):
+            if "reachable"!=net_peer.get("reachability",""):
+                net_all_peers_reach="unreachable"
+                break
+        #print(f"vpn_statuses_from_meraki_data {net.nom=} : {net_all_peers_reach=} VS {net.meraki_peers_reachability=}")
+        if net_all_peers_reach!=smn.meraki_peers_reachability:
+            smn.meraki_peers_reachability=net_all_peers_reach
+            #log.log_debug(f"vpn_statuses_from_meraki_data {net.nom}  : SETTING {net.meraki_peers_reachability=}")
+            save=True
+        # check to save
+        if save:
+            log.log_debug(f"vpn_statuses_from_meraki_data {smn.nom=} MODIFIED -> SAVE")
+            smn.last_stats_change=django_now()
+            smn.save()
+
+        
 
 
 class SopMerakiDeviceUtils:
@@ -1026,13 +1118,9 @@ class SopMerakiDeviceUtils:
         return save
 
     @staticmethod
-    def update_uplinkstatuses(
+    def update_uplink_statuses(
         smd: SopMerakiDevice,
-        conn: meraki.DashboardAPI,
         uplink_statuses:dict,
-        dash: SopMerakiDash,
-        log: JobRunnerLogMixin,
-        details: bool,
     ):
         save:bool=False
         # first organize by link
@@ -1064,12 +1152,8 @@ class SopMerakiDeviceUtils:
             smd.save()
    
     @staticmethod
-    def clear_uplinkstatuses(
+    def clear_uplink_statuses(
         smd: SopMerakiDevice,
-        conn: meraki.DashboardAPI,
-        dash: SopMerakiDash,
-        log: JobRunnerLogMixin,
-        details: bool,
     ):
         smd.wan1ip=None
         smd.wan2ip=None
@@ -1292,63 +1376,19 @@ class SopMerakiOrgUtils:
         log: JobRunnerLogMixin,
         details: bool,
     ):
-        net:SopMerakiNet
         done:list[str]=[]
         net_stat:dict
-        save:bool
-        #log.log_debug(f"{vpn_status_data}")
-        #log.log_debug(f"vpn_statuses_from_meraki_data start {smo=}")
         for net_stat in vpn_status_data:
             net_id:str=net_stat.get("networkId")
-            net_name:str=net_stat.get("networkName")
             nets=SopMerakiNet.objects.filter(meraki_id=net_id)
             if nets.count()==0:
                 # May be this net hasn't been synced yet to the DB, skip it
-                #log.log_debug(f"vpn_statuses_from_meraki_data SKIP {net_id}/{net_name} ")
                 continue
-            net = nets[0]
-            save = False
-            # -- device vpnmode
-            vpn_mode:str = net_stat.get("vpnMode", "")
-            if vpn_mode != net.vpn_mode:
-                net.vpn_mode=vpn_mode
-                #log.log_debug(f"vpn_statuses_from_meraki_data {net.nom} : SETTING {net.vpn_mode=}")
-                save=True
-            # -- number of exported subnets
-            exp_subnets:int = len(net_stat.get("exportedSubnets", []))
-            if exp_subnets != net.exp_subnets_count:
-                net.exp_subnets_count=exp_subnets
-                #log.log_debug(f"vpn_statuses_from_meraki_data {net.nom} : SETTING {net.exp_subnets_count=}")
-                save=True
-            # -- device status
-            app_status:str = net_stat.get("deviceStatus", "")
-            #print(f"vpn_statuses_from_meraki_data {net.nom=} : {net_reach=} VS {net.appliance_status=}")
-            if app_status != net.appliance_status:
-                net.appliance_status=app_status
-                #log.log_debug(f"vpn_statuses_from_meraki_data {net.nom} : SETTING {net.appliance_status=}")
-                save=True
-            # -- meraki peers reachability
-            net_all_peers_reach="all reachable"
-            for net_peer in net_stat.get("merakiVpnPeers"):
-                if "reachable"!=net_peer.get("reachability",""):
-                    net_all_peers_reach="unreachable"
-                    break
-            #print(f"vpn_statuses_from_meraki_data {net.nom=} : {net_all_peers_reach=} VS {net.meraki_peers_reachability=}")
-            if net_all_peers_reach!=net.meraki_peers_reachability:
-                net.meraki_peers_reachability=net_all_peers_reach
-                #log.log_debug(f"vpn_statuses_from_meraki_data {net.nom}  : SETTING {net.meraki_peers_reachability=}")
-                save=True
+            SopMerakiNetUtils.update_vpn_statuses_from_data(nets[0], net_stat, log)
             # -- mark as handled
             done.append(net_id)
-            # check to save
-            if save:
-                log.log_debug(f"vpn_statuses_from_meraki_data {net.nom=} MODIFIED -> SAVE")
-                net.last_stats_change=django_now()
-                net.save()
-            else:
-                #log.log_debug(f"vpn_statuses_from_meraki_data {net.nom=} UNCHANGED")
-                pass
         # secondary pass to clear unhandled networks
+        save:bool
         for net in smo.nets.all():
             if net.meraki_id in done:
                 #print(f"vpn_statuses_from_meraki_data {net.nom=} ALREADY HANDLED")
@@ -1422,7 +1462,7 @@ class SopMerakiOrgUtils:
             smn=SopMerakiNetUtils.get_by_meraki_id(net_id)
             if smn is None:
                 continue
-            SopMerakiNetUtils.update_uplinkstatuses(smn,conn,uplink_statuses,dash,log,details)
+            SopMerakiNetUtils.update_uplink_statuses_from_data(smn,conn,uplink_statuses,log,details)
             # -- mark as handled
             done.append(net_id)
         # secondary pass to clear unhandled networks

@@ -28,6 +28,7 @@ from sop_infra.jobs import (
     SopMerakiDashUpdateConnectivyStatusesJob,
     SopMerakiEnableUmbrellaJob,
     SopMerakiLinkSiteToUmbrellaJob,
+    SopMerakiNetConnectivityStatusesJob,
     SopMerakiOrgRefreshJob,
     SopMerakiNetRefreshJob,
     SopMerakiOrgConnectivityStatusesJob,
@@ -793,6 +794,23 @@ class SopMerakiNetRefreshView(AccessMixin, View):
         url = reverse("core:job", args=[j.pk])
         return redirect(url)
     
+
+class SopMerakiNetUpdateConnectivityStatusesView(AccessMixin, View):
+
+    def post(self, request, pk, *args, **kwargs):
+
+        instance = get_object_or_404(SopMerakiNet, pk=pk)
+
+        if not SopUtils.check_permission(request.user, instance, "update_connectivity_statuses"):
+            return self.handle_no_permission()
+
+        # Launch job
+        j: Job = SopMerakiNetConnectivityStatusesJob.launch_manual(nets=[instance], details=False)
+
+        # Send to script result
+        url = reverse("core:job", args=[j.pk])
+        return redirect(url)
+
 #endregion
 
 # ========================================================================

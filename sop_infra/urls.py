@@ -14,7 +14,7 @@ from sop_infra.views.infra import SopInfraSyncAdUsers,SopInfraJsonExportsAdUsers
 
 
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
-from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView, SopMerakiDashConnectivityStatusesView, SopMerakiEnableUmbrellaSiteGroupView, SopMerakiEnableUmbrellaRegionView, SopMerakiEnableUmbrellaSiteView, SopMerakiEnableUmbrellaTenantGroupView, SopMerakiEnableUmbrellaTenantView, SopMerakiJsonConnectivityStatusSite, SopMerakiLinkUmbrellaSiteGroupView, SopMerakiLinkUmbrellaRegionView, SopMerakiLinkUmbrellaSiteView, SopMerakiLinkUmbrellaTenantGroupView, SopMerakiLinkUmbrellaTenantView, SopMerakiOrgUpdateConnectivityStatusesView, SopMerakiPushGroupView, SopMerakiPushRegionView
+from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView, SopMerakiDashConnectivityStatusesView, SopMerakiEnableUmbrellaSiteGroupView, SopMerakiEnableUmbrellaRegionView, SopMerakiEnableUmbrellaSiteView, SopMerakiEnableUmbrellaTenantGroupView, SopMerakiEnableUmbrellaTenantView, SopMerakiJsonConnectivityStatusSite, SopMerakiLinkUmbrellaSiteGroupView, SopMerakiLinkUmbrellaRegionView, SopMerakiLinkUmbrellaSiteView, SopMerakiLinkUmbrellaTenantGroupView, SopMerakiLinkUmbrellaTenantView, SopMerakiNetUpdateConnectivityStatusesView, SopMerakiOrgUpdateConnectivityStatusesView, SopMerakiPushGroupView, SopMerakiPushRegionView
 from sop_infra.views.sopmeraki import SopMerakiOrgListView, SopMerakiOrgView, SopMerakiOrgEditView, SopMerakiOrgDeleteView, SopMerakiOrgRefreshView, SopMerakiOrgRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiNetListView, SopMerakiNetView, SopMerakiNetEditView, SopMerakiNetDeleteView, SopMerakiNetRefreshView, SopMerakiNetRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiDeviceListView, SopMerakiDeviceView, SopMerakiDeviceEditView, SopMerakiDeviceDeleteView
@@ -170,6 +170,7 @@ urlpatterns = [
     path('sopmerakinet/<int:pk>/delete/', SopMerakiNetDeleteView.as_view(), name='sopmerakinet_delete'),
     path('sopmerakinet/refresh/', SopMerakiNetRefreshChooseView.as_view(), name='sopmerakinet_refresh_choose'),
     path('sopmerakinet/<int:pk>/refresh/', SopMerakiNetRefreshView.as_view(), name='sopmerakinet_refresh'),
+    path('sopmerakinet/<int:pk>/update_connectivity_statuses/', SopMerakiNetUpdateConnectivityStatusesView.as_view(), name='sopmerakinet_update_connectivity_statuses'),
     path('sopmerakinet/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakinet_changelog', kwargs={'model': SopMerakiNet}),
 
     # ========================================================================
