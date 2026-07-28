@@ -168,7 +168,17 @@
               </td>
             </tr> 
             <tr>
-              <th scope="row">Netbox Device Type</th>
+              <th scope="row">Current Netbox Device Type</th>
+              <td>
+                {% if object.netbox_device and object.netbox_device.device_type %}
+                <a href="{{ object.netbox_device.device_type.get_absolute_url }}">{{ object.netbox_device.device_type }}</a>
+                {% else %}
+                &mdash; 
+                {% endif %}
+              </td>
+            </tr> 
+            <tr>
+              <th scope="row">Expected Device Type</th>
               <td>
                 {% if object.netbox_dev_type %}
                 <a href="{{ object.netbox_dev_type.get_absolute_url }}">{{ object.netbox_dev_type }}</a>
