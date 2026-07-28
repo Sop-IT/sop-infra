@@ -351,7 +351,7 @@ class SopMerakiEnableUmbrellaTenantView(SiteHierarchicalTaskMixin, View):
         # Calc sites
         tenant,sites = self.get_sites_for_tenant(pk)
         # Let's queue updates
-        messages.info(request, f"Starting to queue Umbrella protection enable jobs for tenant {tenant} : {sites}")
+        messages.info(request, f"Starting to queue Umbrella protection enable jobs for tenant {tenant} ({len(sites)} sites)")
         for site in sites:
             j: Job = SopMerakiEnableUmbrellaJob.launch_background(request, message=False, site=site, details=True)
             print(f"Queued SopMerakiEnableUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
@@ -375,7 +375,7 @@ class SopMerakiEnableUmbrellaTenantGroupView(SiteHierarchicalTaskMixin, View):
         # Calc sites
         group,sites = self.get_sites_for_tenantgroup(pk)
         # Let's queue updates
-        messages.info(request, f"Starting to queue Umbrella protection enable jobs for tenant group {group} : {sites}")
+        messages.info(request, f"Starting to queue Umbrella protection enable jobs for tenant group {group} ({len(sites)} sites)")
         for site in sites:
             j: Job = SopMerakiEnableUmbrellaJob.launch_background(request, message=False, site=site, details=True)
             print(f"Queued SopMerakiEnableUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
@@ -399,7 +399,7 @@ class SopMerakiEnableUmbrellaSiteGroupView(SiteHierarchicalTaskMixin, View):
         # Calc sites
         group,sites = self.get_sites_for_sitegroup(pk)
         # Let's queue updates
-        messages.info(request, f"Starting to queue Umbrella protection enable jobs for site group {group} : {sites}")
+        messages.info(request, f"Starting to queue Umbrella protection enable jobs for site group {group} ({len(sites)} sites)")
         for site in sites:
             j: Job = SopMerakiEnableUmbrellaJob.launch_background(request, message=False, site=site, details=True)
             print(f"Queued SopMerakiEnableUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
@@ -423,7 +423,7 @@ class SopMerakiEnableUmbrellaRegionView(SiteHierarchicalTaskMixin, View):
         # Calc sites
         region,sites = self.get_sites_for_region(pk)
         # Let's queue updates
-        messages.info(request, f"Starting to queue Umbrella protection enable jobs for region {region} : {sites}")
+        messages.info(request, f"Starting to queue Umbrella protection enable jobs for region {region} ({len(sites)} sites)")
         for site in sites:
             j: Job = SopMerakiEnableUmbrellaJob.launch_background(request, message=False, site=site, details=True)
             print(f"Queued SopMerakiEnableUmbrellaJob for site [{site.name}]({site.get_absolute_url()}) : [{j.pk}]({j.get_absolute_url()})")
