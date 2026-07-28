@@ -153,7 +153,11 @@ class SopMerakiDeviceFilterForm(NetBoxModelFilterSetForm):
     has_netbox_device_of_same_type = forms.NullBooleanField(
         required=False, label="With the same type/model ?"
     )
-
+    wan1ip = forms.CharField(required=False)
+    wan2ip = forms.CharField(required=False)
+    wan1status = forms.CharField(required=False)
+    wan2status = forms.CharField(required=False)
+    
 
 ##############  ACTION FORMS ################################
 

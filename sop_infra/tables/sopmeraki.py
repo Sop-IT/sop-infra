@@ -106,6 +106,13 @@ class SopMerakiNetTable(NetBoxTable):
             "meraki_tags",
             "timezone",
             "devs_count",
+            "vpn_mode",
+            "appliance_status",
+            "meraki_peers_reachability",
+            "exp_subnets_count",
+            "last_stats_change",
+            "primary_mx",
+            "secondary_mx",
         )
         default_columns = (
             "nom",
@@ -164,6 +171,16 @@ class SopMerakiDeviceTable(NetBoxTable):
             "has_netbox_device",
             "has_netbox_device_in_same_site",
             "has_netbox_device_of_same_type",
+            "stack",
+            "lan_ip",
+            "cfg_updated_at",
+            "latitude",
+            "longitude",
+            "wan1ip",
+            "wan2ip",
+            "wan1status",
+            "wan2status",
+            "last_reported_at",
         )
         default_columns = (
             "nom",
