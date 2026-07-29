@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 
-from sop_infra.utils.meraki_utils import SopMerakiUtils
+from sop_infra.utils.meraki_utils import SopMerakiRegexps, SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraConstants
 from sop_utils.regexps import SopRegExps
 from utilities.forms.fields import DynamicModelChoiceField
@@ -630,7 +630,7 @@ class SopMerakiClaimForm(forms.Form):
     serials = forms.RegexField(
         widget=forms.Textarea,
         required=True,
-        regex=r"^(?:[\s,]*[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}[\s,]*)+$",
+        regex=SopMerakiRegexps.meraki_list_of_serials_txt,
         help_text="Input serial numbers (XXXX-XXXX-XXXX), separated by commas and/or whitespace",
     )
     status = forms.ChoiceField(
