@@ -453,7 +453,7 @@ class SopMerakiUtils:
         if not SopMerakiRegexps.meraki_list_of_serials_reg.match(serials):
             return None
         # replace whitespace and commas by a single space
-        serials_txt = re.sub(r"[\s,]+", " ", serials_txt)
+        serials_txt = re.sub(r"[\s,]+", " ", serials)
         # trim the string
         serials_txt = serials_txt.strip()
         # split it by spaces
@@ -699,8 +699,9 @@ class SopMerakiNetUtils:
         if smn.meraki_notes != net_data["notes"]:
             smn.meraki_notes = net_data["notes"]
             save = True
-        if f"{smn.timezone}" != f"{net_data['timeZone']}":
-            smn.timezone = net_data["timeZone"]
+        tz=ZoneInfo(net_data['timeZone'])
+        if smn.timezone != tz:
+            smn.timezone = tz
             save = True
         if not ArrayUtils.equal_sets(smn.meraki_tags, net_data["tags"]):  # type: ignore
             smn.meraki_tags = net_data["tags"]
@@ -771,6 +772,7 @@ class SopMerakiNetUtils:
         if save or new_site:
             if save:
                 log.success(f"Saving SopMerakiNetwork '[{smn.nom}]'.")
+                smn._changelog_message="SopMerakiNetUtils.refresh_from_meraki_data"
                 smn.full_clean()
                 smn.save()
             if new_site:
@@ -1327,6 +1329,7 @@ class SopMerakiDeviceUtils:
     ):
         print(f"Trying to claim {serials} to {smo}")
         conn.organizations.claimIntoOrganizationInventory(smo.meraki_id, serials=serials)
+        print(f"refresh and relink")
         for dev in conn.organizations.getOrganizationInventoryDevices(
             smo.meraki_id, total_pages=-1, serials=serials
         ):
@@ -1408,6 +1411,7 @@ class SopMerakiSwitchStackUtils:
         # only save if something changed
         if save:
             log.success(f"Saving SopMerakiSwitchStack '[{smss.nom}]'.")
+            smss._changelog_message="SopMerakiSwitchStackUtils.refresh_from_meraki"
             smss.full_clean()
             smss.save()
 
