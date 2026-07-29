@@ -43,15 +43,15 @@
         <div class="card-body">
           <table class="table table-hover attr-table">
             <tr>
-              <th scope="row">Organizations</th>
+              <th scope="row">Meraki organizations</th>
               <td><a href="{% url 'plugins:sop_infra:sopmerakiorg_list' %}?dash_id={{object.pk}}">{{ object.orgs.count }}</a></td>
             </tr>   
             <tr>
-              <th scope="row">Networks</th>
+              <th scope="row">Meraki networks</th>
               <td><a href="{% url 'plugins:sop_infra:sopmerakinet_list' %}?org__dash_id={{object.pk}}">{{ object.nets_count }}</a></td>
             </tr>   
             <tr>
-              <th scope="row">Devices</th>
+              <th scope="row">Meraki devices</th>
               <td><a href="{% url 'plugins:sop_infra:sopmerakidevice_list' %}?org__dash_id={{object.pk}}">{{ object.devs_count }}</a></td>
             </tr>  
           </table>

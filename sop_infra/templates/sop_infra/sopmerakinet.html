@@ -21,6 +21,22 @@
         <div class="card-body">
           <table class="table table-hover attr-table">
             <tr>
+              <th scope="row">Hierarchy</th>
+              <td>
+                {% if object.org.dash %}
+                <a href="{{ object.org.dash.get_absolute_url }}">{{ object.org.dash }}</a>
+                {% else %}
+                &mdash;
+                {% endif %}
+                &nbsp; &gt; &nbsp;
+                {% if object.org %}
+                <a href="{{ object.org.get_absolute_url }}">{{ object.org }}</a>
+                {% else %}
+                &mdash;
+                {% endif %}
+              </td>
+            </tr> 
+            <tr>
               <th scope="row">Name</th>
               <td>{{ object.nom }}</td>
             </tr> 
@@ -62,11 +78,36 @@
           </table>
         </div>
       </div>
+      {% include 'inc/panels/comments.html' %}
       {% include 'inc/panels/tags.html' %}
       {% include 'inc/panels/custom_fields.html' %}
     </div>
     <div class="col col-md-6">
-      {% include 'inc/panels/comments.html' %}
+      <div class="card">
+        <h5 class="card-header">Related objects</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Netbox site</th>
+              <td>
+                {% if object.site %}
+                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
+                {% else %}
+                &mdash; 
+                {% endif %}
+              </td>
+            </tr>    
+            <tr>
+              <th scope="row">Meraki devices</th>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakidevice_list' %}?meraki_network={{object.pk}}">{{ object.devices.count }}</a></td>
+            </tr>  
+            <tr>
+              <th scope="row">Switch stacks</th>
+              <td><a href="{% url 'plugins:sop_infra:sopmerakiswitchstack_list' %}?net={{object.pk}}">{{ object.switch_stacks.count }}</a></td>
+            </tr>  
+          </table>
+        </div>
+      </div>    
       <div class="card">
         <h5 class="card-header">Connectivity</h5>
         <div class="card-body">
@@ -128,51 +169,6 @@
                 {{ object.last_stats_change|isodatetime:"seconds" }}
               </td>
             </tr>
-          </table>
-        </div>
-      </div>    
-      <div class="card">
-        <h5 class="card-header">Related objects</h5>
-        <div class="card-body">
-          <table class="table table-hover attr-table">
-            <tr>
-              <th scope="row">Netbox site</th>
-              <td>
-                {% if object.site %}
-                <a href="{{ object.site.get_absolute_url }}">{{ object.site }}</a>
-                {% else %}
-                &mdash; 
-                {% endif %}
-              </td>
-            </tr>    
-            <tr>
-              <th scope="row">Meraki Dashboard</th>
-              <td>
-                {% if object.org.dash %}
-                <a href="{{ object.org.dash.get_absolute_url }}">{{ object.org.dash }}</a>
-                {% else %}
-                &mdash;
-                {% endif %}
-              </td>
-            </tr>   
-            <tr>
-              <th scope="row">Meraki Organization</th>
-              <td>
-                {% if object.org %}
-                <a href="{{ object.org.get_absolute_url }}">{{ object.org }}</a>
-                {% else %}
-                &mdash;
-                {% endif %}
-              </td>
-            </tr>   
-            <tr>
-              <th scope="row">Devices</th>
-              <td><a href="{% url 'plugins:sop_infra:sopmerakidevice_list' %}?meraki_network={{object.pk}}">{{ object.devices.count }}</a></td>
-            </tr>  
-            <tr>
-              <th scope="row">Switch stacks</th>
-              <td><a href="{% url 'plugins:sop_infra:sopmerakiswitchstack_list' %}?net={{object.pk}}">{{ object.switch_stacks.count }}</a></td>
-            </tr>  
           </table>
         </div>
       </div>    
