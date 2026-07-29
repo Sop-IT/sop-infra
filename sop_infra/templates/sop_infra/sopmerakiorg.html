@@ -11,6 +11,9 @@
   {% if request.user|can_update_connectivity_statuses:object %}
     {% update_connectivity_statuses_button object %}
   {% endif %}
+  {% if request.user|can_claim_devices:object %}
+    {% claim_devices_button object %}
+  {% endif %}
 {% endblock extra_controls %}
 
 {% block content %}

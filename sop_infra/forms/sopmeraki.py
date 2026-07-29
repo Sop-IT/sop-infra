@@ -1,3 +1,6 @@
+import re
+
+from django.contrib import messages
 import django_filters
 from django import forms
 from django.http import HttpRequest
@@ -17,6 +20,7 @@ from sop_infra.models import (
     SopMerakiDevice,
     SopMerakiSwitchStack,
 )
+from utilities.forms.rendering import FieldSet
 
 
 class SopMerakiDashForm(NetBoxModelForm):
@@ -237,6 +241,39 @@ class SopMerakiOrgRefreshChooseForm(forms.Form):
             "orgs": orgs,
             "details": details,
             "return_url": return_url,
+        }
+
+
+
+class SopMerakiOrgClaimForm(forms.Form):
+
+    serials = forms.RegexField(
+        widget=forms.Textarea,
+        required=True,
+        regex=r"^(?:[\s,]*[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}[\s,]*)+$",
+        help_text="Input serial numbers (XXXX-XXXX-XXXX), separated by commas and/or whitespace",
+    )
+
+    fieldsets = (
+        FieldSet("serials"),
+    )
+
+    def clean(self):
+        data = super().clean()
+        serials_txt = data.get("serials")
+        if not serials_txt:
+            raise forms.ValidationError(
+                "Only Meraki serial numbers separated by commas are accepted"
+            )
+        # replace whitespace and commas by a single space
+        serials_txt = re.sub(r"[\s,]+", " ", serials_txt)
+        # trim the string
+        serials_txt = serials_txt.strip()
+        # split it by spaces
+        serials_list = re.split(r" +", serials_txt)
+        # now we have the data
+        return {
+            "serials_list": serials_list,
         }
 
 

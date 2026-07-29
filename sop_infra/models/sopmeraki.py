@@ -112,7 +112,9 @@ class SopMerakiOrg(NetBoxModel):
                 ),
             ),
         ]
-
+        permissions = [
+            ('claim_devices', 'Claim devices to inventory'),
+        ]
 
 
 class SopMerakiNet(NetBoxModel):

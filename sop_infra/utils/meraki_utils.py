@@ -276,6 +276,17 @@ class SopMerakiUtils:
         if log:
             log.log_success(f"Done creating networks !")
 
+
+    @classmethod
+    def claim_devices_to_inventory(
+        cls,  log:JobRunnerLogMixin, simulate: bool, smo: SopMerakiOrg, serials:list[str]
+    ):
+        print(f"SopMerakiUtils.claim_devices_to_inventory : claiming {len(serials)} serials to org {smo} inventory")
+        smd:SopMerakiDash = smo.dash
+        conn = cls.connect(smd.nom, smd.api_url, simulate)       
+        SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, conn, log, False)
+
+
     @classmethod
     def connect_to_umbrella_dash(
         cls, log: JobRunnerLogMixin, simulate: bool, site: Site, api_keys:dict[str,str], details: bool = False
@@ -1160,6 +1171,27 @@ class SopMerakiDeviceUtils:
         smd.wan1status=None
         smd.wan2status=None
         smd.save()        
+   
+    @staticmethod
+    def claim_devices_to_inventory(
+        smo: SopMerakiOrg,
+        serials : list[str],
+        conn: meraki.DashboardAPI,
+        log: JobRunnerLogMixin,
+        details:bool
+    ):
+        print(f"Trying to claim {serials} to {smo}")
+        conn.organizations.claimIntoOrganizationInventory(smo.meraki_id, serials=serials)
+        for dev in conn.organizations.getOrganizationInventoryDevices(
+            smo.meraki_id, total_pages=-1, serials=serials
+        ):
+            # do not refresh devices with networks, will be done when refreshing networks recursibvely
+            if dev.get("networkId", None) is not None:
+                print(f"SopMerakiDevieUtils.claim_devices_to_inventory : device {dev.get("serial")} already has a network set {dev.get("networkId")}")
+                continue
+            # refresh "no net" devices
+            smd = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'], dev['name'])
+            SopMerakiDeviceUtils.refresh_from_meraki_data(smd, conn, dev, smo, log, details)
 
 
 class SopMerakiSwitchStackUtils:
@@ -1255,6 +1287,20 @@ class SopMerakiSwitchStackUtils:
 
 
 class SopMerakiOrgUtils:
+
+    # ------------------ UTILS
+
+    @staticmethod
+    def get_by_id(id: int)->SopMerakiOrg:
+        orgs = SopMerakiOrg.objects.filter(pk=id)
+        return orgs[0] if orgs.exists() else None
+
+    @staticmethod
+    def get_by_meraki_id(meraki_id: str)->SopMerakiOrg:
+        orgs = SopMerakiOrg.objects.filter(meraki_id=meraki_id)
+        return orgs[0] if orgs.exists() else None
+
+
     @staticmethod
     def refresh_from_meraki(
         smo,

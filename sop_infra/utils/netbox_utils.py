@@ -201,6 +201,12 @@ class SopInfraUtils:
         return ret
                       
     @staticmethod
+    def check_if_meraki_device_is_in_inventory(sd:SopMerakiDevice) -> bool:
+        if sd is None or not isinstance(sd, SopMerakiDevice):
+            raise Exception(f"sd must be a SopMerakiDevice instance")
+        return sd.meraki_netid is None
+                          
+    @staticmethod
     def check_if_meraki_device_has_netbox_device(sd:SopMerakiDevice) -> bool:
         if sd is None or not isinstance(sd, SopMerakiDevice):
             raise Exception(f"sd must be a SopMerakiDevice instance")
@@ -253,9 +259,12 @@ class SopInfraUtils:
     @staticmethod
     def get_device_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
+        if SopInfraUtils.check_if_meraki_device_is_in_inventory(sd):
+            return
         if not SopInfraUtils.check_if_meraki_device_has_netbox_device(sd):
             msg=f"Meraki Device has no matching Netbox Device"
             ret.append(msg)
+            return
         if not SopInfraUtils.check_if_meraki_device_has_netbox_device_in_same_site(sd):
             msg=f"Meraki Device has a matching Netbox Device but on another site"
             ret.append(msg)

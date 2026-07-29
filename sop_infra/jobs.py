@@ -47,6 +47,32 @@ class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
     
 
 
+class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Claim devices to Meraki inventory"
+
+    def run(self, *args, **kwargs):
+        SopMerakiUtils.claim_devices_to_inventory(self, False, kwargs.pop('org'), kwargs.pop('serials'))
+
+    @staticmethod
+    def launch_interactive(request, message:bool, org:Site, serials:list[str])->Job:
+        job:Job=SopMerakiClaimDevicesToInventoryJob.enqueue(user=request.user, immediate=True, org=org, serials=serials)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Claimed {len(serials)} devices to inventory for org {org} !')
+            else:
+                messages.error(request, f'Failed to claim {len(serials)} devices to inventory for org {org}, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, org:SopMerakiOrg, serials:list[str])->Job:    
+        job:Job=SopMerakiClaimDevicesToInventoryJob.enqueue(user=request.user, org=org, serials=serials)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to claim {len(serials)} devices to inventory for org {org} !')           
+        return job
+    
+
 
 # --------------------------------------------------------------------------------------------------------
 #region UMBRELLA JOBS

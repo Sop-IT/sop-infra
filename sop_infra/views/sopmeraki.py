@@ -10,6 +10,9 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import AccessMixin
 
 
+from core.choices import JobStatusChoices
+from sop_infra.forms.sopmeraki import SopMerakiOrgClaimForm
+from sop_infra.utils.meraki_utils import SopMerakiOrgUtils
 from sop_infra.utils.netbox_utils import SopInfraUtils
 from utilities.views import ObjectPermissionRequiredMixin, register_model_view
 from utilities.permissions import get_permission_for_model
@@ -23,6 +26,7 @@ from ipam.models import IPAddress, Prefix
 from tenancy.models import Tenant, TenantGroup
 
 from sop_infra.jobs import (
+    SopMerakiClaimDevicesToInventoryJob,
     SopMerakiCreateNetworkJob,
     SopMerakiDashRefreshJob,
     SopMerakiDashUpdateConnectivyStatusesJob,
@@ -701,6 +705,64 @@ class SopMerakiOrgUpdateConnectivityStatusesView(AccessMixin, View):
         return redirect(url)
 
 
+class SopMerakiOrgClaimView(AccessMixin, View):
+    """
+    Claim Meraki network devices into an Organisation's inventory
+    """
+
+    form = SopMerakiOrgClaimForm
+    template_name: str = "sop_infra/actions/sopmerakiorg_claim_devices.html"
+
+    def get(self, request, pk:int, *args, **kwargs):
+        # Fetch SopmerakiOrg from URL and get it from db
+        smo = get_object_or_404(SopMerakiOrg, pk=pk)
+        # Check perms
+        if not request.user.has_perm(get_permission_for_model(SopMerakiOrg, "claim_devices"), obj=smo):
+            return self.handle_no_permission()
+        # Check form
+        restrict_form_fields(self.form(), request.user)
+        # Build or fetch return URL
+        return_url:str
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        else:
+            return_url = reverse("plugins:sop_infra:sopmerakiorg_detail", args=(pk,))
+        # Display form
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": self.form(),
+                "return_url": return_url,
+            },
+        )
+
+    def post(self, request, pk:int, *args, **kwargs):
+        # Fetch SopmerakiOrg from URL and get it from db
+        smo = get_object_or_404(SopMerakiOrg, pk=pk)
+        # Check perms
+        if not request.user.has_perm(get_permission_for_model(SopMerakiOrg, "claim_devices"), obj=smo):
+            return self.handle_no_permission()
+        # Build or fetch return URL
+        return_url : str
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        else: 
+            return_url = reverse("plugins:sop_infra:sopmerakiorg_detail", args=(pk,))
+        # Check and validate form data
+        form = self.form(data=request.POST, files=request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form, "return_url": return_url})
+        # Extract form data
+        data: dict = form.cleaned_data
+        serials = data["serials_list"]
+        # Run job and redirect according to return status
+        j: Job = SopMerakiClaimDevicesToInventoryJob.launch_interactive(request, True, smo, serials)
+        if j.status==JobStatusChoices.STATUS_COMPLETED:
+            return redirect(return_url)
+        # Send to script result
+        url = reverse("core:job", args=[j.pk])
+        return redirect(url)
 
 #endregion
 
