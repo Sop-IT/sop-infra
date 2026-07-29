@@ -176,6 +176,7 @@ class SopMerakiOrgRefreshJob(JobRunnerLogMixin, JobRunner):
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
             self.log_failure(text)
             self.job.error = text
+            print(text)
             raise
         # finally:
         #     self.job.data = self.get_job_data()       

@@ -298,12 +298,12 @@ class SopMerakiUtils:
 
     @classmethod
     def claim_devices_to_inventory(
-        cls,  log:JobRunnerLogMixin, simulate: bool, smo: SopMerakiOrg, serials:list[str], user
+        cls,  log:JobRunnerLogMixin, simulate: bool, smo: SopMerakiOrg, serials:list[str]
     ):
         print(f"SopMerakiUtils.claim_devices_to_inventory : claiming {len(serials)} serials to org {smo} inventory")
         smd:SopMerakiDash = smo.dash
         conn = cls.connect(smd.nom, smd.api_url, simulate)       
-        SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, user, conn, log, False)
+        SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, conn, log, False)
 
 
     @classmethod
@@ -1321,7 +1321,6 @@ class SopMerakiDeviceUtils:
     def claim_devices_to_inventory(
         smo: SopMerakiOrg,
         serials : list[str],
-        user:str,
         conn: meraki.DashboardAPI,
         log: JobRunnerLogMixin,
         details:bool
