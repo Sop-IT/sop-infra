@@ -26,7 +26,7 @@ __all__ = (
 )
 
 
-class SopMerakiDash(NetBoxModel):
+class SopMerakiDash(JobsMixin, NetBoxModel):
     """
     Represents a Meraki dashboard
     """
@@ -53,7 +53,7 @@ class SopMerakiDash(NetBoxModel):
 
 
 
-class SopMerakiOrg(NetBoxModel):
+class SopMerakiOrg(JobsMixin, NetBoxModel):
     """
     Represents a Meraki Organisation, child of a Meraki dashboard
     """
@@ -117,7 +117,7 @@ class SopMerakiOrg(NetBoxModel):
         ]
 
 
-class SopMerakiNet(NetBoxModel):
+class SopMerakiNet(JobsMixin, NetBoxModel):
     """
     Represents a Meraki Network on the dashboard
     """
