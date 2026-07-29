@@ -5,6 +5,7 @@ import django_filters
 from django import forms
 from django.http import HttpRequest
 from django.urls import reverse
+from sop_infra.utils.meraki_utils import SopMerakiRegexps, SopMerakiUtils
 from utilities.forms.fields import (
     CommentField,
     DynamicModelChoiceField,
@@ -250,7 +251,7 @@ class SopMerakiOrgClaimForm(forms.Form):
     serials = forms.RegexField(
         widget=forms.Textarea,
         required=True,
-        regex=r"^(?:[\s,]*[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}[\s,]*)+$",
+        regex=SopMerakiRegexps.meraki_list_of_serials_txt,
         help_text="Input serial numbers (XXXX-XXXX-XXXX), separated by commas and/or whitespace",
     )
 
@@ -265,15 +266,8 @@ class SopMerakiOrgClaimForm(forms.Form):
             raise forms.ValidationError(
                 "Only Meraki serial numbers separated by commas are accepted"
             )
-        # replace whitespace and commas by a single space
-        serials_txt = re.sub(r"[\s,]+", " ", serials_txt)
-        # trim the string
-        serials_txt = serials_txt.strip()
-        # split it by spaces
-        serials_list = re.split(r" +", serials_txt)
-        # now we have the data
         return {
-            "serials_list": serials_list,
+            "serials_list": SopMerakiUtils.clean_serials_txt(serials_txt),
         }
 
 
