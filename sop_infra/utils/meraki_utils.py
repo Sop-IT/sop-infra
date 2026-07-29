@@ -1,3 +1,5 @@
+import re
+
 from django.utils.timezone import now as django_now
 from zoneinfo import ZoneInfo
 
@@ -15,6 +17,23 @@ from tenancy.models import Tenant, TenantGroup
 
 import meraki
 from django.contrib import messages
+
+class SopMerakiRegexps:
+
+    meraki_sitename_str = r"^.*--(?:(STOCK-.*|[^ -]+)(|[ -]+[oO][lL][dD].*|[ -].*))$"
+    meraki_sitename_re = re.compile(meraki_sitename_str)
+
+    meraki_serial_txt = r'[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}'
+    meraki_serial_reg = re.compile(meraki_serial_txt)
+    
+    meraki_single_serial_txt = r'^(' + meraki_serial_txt + r')$'
+    meraki_single_serial_reg = re.compile(meraki_single_serial_txt)
+
+    meraki_padded_serial_txt = r'^\s*(' + meraki_serial_txt + r')\s*$'
+    meraki_padded_serial_reg = re.compile(meraki_padded_serial_txt)
+
+    meraki_list_of_serials_txt = r'^(?:[\s,]*' + meraki_serial_txt + r'[\s,]*)+$'
+    meraki_list_of_serials_reg = re.compile(meraki_list_of_serials_txt)
 
 
 class SopMerakiUtils:
@@ -279,12 +298,12 @@ class SopMerakiUtils:
 
     @classmethod
     def claim_devices_to_inventory(
-        cls,  log:JobRunnerLogMixin, simulate: bool, smo: SopMerakiOrg, serials:list[str]
+        cls,  log:JobRunnerLogMixin, simulate: bool, smo: SopMerakiOrg, serials:list[str], user
     ):
         print(f"SopMerakiUtils.claim_devices_to_inventory : claiming {len(serials)} serials to org {smo} inventory")
         smd:SopMerakiDash = smo.dash
         conn = cls.connect(smd.nom, smd.api_url, simulate)       
-        SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, conn, log, False)
+        SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, user, conn, log, False)
 
 
     @classmethod
@@ -427,9 +446,36 @@ class SopMerakiUtils:
 
     # ---------------------------------------------
     #region GENERIC UTILS
+
+    @staticmethod
+    def clean_serials_txt(serials:str)->list[str]:
+        # Check if it matches the general form
+        if not SopMerakiRegexps.meraki_list_of_serials_reg.match(serials):
+            return None
+        # replace whitespace and commas by a single space
+        serials_txt = re.sub(r"[\s,]+", " ", serials_txt)
+        # trim the string
+        serials_txt = serials_txt.strip()
+        # split it by spaces
+        serials_list = re.split(r" +", serials_txt)
+        # reparse the whole thing properly
+        return SopMerakiUtils.clean_serials_list(serials_list)
+
+    @staticmethod
+    def clean_serials_list(serials:list[str])->list[str]:
+        if serials is None:
+            return None
+        clean_serials=list()
+        for serial in serials:
+            if (m:=SopMerakiRegexps.meraki_padded_serial_reg.match(serial)):
+                clean_serials.append(m.group(1))
+        if len(clean_serials)>0:
+            return clean_serials
+        return None
+
     @staticmethod
     def extractSiteName(name):
-        m = SopRegExps.meraki_sitename_re.match(f"{name}")
+        m = SopMerakiRegexps.meraki_sitename_re.match(f"{name}")
         if m is None:
             return None
         return m.group(1).lower()
@@ -732,7 +778,7 @@ class SopMerakiNetUtils:
 
 
         # Refresh devices from this net
-        SopMerakiNetUtils.refresh_networks_devices(smn, conn, None, org, log, details)
+        SopMerakiNetUtils.refresh_networks_devices(smn, conn, org, log, details)
 
         # Refresh stacks from this net
         if "switch" in smn.ptypes :
@@ -741,23 +787,53 @@ class SopMerakiNetUtils:
 
         return save
 
+
     @staticmethod
     def refresh_networks_devices(
         smn:SopMerakiNet,
         conn: meraki.DashboardAPI,
-        device_serials : list[str],
-        org: SopMerakiOrg,
+        smo: SopMerakiOrg,
         log: JobRunnerLogMixin,
         details: bool):
-        # Refresh devices from this net
-        for dev in conn.organizations.getOrganizationDevices(
-            org.meraki_id, networkIds=[smn.meraki_id], total_pages=-1
+        # Keep track of devices seen for this network
+        devs:dict[str,dict[str,dict]]=dict()
+        # INVENTORY - Refresh devices for this net and serials
+        for dev in conn.organizations.getOrganizationInventoryDevices(
+            smo.meraki_id, networkIds=[smn.meraki_id], total_pages=-1
         ):
-            if device_serials is not None :
-                if dev['serial'] not in device_serials:
-                    continue
-            smdev = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'],dev['name'])
-            SopMerakiDeviceUtils.refresh_from_meraki_data(smdev, conn, dev, org, log, details)        
+            serial=dev['serial']
+            d=devs.get(serial, dict())
+            d['inv']=dev
+            devs[serial]=d
+        # ORGANIZATION - Refresh devices for this net and serials
+        for dev in conn.organizations.getOrganizationDevices(
+            smo.meraki_id, networkIds=[smn.meraki_id], total_pages=-1
+        ):
+            serial=dev['serial']
+            d=devs.get(serial, dict())
+            d['org']=dev
+            devs[serial]=d
+        # LOOP on this data to refresh and keep track of changes
+        smdev:SopMerakiDevice
+        for serial,d in devs.items():
+            inv=d['inv']
+            smdev = SopMerakiDeviceUtils.get_by_serial_or_create(serial,inv['name'])
+            saved=SopMerakiDeviceUtils.refresh_from_inventory_data(smdev, conn, inv, smo, log, details)
+            saved=SopMerakiDeviceUtils.refresh_from_meraki_data(smdev, conn, d['org'], smo, log, details) or saved
+            devs[smdev.serial]["saved"]=saved
+        # CLEAR network data for devices that are no more in this network
+        for smdev in SopMerakiDevice.objects.filter(meraki_netid=smn.meraki_id).exclude(serial__in=devs.keys()):
+            smdev.orphan_device()
+            d=dict()
+            d["saved"]=True
+            devs[smdev.serial]=d
+        # REFETCH RELATED OBJECTS
+        for serial in devs.keys():
+            if devs[serial]["saved"]:
+                smdev = SopMerakiDeviceUtils.get_by_serial(serial)
+                SopMerakiDeviceUtils.relink_related_objects(smdev, log)
+
+
 
     @staticmethod
     def get_appliance_networks(site: Site) -> list[SopMerakiNet]:
@@ -843,7 +919,7 @@ class SopMerakiNetUtils:
         # check if a network refresh is needed
         if prim_dev is None or (spar_stats is not None and spar_dev is None):
             log.log_debug(f"Refreshing network devices for network {smn}")
-            SopMerakiNetUtils.refresh_networks_devices(smn, conn, None, smn.org, log, details)
+            SopMerakiNetUtils.refresh_networks_devices(smn, conn, smn.org, log, details)
             prim_dev=SopMerakiDeviceUtils.get_by_serial(prim_stats['serial'])
             if spar_stats is not None:
                 spar_dev=SopMerakiDeviceUtils.get_by_serial(spar_stats['serial'])
@@ -957,6 +1033,84 @@ class SopMerakiDeviceUtils:
         ret=SopMerakiDeviceUtils.get_by_serial(serial)
         return SopMerakiDevice(serial=serial, nom=f"NEW : {name}") if ret is None else ret
 
+    @staticmethod
+    def refresh_from_inventory_data(
+        smd:SopMerakiDevice,
+        conn: meraki.DashboardAPI,
+        dev_data:dict,
+        org: SopMerakiOrg,
+        log: JobRunnerLogMixin,
+        details: bool,
+    )->bool:
+        # cf https://developer.cisco.com/meraki/api-v1/get-organization-inventory-devices/
+        if log and details:
+            log.info(f"Refreshing from inventory '{smd.nom}'...")
+        save = smd.pk is None
+        #print(f" START refresh_from_inventory_data :{save=}")
+        if smd.org is None or smd.org != org:  
+            print(f" SQUASH ORG :{smd.org=} {org=}")
+            smd.org = org
+            save = True
+        if smd.mac != dev_data.get("mac", None):
+            smd.mac = dev_data.get("mac", None)
+            save = True
+        if smd.serial != dev_data.get("serial", None):
+            smd.serial = dev_data.get("serial", None)
+            save = True
+        nameval = dev_data.get("name", None)
+        if nameval is None or nameval.strip() == "":
+            nameval = smd.mac
+        if smd.nom != nameval:
+            smd.nom = nameval
+            save = True
+        if smd.model_name != dev_data.get("model"):
+            smd.model_name = dev_data.get("model")
+            save = True
+        # skipping orderNumber
+        #print(f" l1068 refresh_from_inventory_data :{save=}")
+        from sop_utils.dates import DateUtils
+        dt=DateUtils.parse_date(dev_data.get("claimedAt"))
+        if smd.claimed_at != dt:
+            smd.claimed_at = dt
+            save = True
+        dt=DateUtils.parse_date(dev_data.get("licenseExpirationDate"))
+        if smd.license_expiration_at != dt:
+            smd.license_expiration_at = dt
+            save = True
+        if not ArrayUtils.equal_sets(smd.meraki_tags, dev_data.get("tags", list())):  # type: ignore
+            smd.meraki_tags = dev_data.get("tags", list())
+            save = True
+        if smd.ptype != dev_data.get("productType"):
+            smd.ptype = dev_data.get("productType")
+            save = True
+        if smd.country_code != dev_data.get("countryCode"):
+            smd.country_code = dev_data.get("countryCode")
+            save = True            
+        #print(f" l1087 refresh_from_inventory_data :{save=}")
+        # sub dict EOX
+        eox=dev_data.get("eox", dict())
+        if smd.eox_status != eox.get("status"):
+            smd.eox_status = eox.get("status")
+            save = True
+        dt=DateUtils.parse_date(dev_data.get("endOfSaleAt"))
+        if smd.eox_end_of_sale != dt:
+            smd.eox_end_of_sale = dt
+            save = True
+        dt=DateUtils.parse_date(dev_data.get("endOfSupportAt"))
+        if smd.eox_end_of_support != dt:
+            smd.eox_end_of_support = dt
+            save = True
+        # only save if something changed
+        if save:
+            log.success(f"SopMerakiDeviceUtils.refresh_from_inventory_data saving SopDevice '[{smd.nom}]'.")
+            smd._changelog_message="SopMerakiDeviceUtils.refresh_from_inventory_data"
+            smd.full_clean()
+            smd.save()
+
+        return save
+
+
+    @staticmethod
     def refresh_from_meraki_data(
         smd:SopMerakiDevice,
         conn: meraki.DashboardAPI,
@@ -969,32 +1123,11 @@ class SopMerakiDeviceUtils:
         if log and details:
             log.info(f"Refreshing '{smd.nom}'...")
         save = smd.pk is None
-        if smd.org_id is None or smd.org != org:  # type: ignore
-            smd.org = org
-            save = True
-        nameval = dev_data.get("name", None)
-        if nameval is None or nameval.strip() == "":
-            nameval = dev_data.get("mac", None)
-        if smd.nom != nameval:
-            smd.nom = nameval
-            save = True
-        if smd.model_name != dev_data.get("model", None):
-            smd.model_name = dev_data.get("model", None)
-            save = True
-        if smd.serial != dev_data.get("serial", None):
-            smd.serial = dev_data.get("serial", None)
-            save = True
-        if smd.mac != dev_data.get("mac", None):
-            smd.mac = dev_data.get("mac", None)
-            save = True
         if smd.meraki_netid != dev_data.get("networkId", None):
             smd.meraki_netid = dev_data.get("networkId", None)
             save = True
         if smd.meraki_notes != dev_data.get("notes", None):
             smd.meraki_notes = dev_data.get("notes", None)
-            save = True
-        if smd.ptype != dev_data.get("productType", None):
-            smd.ptype = dev_data.get("productType", None)
             save = True
         if smd.firmware != dev_data.get("firmware", None):
             smd.firmware = dev_data.get("firmware", None)
@@ -1021,19 +1154,30 @@ class SopMerakiDeviceUtils:
         if smd.longitude != d:
             smd.longitude = d
             save = True
-
-        if not ArrayUtils.equal_sets(smd.meraki_tags, dev_data.get("tags", list())):  # type: ignore
-            smd.meraki_tags = dev_data.get("tags", list())
-            save = True
         if not SopUtils.deep_equals_json_ic(
             smd.meraki_details, dev_data.get("details", dict())
         ):
             smd.meraki_details = dev_data.get("details", dict())
             save = True
 
+        # only save if something changed
+        if save:
+            log.success(f"SopMerakiDeviceUtils.refresh_from_meraki_data saving SopDevice '[{smd.nom}]'.")
+            smd._changelog_message="SopMerakiDeviceUtils.refresh_from_meraki_data"
+            smd.full_clean()
+            smd.save()
+
+        return save
+
+
+    @staticmethod
+    def relink_related_objects(
+        smd:SopMerakiDevice,
+        log: JobRunnerLogMixin,
+    ):
         # -----------------------------------------------
         # Rattachement/maintenance d'objets dépendants
-
+        save=False
         # Model <-> device type
         if smd.model_name is not None:
             slug=f"cisco-{smd.model_name}".lower()
@@ -1122,7 +1266,8 @@ class SopMerakiDeviceUtils:
 
         # only save if something changed
         if save:
-            log.success(f"Saving SopDevice '[{smd.nom}]'.")
+            log.success(f"SopMerakiDeviceUtils.relink_related_objects saving SopDevice '[{smd.nom}]'.")
+            smd._changelog_message="SopMerakiDeviceUtils.relink_related_objects"
             smd.full_clean()
             smd.save()
 
@@ -1176,6 +1321,7 @@ class SopMerakiDeviceUtils:
     def claim_devices_to_inventory(
         smo: SopMerakiOrg,
         serials : list[str],
+        user:str,
         conn: meraki.DashboardAPI,
         log: JobRunnerLogMixin,
         details:bool
@@ -1185,13 +1331,15 @@ class SopMerakiDeviceUtils:
         for dev in conn.organizations.getOrganizationInventoryDevices(
             smo.meraki_id, total_pages=-1, serials=serials
         ):
-            # do not refresh devices with networks, will be done when refreshing networks recursibvely
+            # do not refresh devices with networks, will be done when refreshing networks recursively
             if dev.get("networkId", None) is not None:
                 print(f"SopMerakiDevieUtils.claim_devices_to_inventory : device {dev.get("serial")} already has a network set {dev.get("networkId")}")
                 continue
             # refresh "no net" devices
             smd = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'], dev['name'])
-            SopMerakiDeviceUtils.refresh_from_meraki_data(smd, conn, dev, smo, log, details)
+            saved = SopMerakiDeviceUtils.refresh_from_inventory_data(smd, conn, dev, smo, log, details)
+            if saved :
+                SopMerakiDeviceUtils.relink_related_objects(smd, log)
 
 
 class SopMerakiSwitchStackUtils:
@@ -1314,7 +1462,7 @@ class SopMerakiOrgUtils:
 
     @staticmethod
     def refresh_from_meraki_data(
-        smo,
+        smo:SopMerakiOrg,
         conn: meraki.DashboardAPI,
         org_data:dict,
         dash: SopMerakiDash,
@@ -1346,40 +1494,18 @@ class SopMerakiOrgUtils:
             save = True
 
         if save:
+            smo._changelog_message="SopMerakiOrgUtils.refresh_from_meraki_data"
             smo.full_clean()
             smo.save()
 
-        # refresh devices that are *NOT* in networks (inventory only)
-        serials = []
-        smd: SopMerakiDevice
-        if log:
-            log.info(f"Looping on '{smo.nom}' devices...")
-        for dev in conn.organizations.getOrganizationInventoryDevices(
-            org_data["id"], total_pages=-1
-        ):
-            # save serial for orphanaton
-            serials.append(dev["serial"])
-            # do not refresh devices with networks, will be done when refreshing networks recursibvely
-            if dev.get("networkId", None) is not None:
-                continue
-            # refresh "no net" devices
-            smd = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'], dev['name'])
-            SopMerakiDeviceUtils.refresh_from_meraki_data(smd, conn, dev, smo, log, details)
-        # Remove devices that are not in this org anymore
-        if log:
-            log.info(f"Done looping on '{smo.nom}' devices, starting cleanup...")
-        for smd in smo.devices.filter(org__meraki_id=org_data["id"]):  # type: ignore
-            if smd.serial not in serials:
-                log.info(f"Orphaning '{smd.nom}'/'{smd.serial}'...")
-                smd.orphan_device()
-
-        # refresh nets
+        # refresh nets AND their devices
+        #print("====NETLOOP====")
         net_ids = []
         smn: SopMerakiNet
         if log:
             log.info(f"Looping on '{smo.nom}' networks...")
         for net in conn.organizations.getOrganizationNetworks(
-            org_data["id"], total_pages=-1
+            smo.meraki_id, total_pages=-1
         ):
             net_ids.append(net["id"])
             SopMerakiNetUtils.create_or_refresh(conn, net, smo, log, details)
@@ -1389,6 +1515,41 @@ class SopMerakiOrgUtils:
             if smn.meraki_id not in net_ids:
                 log.info(f"Deleting '{smn.nom}'...")
                 smn.delete()
+
+        # refresh devices that are *NOT* in networks (inventory only --> explicit null in networkIds)
+        #print("====INVLOOP====")
+        devs_saved:dict[str,bool] = dict()
+        smd: SopMerakiDevice
+        inv_devs=conn.organizations.getOrganizationInventoryDevices(
+            smo.meraki_id, total_pages=-1, networkIds=["null"]
+        )
+        if log:
+            log.info(f"Looping on '{smo.nom}' organization's {len(inv_devs)} unattached devices...")
+        for dev in inv_devs :
+            serial=dev['serial']
+            devs_saved[serial]=False
+            # do not refresh devices with networks, will be done when refreshing networks recursibvely
+            if dev.get("networkId", None) is not None:
+                print(f"ERROR {dev} has networkid {dev.get("networkId")} for org {smo.meraki_id}")
+                continue
+            # refresh "no net" devices
+            smd = SopMerakiDeviceUtils.get_by_serial_or_create(serial, dev['name'])
+            devs_saved[serial] = SopMerakiDeviceUtils.refresh_from_inventory_data(smd, conn, dev, smo, log, details)
+        # Orphan devices that are not in this org anymore
+        #print(f"cleanup filter=> {smo.meraki_id=} {net_ids=} {devs_saved.keys()}")
+        orph_devs=SopMerakiDevice.objects.filter(org__meraki_id=smo.meraki_id).exclude(serial__in=devs_saved.keys()).exclude(meraki_netid__in=net_ids)
+        if log:
+            log.info(f"Done looping, starting orphaning of {orph_devs.count()} devices...")
+        for smd in orph_devs: 
+            log.info(f"Orphaning '{smd.nom}'/'{smd.serial}'...")
+            smd.orphan_device()
+            devs_saved[smd.serial]=True
+        # REFETCH RELATED OBJECTS
+        for serial in devs_saved.keys():
+            if devs_saved[serial]:
+                smdev = SopMerakiDeviceUtils.get_by_serial(serial)
+                SopMerakiDeviceUtils.relink_related_objects(smdev, log)         
+
 
         return save
     
@@ -1540,11 +1701,12 @@ class SopMerakiDashUtils:
     
     @staticmethod
     def refresh_from_meraki(
-        smd, conn: meraki.DashboardAPI, log: JobRunnerLogMixin, details: bool
+        smd:SopMerakiDash, conn: meraki.DashboardAPI, log: JobRunnerLogMixin, details: bool
     ):
         save = smd.pk is None
 
         if save:
+            smd._changelog_message="SopMerakiDashUtils.refresh_from_meraki"
             smd.full_clean()
             smd.save()
 
