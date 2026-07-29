@@ -209,6 +209,13 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             "wan1status",
             "wan2status",
             "last_reported_at",
+            "sku",
+            "claimed_at", 
+            "license_expiration_at",
+            "country_code",
+            "eox_status",
+            "eox_end_of_sale",
+            "eox_end_of_support",
         )
         filter_overrides = {
             models.JSONField: {

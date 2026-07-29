@@ -469,6 +469,37 @@ class SopMerakiDevice(
         null=True,    
     )
 
+    sku= models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=False,
+    )
+    claimed_at=models.DateTimeField(null=True, 
+        blank=True,
+        unique=False,)
+    license_expiration_at=models.DateTimeField(null=True, 
+            blank=True,
+            unique=False,)
+    country_code= models.CharField(
+        max_length=2,
+        null=True,
+        blank=True,
+        unique=False,
+    ) 
+    eox_status = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=False,
+    )
+    eox_end_of_sale=models.DateTimeField(null=True, 
+        blank=True,
+        unique=False,)
+    eox_end_of_support=models.DateTimeField(null=True, 
+        blank=True,
+        unique=False,)      
+
     def __str__(self):
         return f"{self.nom}"
 
@@ -538,6 +569,7 @@ class SopMerakiDevice(
         self.meraki_network = None
         self.org = None
         self.site = None
+        self._changelog_message="SopMerakiDevice.orphan_device"
         self.full_clean()
         self.save()
 
