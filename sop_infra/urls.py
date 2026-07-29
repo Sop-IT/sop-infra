@@ -1,6 +1,7 @@
 from django.urls import include, path
 
 
+from netbox.views.generic.feature_views import ObjectJobsView
 from utilities.urls import get_model_urls
 
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
@@ -147,6 +148,7 @@ urlpatterns = [
     path('sopmerakidash/<int:pk>/refresh/', SopMerakiDashRefreshView.as_view(), name='sopmerakidash_refresh'),
     path('sopmerakidash/<int:pk>/update_connectivity_statuses/', SopMerakiDashConnectivityStatusesView.as_view(), name='sopmerakidash_update_connectivity_statuses'),
     path('sopmerakidash/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakidash_changelog', kwargs={'model': SopMerakiDash}),
+    path('sopmerakidash/<int:pk>/jobs/', ObjectJobsView.as_view(), name='sopmerakidash_jobs', kwargs={'model': SopMerakiDash}),
 
     # ========================================================================
     # meraki org
@@ -159,6 +161,7 @@ urlpatterns = [
     path('sopmerakiorg/<int:pk>/refresh/', SopMerakiOrgRefreshView.as_view(), name='sopmerakiorg_refresh'),
     path('sopmerakiorg/<int:pk>/update_connectivity_statuses/', SopMerakiOrgUpdateConnectivityStatusesView.as_view(), name='sopmerakiorg_update_connectivity_statuses'),
     path('sopmerakiorg/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakiorg_changelog', kwargs={'model': SopMerakiOrg}),
+    path('sopmerakiorg/<int:pk>/jobs/', ObjectJobsView.as_view(), name='sopmerakiorg_jobs', kwargs={'model': SopMerakiOrg}),
     path('sopmerakiorg/<int:pk>/claim_devices', SopMerakiOrgClaimView.as_view(), name='sopmerakiorg_claim_devices'),
     
 
@@ -173,6 +176,7 @@ urlpatterns = [
     path('sopmerakinet/<int:pk>/refresh/', SopMerakiNetRefreshView.as_view(), name='sopmerakinet_refresh'),
     path('sopmerakinet/<int:pk>/update_connectivity_statuses/', SopMerakiNetUpdateConnectivityStatusesView.as_view(), name='sopmerakinet_update_connectivity_statuses'),
     path('sopmerakinet/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakinet_changelog', kwargs={'model': SopMerakiNet}),
+    path('sopmerakinet/<int:pk>/jobs/', ObjectJobsView.as_view(), name='sopmerakinet_jobs', kwargs={'model': SopMerakiNet}),
 
     # ========================================================================
     # SopMerakiSwitchStack
