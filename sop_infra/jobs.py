@@ -11,7 +11,7 @@ from dcim.models import Site
 from tenancy.models import Contact, Tenant
 from extras.models import Notification
 
-from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
+from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiDevice, SopMerakiNet, SopMerakiOrg
 
 from sop_infra.utils.ad_utils import ADCountersUpd, user_info, user_infos
 from sop_infra.utils.meraki_utils import SopMerakiUtils
@@ -53,11 +53,15 @@ class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):
         name = "Claim devices to Meraki inventory"
 
     def run(self, *args, **kwargs):
-        SopMerakiUtils.claim_devices_to_inventory(self, False, kwargs.pop('org'), kwargs.pop('serials'))
+        lst:list[SopMerakiDevice] = SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, smo=kwargs.pop('org'), serials=kwargs.pop('serials'))
+        data:list[str]=list()
+        for d in lst:
+            data.append(d.serial)
+        self.job.data=data
 
     @staticmethod
-    def launch_interactive(request, message:bool, org:Site, serials:list[str])->Job:
-        job:Job=SopMerakiClaimDevicesToInventoryJob.enqueue(user=request.user, immediate=True, org=org, serials=serials)
+    def launch_interactive(request, message:bool, org:SopMerakiOrg, serials:list[str])->Job:
+        job:Job=SopMerakiClaimDevicesToInventoryJob.enqueue(instance=org, user=request.user, immediate=True, org=org, serials=serials)
         if message:
             if job.status==JobStatusChoices.STATUS_COMPLETED:
                 messages.success(request, f'Claimed {len(serials)} devices to inventory for org {org} !')
@@ -67,7 +71,7 @@ class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):
     
     @staticmethod
     def launch_background(request, message:bool, org:SopMerakiOrg, serials:list[str])->Job:    
-        job:Job=SopMerakiClaimDevicesToInventoryJob.enqueue(user=request.user, org=org, serials=serials)
+        job:Job=SopMerakiClaimDevicesToInventoryJob.enqueue(instance=org, user=request.user, org=org, serials=serials)
         if message:
             messages.success(request, f'Started job #{job.pk} to claim {len(serials)} devices to inventory for org {org} !')           
         return job

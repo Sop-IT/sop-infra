@@ -758,10 +758,11 @@ class SopMerakiOrgClaimView(AccessMixin, View):
         serials = data["serials_list"]
         # Run job and redirect according to return status
         j: Job = SopMerakiClaimDevicesToInventoryJob.launch_interactive(request, True, smo, serials)
+        url:str
         if j.status==JobStatusChoices.STATUS_COMPLETED:
-            return redirect(return_url)
-        # Send to script result
-        url = reverse("core:job", args=[j.pk])
+            url= reverse("plugins:sop_infra:sopmerakidevice_list", query={"serial":j.data})
+        else:
+            url = reverse("core:job", args=[j.pk])
         return redirect(url)
 
 #endregion
