@@ -4,6 +4,7 @@ from django.utils.timezone import now as django_now
 from zoneinfo import ZoneInfo
 
 from dcim.models import Device, DeviceType, Region, Site, SiteGroup
+from dcim.models.devices import DeviceRole
 from netbox.context import current_request
 from sop_infra.models.infra import SopDeviceSetting
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiDevice, SopMerakiNet, SopMerakiOrg, SopMerakiSwitchStack
@@ -17,6 +18,8 @@ from tenancy.models import Tenant, TenantGroup
 
 import meraki
 from django.contrib import messages
+
+from utilities.exceptions import AbortRequest
 
 class SopMerakiRegexps:
 
@@ -299,11 +302,11 @@ class SopMerakiUtils:
     @classmethod
     def claim_devices_to_inventory(
         cls,  log:JobRunnerLogMixin, simulate: bool, smo: SopMerakiOrg, serials:list[str]
-    ):
+    )-> list[SopMerakiDevice]:
         print(f"SopMerakiUtils.claim_devices_to_inventory : claiming {len(serials)} serials to org {smo} inventory")
         smd:SopMerakiDash = smo.dash
         conn = cls.connect(smd.nom, smd.api_url, simulate)       
-        SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, conn, log, False)
+        return SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, conn, log, False)
 
 
     @classmethod
@@ -570,6 +573,7 @@ class SopMerakiUtils:
         sds = SopDeviceSetting.objects.create(device=instance)
         sds.snapshot()
         sds.make_compliant()
+        sds._changelog_message = "SopMerakiUtils.check_create_sopdevicesetting"
         sds.full_clean()
         sds.save()
         try:
@@ -1024,6 +1028,15 @@ class SopMerakiNetUtils:
 
 
 class SopMerakiDeviceUtils:
+
+    __dtmodel_roleslug_mapping : dict[str,str] = { 
+        "MR":"access-point", 
+        "MS":"access-switch",
+        "MX":"sdwan-router",
+        "MS":"process-camera",
+    }
+    __unknown_role_mapping : str = "ukn-unknown"
+
     # ------------------ UTILS
     @staticmethod
     def get_by_serial(serial: str):
@@ -1048,6 +1061,8 @@ class SopMerakiDeviceUtils:
         if log and details:
             log.info(f"Refreshing from inventory '{smd.nom}'...")
         save = smd.pk is None
+        if smd.pk and hasattr(smd, "snapshot"):
+            smd.snapshot()
         #print(f" START refresh_from_inventory_data :{save=}")
         if smd.org is None or smd.org != org:  
             print(f" SQUASH ORG :{smd.org=} {org=}")
@@ -1111,7 +1126,6 @@ class SopMerakiDeviceUtils:
 
         return save
 
-
     @staticmethod
     def refresh_from_meraki_data(
         smd:SopMerakiDevice,
@@ -1125,6 +1139,8 @@ class SopMerakiDeviceUtils:
         if log and details:
             log.info(f"Refreshing '{smd.nom}'...")
         save = smd.pk is None
+        if smd.pk and hasattr(smd, "snapshot"):
+            smd.snapshot()
         if smd.meraki_netid != dev_data.get("networkId", None):
             smd.meraki_netid = dev_data.get("networkId", None)
             save = True
@@ -1171,7 +1187,6 @@ class SopMerakiDeviceUtils:
 
         return save
 
-
     @staticmethod
     def relink_related_objects(
         smd:SopMerakiDevice,
@@ -1180,6 +1195,8 @@ class SopMerakiDeviceUtils:
         # -----------------------------------------------
         # Rattachement/maintenance d'objets dépendants
         save=False
+        if smd.pk and hasattr(smd, "snapshot"):
+            smd.snapshot()
         # Model <-> device type
         if smd.model_name is not None:
             slug=f"cisco-{smd.model_name}".lower()
@@ -1281,6 +1298,8 @@ class SopMerakiDeviceUtils:
         uplink_statuses:dict,
     ):
         save:bool=False
+        if smd.pk and hasattr(smd, "snapshot"):
+            smd.snapshot()
         # first organize by link
         uplink_stat:dict
         by_wan:dict[str,dict]={}
@@ -1313,10 +1332,14 @@ class SopMerakiDeviceUtils:
     def clear_uplink_statuses(
         smd: SopMerakiDevice,
     ):
+        if smd.pk and hasattr(smd, "snapshot"):
+            smd.snapshot()
         smd.wan1ip=None
         smd.wan2ip=None
         smd.wan1status=None
         smd.wan2status=None
+        smd._changelog_message="SopmerakiDeviceUtils.clear_uplink_statuses"
+        smd.full_clean()
         smd.save()        
    
     @staticmethod
@@ -1326,22 +1349,71 @@ class SopMerakiDeviceUtils:
         conn: meraki.DashboardAPI,
         log: JobRunnerLogMixin,
         details:bool
-    ):
-        print(f"Trying to claim {serials} to {smo}")
+    ) -> list[SopMerakiDevice]:
+        log.log_info(f"Trying to claim {serials} to {smo}")
+        ret:list[SopMerakiDevice]=list()
         conn.organizations.claimIntoOrganizationInventory(smo.meraki_id, serials=serials)
-        print(f"refresh and relink")
+        log.log_info(f"Claim done, let's refresh claimed SopMerakiDevices from inventory")
         for dev in conn.organizations.getOrganizationInventoryDevices(
             smo.meraki_id, total_pages=-1, serials=serials
         ):
+            serial=dev.get("serial")
             # do not refresh devices with networks, will be done when refreshing networks recursively
             if dev.get("networkId", None) is not None:
-                print(f"SopMerakiDevieUtils.claim_devices_to_inventory : device {dev.get("serial")} already has a network set {dev.get("networkId")}")
+                log.log_warning(f"SopMerakiDevieUtils.claim_devices_to_inventory : device {serial} already has a network set {dev.get("networkId")}")
                 continue
-            # refresh "no net" devices
-            smd = SopMerakiDeviceUtils.get_by_serial_or_create(dev['serial'], dev['name'])
+            # refresh "no net" devices from inventory
+            log.log_info(f"Refreshing device {serial} ...")
+            smd = SopMerakiDeviceUtils.get_by_serial_or_create(serial, dev['name'])
             saved = SopMerakiDeviceUtils.refresh_from_inventory_data(smd, conn, dev, smo, log, details)
+            # if something changed we might need to refresh related objects
             if saved :
+                log.log_info(f"Something changed on device {serial}, let's relink related objects...")
                 SopMerakiDeviceUtils.relink_related_objects(smd, log)
+            # Now create missing netbox devices
+            smd=SopMerakiDeviceUtils.get_by_serial(serial)
+            if smd.netbox_device is not None:
+                log.log_info(f"SopmerakiDevice {serial}is already linked to an existing Netbox Device {smd.netbox_device}, nothing left to do...")
+            elif smd.netbox_dev_type is not None:
+                log.log_info(f"SopMerakiDeviceUtils.claim_devices_to_inventory : create netbox device for serial {serial} / devicetype {smd.netbox_dev_type}")
+                if smd.pk and hasattr(smd, "snapshot"):
+                    smd.snapshot()
+                nd = Device(
+                    device_type=smd.netbox_dev_type,
+                    name=smd.nom,
+                    status="inventory",
+                    serial=smd.serial,
+                    role=SopMerakiDeviceUtils.__get_model_to_role_mapping(smd.model_name),
+                    site=Site.objects.get(slug="inventory"),
+                    # TODO : platform
+                      )
+                nd._changelog_message = "SopMerakiDeviceUtils.claim_devices_to_inventory"
+                nd.full_clean()
+                nd.save()
+                smd.netbox_device=nd
+                smd._changelog_message = "SopMerakiDeviceUtils.claim_devices_to_inventory"
+                smd.full_clean()
+                smd.save()
+            else:
+                log.log_warning(f"SopmerakiDevice {serial} is not yet linked to a Netbox Device but also has no netbox_device_type !")
+            ret.append(smd)
+        log.log_info(f"Refresh done !")
+        return ret
+
+    @staticmethod
+    def __get_model_to_role_mapping(model:str)->DeviceRole:
+        for k,v in SopMerakiDeviceUtils.__dtmodel_roleslug_mapping.items():
+            if not model.startswith(k):
+                continue
+            rls=DeviceRole.objects.filter(slug=v)
+            if not rls.exists():
+                raise AbortRequest(f"Cannot find DeviceRole with slug {v} !")
+            return rls[0]
+        v=SopMerakiDeviceUtils.__unknown_role_mapping
+        rls=DeviceRole.objects.filter(slug=v)
+        if not rls.exists():
+            raise AbortRequest(f"Cannot find DeviceRole with slug {v} !")
+        return rls[0]
 
 
 class SopMerakiSwitchStackUtils:
