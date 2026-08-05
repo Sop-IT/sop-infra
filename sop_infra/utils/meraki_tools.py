@@ -10,7 +10,7 @@ from django.db.models.functions.math import Mod
 from ipam.models.ip import IPAddress
 from sop_infra.models.infra import SopInfra
 from sop_infra.utils.meraki_early_access import EarlyAccessAppliance
-from sop_infra.utils.meraki_utils import SopMerakiUtils
+from sop_infra.utils.meraki_utils import SopMerakiRegexps, SopMerakiUtils
 from sop_infra.utils.DHCPUtils import TargetPrefix
 from sop_infra.utils.netbox_utils import NetboxHelpers
 from sop_infra.utils.umbrella_utils import SopUmbrellaUtils
@@ -1301,7 +1301,7 @@ class NetboxSiteMerakiUpdater():
                 f"Impossible to match Meraki networks to this site slug '{self.__site.slug}' !"
             )
             self.__logger.log_warning(
-                f"Please verify both your slug (lower case match) and your Meraki network naming (must match {SopRegExps.meraki_sitename_str})."
+                f"Please verify both your slug (lower case match) and your Meraki network naming (must match {SopMerakiRegexps.meraki_sitename_str})."
             )
             return
         org_ids: list[str] = list()
