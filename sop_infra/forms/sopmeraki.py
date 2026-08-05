@@ -245,32 +245,6 @@ class SopMerakiOrgRefreshChooseForm(forms.Form):
         }
 
 
-
-class SopMerakiOrgClaimForm(forms.Form):
-
-    serials = forms.RegexField(
-        widget=forms.Textarea,
-        required=True,
-        regex=SopMerakiRegexps.meraki_list_of_serials_txt,
-        help_text="Input serial numbers (XXXX-XXXX-XXXX), separated by commas and/or whitespace",
-    )
-
-    fieldsets = (
-        FieldSet("serials"),
-    )
-
-    def clean(self):
-        data = super().clean()
-        serials_txt = data.get("serials")
-        if not serials_txt:
-            raise forms.ValidationError(
-                "Only Meraki serial numbers separated by commas are accepted"
-            )
-        return {
-            "serials_list": SopMerakiUtils.clean_serials_txt(serials_txt),
-        }
-
-
 class SopMerakiNetRefreshChooseForm(forms.Form):
 
     net = DynamicModelChoiceField(queryset=SopMerakiNet.objects.all(), required=False)
@@ -308,3 +282,30 @@ class SopMerakiNetRefreshChooseForm(forms.Form):
             "details": details,
             "return_url": return_url,
         }
+
+
+class SopMerakiOrgClaimForm(forms.Form):
+
+    serials = forms.RegexField(
+        widget=forms.Textarea,
+        required=True,
+        regex=SopMerakiRegexps.meraki_list_of_serials_txt,
+        help_text="Input serial numbers (XXXX-XXXX-XXXX), separated by commas and/or whitespace",
+    )
+
+    fieldsets = (
+        FieldSet("serials"),
+    )
+
+    def clean(self):
+        data = super().clean()
+        serials_txt = data.get("serials")
+        if not serials_txt:
+            raise forms.ValidationError(
+                "Only Meraki serial numbers separated by commas are accepted"
+            )
+        return {
+            "serials_list": SopMerakiUtils.clean_serials_txt(serials_txt),
+        }
+
+    
