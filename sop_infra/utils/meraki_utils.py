@@ -1,5 +1,6 @@
 import re
 
+from django.db import transaction
 from django.utils.timezone import now as django_now
 from zoneinfo import ZoneInfo
 
@@ -307,6 +308,16 @@ class SopMerakiUtils:
         smd:SopMerakiDash = smo.dash
         conn = cls.connect(smd.nom, smd.api_url, simulate)       
         return SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, conn, log, False)
+
+
+    @classmethod
+    def move_devices_to_network(
+        cls,  log:JobRunnerLogMixin, simulate: bool, smn:SopMerakiNet, devices:list[SopMerakiDevice] 
+    )-> list[SopMerakiDevice]:
+        print(f"SopMerakiUtils.move_devices_to_network : claiming {len(devices)} devices to {smn} net")
+        smd:SopMerakiDash = smn.org.dash
+        conn = cls.connect(smd.nom, smd.api_url, simulate)       
+        return SopMerakiDeviceUtils.move_devices_to_network(smn, devices, conn, log, False)
 
 
     @classmethod
@@ -1414,6 +1425,46 @@ class SopMerakiDeviceUtils:
         if not rls.exists():
             raise AbortRequest(f"Cannot find DeviceRole with slug {v} !")
         return rls[0]
+
+    @staticmethod
+    def move_devices_to_network(
+        smn: SopMerakiNet,
+        devices : list[SopMerakiDevice],
+        conn: meraki.DashboardAPI,
+        log: JobRunnerLogMixin,
+        details:bool
+    ) -> list[SopMerakiDevice]:
+        ret:list[SopMerakiDevice]=list()
+        # extrat serials
+        serials:list[str]=list()
+        for d in devices:
+            serials.append(d.serial)
+        log.log_info(f"Trying to claim {serials}...")
+        result=conn.networks.claimNetworkDevices(smn.meraki_id, serials=serials)
+        errs=result.get("errors")
+        if errs and len(errs)>0:
+            log.log_failure(f"Claim to {smn} had errors : {errs}")
+            return list()
+        # claim into network succeeded !
+        log.log_info(f"Move {serials} to {smn}...")
+        # let's update our meraki and netbox devices 
+        with transaction.atomic():
+            for d in devices:
+                d.snapshot()
+                d.meraki_network=smn
+                d.meraki_netid=smn.meraki_id
+                d.full_clean()
+                d.save()
+                ret.append(d)
+                if d.has_netbox_device:
+                    nd=d.netbox_device
+                    nd.snapshot()
+                    nd.site=smn.site
+                    nd.full_clean()
+                    nd.save()
+        # TODO : handle fuckup here 
+        log.log_info(f"Move {serials} to {smn} done !")
+        return ret
 
 
 class SopMerakiSwitchStackUtils:
