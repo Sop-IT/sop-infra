@@ -24,7 +24,7 @@ from tenancy.models import Contact
 from extras.models import Tag
 
 from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopInfraRefreshForm, SopMerakiClaimForm
-from sop_infra.jobs import SopMerakiClaimDevicesToInfraJob, SopMerakiCreateNetworkJob, SopMerakiDashRefreshJob, SopSyncAdUsers
+from sop_infra.jobs import SopInfraRefreshJob, SopMerakiClaimDevicesToInfraJob, SopMerakiCreateNetworkJob, SopMerakiDashRefreshJob, SopSyncAdUsers
 from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraConstants
 from sop_infra.forms import *
@@ -1159,33 +1159,13 @@ class SopInfraRefreshChooseView(AccessMixin, View):
         form = self.form(data=request.POST, files=request.FILES)
         if form.is_valid():
             data: dict = form.cleaned_data
-            infra = data["infra"]
+            infras = data["infras"]
             return_url = data["return_url"]
             details = data["details"]
 
             # Launch job
-            j: Job = None
-            # TODO coder
-            #j=SopMerakiDashRefreshJob.launch_manual(infra=infra, details=details)
-            # Send to script result
+            j: Job = SopInfraRefreshJob.launch_manual(infras, details=details)
+            
             url = reverse("core:job", args=[j.pk])
             return redirect(url)
 
-
-class SopInfraRefreshView(AccessMixin, View):
-    
-    def post(self, request, pk, *args, **kwargs):
-
-        instance = get_object_or_404(SopMerakiDash, pk=pk)
-
-        if not SopUtils.check_permission(request.user, instance, "refresh"):
-            return self.handle_no_permission()
-
-        # Launch job
-        j: Job = None
-        # TODO coder
-        # SopMerakiDashRefreshJob.launch_manual(dashs=[instance], details=False)
-
-        # Send to script result
-        url = reverse("core:job", args=[j.pk])
-        return redirect(url)

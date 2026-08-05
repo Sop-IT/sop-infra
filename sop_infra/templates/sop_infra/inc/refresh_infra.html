@@ -5,14 +5,14 @@
     {% csrf_token %}
     <input type="hidden" name="infra" value="{{ object.pk }}">
     <button type="submit" class="btn btn-primary">
-      <i class="mdi mdi-refresh" title="Refresh SopInfra"></i> 
-      Refresh dashboards
+      <i class="mdi mdi-cloud-sync" title="Refresh SopInfra"></i> 
+      Refresh SopInfra
     </button>
   </form>
 {% else %}
 <a href="{% url 'plugins:sop_infra:sopinfra_refresh_choose' %}?return_url={{ request.get_full_path }}" type="button" class="btn btn-primary">
-  <i class="mdi mdi-refresh" title="Refresh SopInfra"></i>
-  Refresh dashboards
+  <i class="mdi mdi-cloud-sync" title="Refresh SopInfra"></i>
+  Refresh SopInfra
 </a>
 {% endif %}
 

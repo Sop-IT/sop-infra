@@ -7,7 +7,7 @@ from utilities.urls import get_model_urls
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
 
 from sop_infra.models.infra import SopInfra, SopSwitchTemplate
-from sop_infra.views.infra import SopInfraHelperDhcp, SopMerakiClaimDevicesView, SopMerakiCreateNetworksView, SopMerakiEditView
+from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraRefreshChooseView, SopMerakiClaimDevicesView, SopMerakiCreateNetworksView, SopMerakiEditView
 from sop_infra.views.infra import SopInfraListView, SopInfraDetailView, SopInfraEditView, SopInfraDeleteView, SopInfraRecomputeSizingView
 from sop_infra.views.infra import SopDeviceSettingDetailView, SopDeviceSettingEditView, SopDeviceSettingTryManageInNetbox
 from sop_infra.views.infra import SopSwitchTemplateListView, SopSwitchTemplateDetailView, SopSwitchTemplateEditView, SopSwitchTemplateDeleteView
@@ -70,7 +70,7 @@ urlpatterns = [
     path('edit/<int:pk>/', SopInfraEditView.as_view(), name='sopinfra_edit'),
     path('delete/<int:pk>/', SopInfraDeleteView.as_view(), name='sopinfra_delete'),
 
-    path('sopinfra/refresh/', SopMerakiDashRefreshChooseView.as_view(), name='sopinfra_refresh_choose'),
+    path('sopinfra/refresh/', SopInfraRefreshChooseView.as_view(), name='sopinfra_refresh_choose'),
     path('sopinfra/<int:pk>/journal', ObjectJournalView.as_view(), name='sopinfra_journal', kwargs={'model': SopInfra}),
     path('sopinfra/<int:pk>/changelog', ObjectChangeLogView.as_view(), name='sopinfra_changelog', kwargs={'model': SopInfra}),
     path('sopinfra/<int:pk>/jobs', ObjectJobsView.as_view(), name='sopinfra_jobs', kwargs={'model': SopInfra}),

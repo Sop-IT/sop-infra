@@ -615,3 +615,36 @@ class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
         self.log_info(f"  --> {len(self.tenant_nonO365_domain_names.keys())} domains loaded")
         
 #endregion
+
+
+#region SOPINFRA
+
+
+class SopInfraRefreshJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Refresh Meraki network for SopInfras"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            infras=kwargs.pop('infras', None)
+            details=kwargs.pop('details', False)
+            SopMerakiUtils.refresh_infras(self, settings.DEBUG, infras, details)
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        # finally:
+        #     self.job.data = self.get_job_data()       
+
+    @staticmethod
+    def launch_manual(infras:list[SopInfra], details:bool)->Job:
+        if settings.DEBUG:
+            return SopInfraRefreshJob.enqueue(immediate=True, infras=infras, details=details)
+        return SopInfraRefreshJob.enqueue(infras=infras, details=details)
+
+# endregion

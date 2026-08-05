@@ -33,6 +33,9 @@
   {% if object.pk and request.user|can_recompute_sizing:object %}
     {% include 'sop_infra/inc/recompute_sizing.html' %}
   {% endif %}
+  {% if object.pk and request.user|can_refresh:object %}
+    {% include 'sop_infra/inc/refresh_infra.html' %}
+  {% endif %}
   {% if perms.extras.add_bookmark and object.bookmarks %}
     {% bookmark_button object %}
   {% endif %}

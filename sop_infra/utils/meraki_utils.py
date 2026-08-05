@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from dcim.models import Device, DeviceType, Region, Site, SiteGroup
 from dcim.models.devices import DeviceRole
 from netbox.context import current_request
-from sop_infra.models.infra import SopDeviceSetting
+from sop_infra.models.infra import SopDeviceSetting, SopInfra
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiDevice, SopMerakiNet, SopMerakiOrg, SopMerakiSwitchStack
 from sop_infra.utils.mixins import JobRunnerLogMixin
 from sop_infra.utils.umbrella_utils import SopUmbrellaUtils
@@ -150,7 +150,7 @@ class SopMerakiUtils:
 
     @classmethod
     def refresh_networks(
-        cls, log: JobRunnerLogMixin, simulate: bool, nets: list, details: bool = False
+        cls, log: JobRunnerLogMixin, simulate: bool, nets: list[SopMerakiNet], details: bool = False
     ):
         if nets is None or len(nets) == 0:
             nets = SopMerakiNet.objects.all()  # type: ignore
@@ -164,6 +164,35 @@ class SopMerakiUtils:
             if log:
                 log.info(f"Trying to refresh '{smn.nom}'")
             SopMerakiNetUtils.refresh_from_meraki(smn, conn, smo, log, details)
+
+    @classmethod
+    def refresh_infras(
+        cls, log: JobRunnerLogMixin, simulate: bool, infras: list[SopInfra], details: bool = False
+    ):
+        if infras is None or len(infras) == 0:
+            infras = SopInfra.objects.all()  # type: ignore
+        soi:SopInfra
+        for soi in infras:
+            smo:SopMerakiOrg=SopMerakiUtils.get_site_meraki_org(soi.site)
+            if smo is None:
+                continue
+            smd:SopMerakiDash=smo.dash
+            if log:
+                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+            conn = cls.connect(smd.nom, smd.api_url, simulate)
+            nets=conn.organizations.getOrganizationNetworks(smo.meraki_id, total_pages=-1)
+            for net_data in nets:
+                site_name=SopMerakiUtils.extractSiteName(net_data.get("name"))
+                print(f"{site_name=} {soi.site.slug=}")
+                if site_name==soi.site.slug:
+                    if not SopMerakiNet.objects.filter(meraki_id=net_data["id"]).exists():
+                        if log:
+                            log.info(f"Creating new NET for '{net_data['id']}' on ORG '{smo.nom}'...")
+                        smn = SopMerakiNet()
+                    else:
+                        smn = SopMerakiNet.objects.get(meraki_id=net_data["id"])
+                    SopMerakiNetUtils.refresh_from_meraki_data(smn, conn, net_data, smo, log, details)
+
 
     @classmethod
     def update_connectivity_statuses_dashboards(
