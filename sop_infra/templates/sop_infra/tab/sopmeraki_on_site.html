@@ -7,7 +7,6 @@
 
 
 {% block controls %}
-  
   <div class="btn-list justify-content-end mb-2">
   {% include 'sop_infra/tools/sopmeraki.html' with site=object %}
   {% if request.user|can_change:infra and infra.pk %}
@@ -16,6 +15,9 @@
     </a>
   {% endif %}
   </div>
+  {% if object.pk and request.user|can_claim_devices:object %}
+    {% include 'sop_infra/inc/btn/sopinfra_claim_devices_btn.html' wiht object=infra %}
+  {% endif %}
 {% endblock controls %}
 
 

@@ -38,6 +38,9 @@
   {% if request.user|can_delete:object %}
     {% delete_button object %}
   {% endif %}
+  {% if object.site and request.user|can_claim_devices:object.site %}
+    {% include 'sop_infra/inc/btn/sopinfra_claim_devices_btn.html' %}
+  {% endif %}
 {% endblock control-buttons %}
 
 
