@@ -104,10 +104,10 @@ menu = PluginMenu(
                     permissions=[f"sop_infra.view_sopinfra"],
                     buttons=(
                         PluginMenuButton(
-                            link=f"plugins:sop_infra:sopinfra_refresh",
+                            link=f"plugins:sop_infra:recompute_sizing",
                             title="Recompute",
                             icon_class="mdi mdi-refresh",
-                            permissions=[f"sop_infra.change_sop_infra"],
+                            permissions=[f"sop_infra.recompute_sizing_sopinfra"],
                         ),
                     ),
                 ),

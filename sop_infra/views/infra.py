@@ -23,8 +23,8 @@ from ipam.models import IPAddress, Role
 from tenancy.models import Contact
 from extras.models import Tag
 
-from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopMerakiClaimForm
-from sop_infra.jobs import SopMerakiClaimDevicesToInfraJob, SopMerakiCreateNetworkJob, SopSyncAdUsers
+from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopInfraRefreshForm, SopMerakiClaimForm
+from sop_infra.jobs import SopMerakiClaimDevicesToInfraJob, SopMerakiCreateNetworkJob, SopMerakiDashRefreshJob, SopSyncAdUsers
 from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraConstants
 from sop_infra.forms import *
@@ -46,7 +46,7 @@ __all__ = (
     "SopInfraListView",
     "SopInfraDeleteView",
     "SopInfraDetailView",
-    "SopInfraRefreshView",
+    "SopInfraRecomputeSizingView",
     # "SopInfraRefreshNoForm",
     # "SopInfraBulkEditView",
     # "SopInfraBulkDeleteView",
@@ -557,12 +557,12 @@ class SopMerakiCreateNetworksView(AccessMixin, View):
 
 
 
-class SopInfraRefreshView(AccessMixin, View):
+class SopInfraRecomputeSizingView(AccessMixin, View):
     """
     refresh targeted sopinfra computed values
     """
 
-    form = SopInfraRefreshForm
+    form = SopInfraRecomputeSizingForm
     template_name: str = "sop_infra/tools/refresh_form.html"
 
     def get(self, request, *args, **kwargs):
@@ -1056,3 +1056,136 @@ class SopInfraHelperDhcp(AccessMixin, View):
 
 
 #endregion HELPER VIEWS
+
+
+class SopInfraRecomputeSizingView(AccessMixin, View):
+    """
+    refresh targeted sopinfra computed values
+    """
+
+    form = SopInfraRecomputeSizingForm
+    template_name: str = "sop_infra/tools/refresh_form.html"
+
+    def get(self, request, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
+            return self.handle_no_permission()
+
+        restrict_form_fields(self.form(), request.user)
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": self.form(),
+                "return_url": reverse("plugins:sop_infra:sopinfra_list"),
+            },
+        )
+
+    def post(self, request, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(get_permission_for_model(SopInfra, "change")):
+            return self.handle_no_permission()
+
+        return_url = reverse("plugins:sop_infra:sopinfra_list")
+
+        form = self.form(data=request.POST, files=request.FILES)
+        if form.is_valid():
+            data: dict = form.cleaned_data
+            return_url = data["return_url"]
+            self.refresh_infra(data["infra"])
+            return redirect(return_url)
+
+        return render(
+            request, self.template_name, {"form": self.form(), "return_url": return_url}
+        )
+
+    def refresh_infra(self, queryset):
+        instance: SopInfra
+        for instance in queryset:
+            # on snappe pour être sûrs
+            instance.snapshot()
+            if instance.calc_cumul_and_propagate():
+                # si ça a changé, on déclenche le recalcul
+                instance.full_clean()
+                # Puis on sauve
+                instance.save()
+        try:
+            request: HttpRequest = current_request.get()  # type: ignore
+            messages.success(request, f"Successfully recomputed SopInfra sizing.")
+        except:
+            pass
+
+
+class SopInfraRefreshChooseView(AccessMixin, View):
+    """
+    refresh the sopinfras
+    """
+
+    form = SopInfraRefreshForm
+    template_name: str = "sop_infra/actions/sopinfra_refresh.html"
+
+    def get(self, request, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(
+            get_permission_for_model(SopInfra, "refresh")
+        ):
+            return self.handle_no_permission()
+
+        restrict_form_fields(self.form(), request.user)
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": self.form(),
+                "return_url": reverse("plugins:sop_infra:sopinfra_list"),
+            },
+        )
+
+    def post(self, request, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(
+            get_permission_for_model(SopInfra, "refresh")
+        ):
+            return self.handle_no_permission()
+
+        return_url = reverse("plugins:sop_infra:sopinfra_list")
+
+        form = self.form(data=request.POST, files=request.FILES)
+        if form.is_valid():
+            data: dict = form.cleaned_data
+            infra = data["infra"]
+            return_url = data["return_url"]
+            details = data["details"]
+
+            # Launch job
+            j: Job = None
+            # TODO coder
+            #j=SopMerakiDashRefreshJob.launch_manual(infra=infra, details=details)
+            # Send to script result
+            url = reverse("core:job", args=[j.pk])
+            return redirect(url)
+
+
+class SopInfraRefreshView(AccessMixin, View):
+    
+    def post(self, request, pk, *args, **kwargs):
+
+        instance = get_object_or_404(SopMerakiDash, pk=pk)
+
+        if not SopUtils.check_permission(request.user, instance, "refresh"):
+            return self.handle_no_permission()
+
+        # Launch job
+        j: Job = None
+        # TODO coder
+        # SopMerakiDashRefreshJob.launch_manual(dashs=[instance], details=False)
+
+        # Send to script result
+        url = reverse("core:job", args=[j.pk])
+        return redirect(url)

@@ -26,7 +26,7 @@ __all__ = (
     "SopInfraFilterForm",
     "SopInfraSizingFilterForm",
     "SopInfraClassificationFilterForm",
-    "SopInfraRefreshForm",
+    "SopInfraRecomputeSizingForm",
     "SopSwitchTemplateForm",
     "SopSwitchTemplateFilterForm",
     "SopDeviceSettingForm",
@@ -537,8 +537,9 @@ class SopInfraFilterForm(
     )
 
 
-class SopInfraRefreshForm(forms.Form):
+class SopInfraRecomputeSizingForm(forms.Form):
 
+    infra = DynamicModelChoiceField(queryset=SopInfra.objects.all(), required=False)
     site = DynamicModelChoiceField(queryset=Site.objects.all(), required=False)
     region = DynamicModelChoiceField(queryset=Region.objects.all(), required=False)
     group = DynamicModelChoiceField(queryset=SiteGroup.objects.all(), required=False)
@@ -609,9 +610,12 @@ class SopInfraRefreshForm(forms.Form):
  skipped: You cannot recompute sizing on -DC- status site.",
             )
 
-        infra = SopInfra.objects.filter(
-            site__in=(sites.exclude(status="dc").distinct())
-        )
+        infra = SopInfra.objects.none()
+        if data["infra"]:
+            infra |= SopInfra.objects.filter(pk=data["infra"].pk)        
+
+        # Exclude DC + make distinct
+        infra = infra.exclude(site__status="dc").distinct()
 
         return_url = (
             f"{base_url}?{normalize_queryset(infra.values_list('id', flat=True))}"
@@ -909,3 +913,42 @@ class SopInfraHelperDhcpForm(forms.Form):
 
         # Return clean data
         return data
+
+
+class SopInfraRefreshForm(forms.Form):
+
+    infra = DynamicModelChoiceField(queryset=SopInfra.objects.all(), required=False)
+    details = forms.BooleanField(required=False)
+
+    def clean(self):
+        data = super().clean()
+        infras = SopInfra.objects.none()
+        base_url = reverse("plugins:sop_infra:sopinfra_list")
+        request: HttpRequest = current_request.get()  # type: ignore
+
+        def normalize_queryset(obj):
+            qs = [str(item) for item in obj]
+            if qs == []:
+                return None
+            return f"id=" + "&id=".join(qs)
+
+        if data["infra"]:
+            infras = SopInfra.objects.filter(pk=data["infra"].pk)
+        else:
+            infras = SopInfra.objects.all()
+
+        return_url = (
+            f"{base_url}?{normalize_queryset(infras.values_list('id', flat=True))}"
+        )
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+
+        details: bool = False
+        if data["details"]:
+            details = data["details"]
+
+        return {
+            "infras": infras,
+            "details": details,
+            "return_url": return_url,
+        }
