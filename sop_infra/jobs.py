@@ -8,6 +8,8 @@ from django.db.models import Count
 from netbox.jobs import JobRunner, Job, JobStatusChoices
 
 from dcim.models import Site
+from sop_infra.models.infra import SopInfra
+from sop_infra.utils.meraki_objects import MerakiConstants
 from tenancy.models import Contact, Tenant
 from extras.models import Notification
 
@@ -75,7 +77,57 @@ class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):
         if message:
             messages.success(request, f'Started job #{job.pk} to claim {len(serials)} devices to inventory for org {org} !')           
         return job
+
+
+class SopMerakiClaimDevicesToInfraJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Claim devices to Sop Infrastructure inventory"
+
+    def run(self, *args, **kwargs):
+        soi:SopInfra=kwargs.pop('soi')
+        lst:list[SopMerakiDevice] = SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, 
+            smo=soi.org, serials=kwargs.pop('serials'))
+        data:dict[str,list[str]]=dict()
+        if soi.claim_net_mr:
+            mrs:list[SopMerakiDevice]=list()
+            sers:list[str]=list()
+            for d in lst:
+                if d.ptype == SopMerakiUtils.DEV_TYPE_MR:
+                    mrs.append(d)
+                    sers.append[d.serial]
+            if mrs.count()>0:
+                SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mr, devices=mrs)
+            data[soi.claim_net_mr.meraki_id]=sers
+        if soi.claim_net_mx:
+            devs:list[SopMerakiDevice]=list()
+            sers:list[str]=list()
+            for d in lst:
+                if d.ptype != SopMerakiUtils.DEV_TYPE_MR:
+                    devs.append(d)
+                    sers.append[d.serial]
+            if devs.count()>0:
+                SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mx, devices=devs)
+            data[soi.claim_net_mx.meraki_id]=sers
+        self.job.data=data
+
+    @staticmethod
+    def launch_interactive(request, message:bool, soi:SopInfra, serials:list[str], )->Job:
+        job:Job=SopMerakiClaimDevicesToInfraJob.enqueue(instance=soi, user=request.user, immediate=True, soi=soi, serials=serials)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Claimed {len(serials)} devices to networks for sopinfra {soi} !')
+            else:
+                messages.error(request, f'Failed to claim {len(serials)} devices to networks for sopinfra {soi}, see logs for job #{job.pk} !')
+        return job
     
+    @staticmethod
+    def launch_background(request, message:bool, org:SopMerakiOrg, serials:list[str], soi:SopInfra)->Job:    
+        job:Job=SopMerakiClaimDevicesToInfraJob.enqueue(instance=soi, user=request.user, immediate=True, soi=soi, serials=serials)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to claim {len(serials)} devices to networks for sopinfra {soi} !')           
+        return job
+        
 
 
 # --------------------------------------------------------------------------------------------------------
