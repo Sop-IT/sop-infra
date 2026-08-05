@@ -315,6 +315,8 @@ class SopMerakiUtils:
         cls,  log:JobRunnerLogMixin, simulate: bool, smn:SopMerakiNet, devices:list[SopMerakiDevice] 
     )-> list[SopMerakiDevice]:
         print(f"SopMerakiUtils.move_devices_to_network : claiming {len(devices)} devices to {smn} net")
+        if smn is None:
+            raise AbortRequest(f"Destination Meraki Network is not set !")
         smd:SopMerakiDash = smn.org.dash
         conn = cls.connect(smd.nom, smd.api_url, simulate)       
         return SopMerakiDeviceUtils.move_devices_to_network(smn, devices, conn, log, False)
