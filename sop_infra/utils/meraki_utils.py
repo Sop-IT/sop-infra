@@ -20,7 +20,7 @@ from tenancy.models import Tenant, TenantGroup
 import meraki
 from django.contrib import messages
 
-from utilities.exceptions import AbortRequest
+from utilities.exceptions import AbortRequest, AbortScript
 
 class SopMerakiRegexps:
 
@@ -261,15 +261,15 @@ class SopMerakiUtils:
 
     @classmethod
     def create_meraki_networks(
-        cls, log: JobRunnerLogMixin, simulate: bool, site: Site, details: bool = False
+        cls, log: JobRunnerLogMixin, simulate: bool, sopinfra: SopInfra, details: bool = False
     ):
         if log and details:
-            log.log_debug(f"create_meraki_networks for site {site}")
+            log.log_debug(f"create_meraki_networks for site {sopinfra}")
+        site:Site=sopinfra.site
         # Check site sopinfra for existing nets
         if site.meraki_nets.exists():  # type: ignore
             if log and details:
-                log.log_failure(f"SopMerakiNets already exist for site {site}...")
-            return
+                raise AbortScript(f"SopMerakiNets already exist for site {site}...")
         # Get claim org from region hierarchy
         region: Region = site.region  # type: ignore
         org_id: int = None  # type: ignore

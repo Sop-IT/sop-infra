@@ -1,4 +1,4 @@
-{% extends "generic/object.html" %}
+{% extends "sop_infra/sopinfra/generic.html" %}
 {% load buttons %}
 {% load custom_links %}
 {% load helpers %}
@@ -6,54 +6,137 @@
 {% load plugins %}
 {% load sop_perms %}
 {% load sop_buttons %}
+{% load sopinfra_buttons %}
 {% load infra_custom_tags %}
 {% load i18n %}
 
 
 {% block breadcrumbs %}
   {{ block.super }}
-  {% if object.site.region %}
-    {% for region in object.site.region.get_ancestors %}
-      <li class="breadcrumb-item"><a href="{% url 'dcim:site_list' %}?region_id={{ region.pk }}">{{ region }}</a></li>
-    {% endfor %}
-    <li class="breadcrumb-item"><a href="{% url 'dcim:site_list' %}?region_id={{ object.site.region.pk }}">{{ object.site.region }}</a></li>
-  {% elif object.site.group %}
-    {% for group in object.site.group.get_ancestors %}
-      <li class="breadcrumb-item"><a href="{% url 'dcim:site_list' %}?group_id={{ group.pk }}">{{ group }}</a></li>
-    {% endfor %}
-    <li class="breadcrumb-item"><a href="{% url 'dcim:site_list' %}?group_id={{ object.site.group.pk }}">{{ object.site.group }}</a></li>
-  {% endif %}
 {% endblock %}
 
 
-{% block control-buttons %}
-  {% if object.pk and request.user|can_claim_devices:object %}
-    {% include 'sop_infra/inc/sopinfra_claim_devices_btn.html' %}
+{% block custom-links %}
+  {{ block.super }}
+  {% if object.status and object.status == 'dc' %}
+  {% else %}
+      {% if object.pk and request.user|can_recompute_sizing:object %}
+        {% include 'sop_infra/inc/recompute_sizing.html' %}
+      {% endif %}
+      {% if object.pk and request.user|can_refresh:object %}
+        {% include 'sop_infra/inc/refresh_infra.html' %}
+      {% endif %} 
   {% endif %}
-  {% if object.pk and request.user|can_recompute_sizing:object %}
-    {% include 'sop_infra/inc/recompute_sizing.html' %}
-  {% endif %}
-  {% if object.pk and request.user|can_refresh:object %}
-    {% include 'sop_infra/inc/refresh_infra.html' %}
-  {% endif %}
-  {% if perms.extras.add_bookmark and object.bookmarks %}
-    {% bookmark_button object %}
-  {% endif %}
-  {% if perms.extras.add_subscription and object.subscriptions %}
-    {% subscribe_button object %}
-  {% endif %}
-  {% if request.user|can_change:object %}
-    {% edit_button object %}
-  {% endif %}
-  {% if request.user|can_delete:object %}
-    {% delete_button object %}
-  {% endif %}
-{% endblock control-buttons %}
+{% endblock custom-links %}
+
 
 
 
 {% block title %}{{object}}{% endblock %}
 
 {% block content %}
-  {% include "sop_infra/inc/sopinfra_content.html" with object=infra %}
+<div class="row">
+
+  <div class="col col-md-6">
+    <!-- SUPPORT INFO CARD -->
+    <div class="card">
+      <h2 class="card-header">Support info</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">ISILOG Code</th>
+          <td>
+            {{object.isilog_code}}
+          </td>
+        </tr>   
+        {% include 'sop_infra/tools/display_detail.html' with name="criticality_stars" %}
+      </table>
+    </div>
+    <!-- SIZING CARD -->
+    <div class="card">
+      <h2 class="card-header">Sizing information</h5>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="site_infra_sysinfra" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_type_indus" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_phone_critical" badge=1 %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_type_red" badge=1 %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_type_vip" badge=1 %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_type_wms" badge=1 %}
+      </table>
+    </div>
+    <!-- CENTREON CARD -->
+    <div class="card">
+      <h2 class="card-header">{% trans "Centreon" %}</h2>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">Is centreon active ?</th>
+          <td>
+            {% include 'sop_infra/tools/badge.html' with object=object.centreon_active %}
+          </td>
+        </tr>   
+      </table>
+    </div>
+
+  </div>
+
+  <div class="col col-md-6">
+    <!-- SITES + MASTER/SLAVE CARD -->
+    <div class="card">
+      <h2 class="card-header">Site, user count & master/slave</h2>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">Site</th>
+          <td>
+            {{object.site|linkify|placeholder}}
+          </td>
+        </tr>   
+        {% include 'sop_infra/tools/display_detail.html' with name="site_user_count" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="site_sdwan_master_location" link=1 view="" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="master_site" link=1 view="" %}
+      </table>
+    </div>
+
+    <!-- SDWAN TARGET CARD -->
+    <div class="card">
+      <h2 class="card-header">{% trans "SDWAN target" %}</h2>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="sdwanha" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="wan_reco_bw" %}
+      </table>
+    </div>
+
+    <!-- CURRENT LINK INFO CARD -->
+    <div class="card">
+      <h2 class="card-header">{% trans "Current link info" %}</h2>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="sdwan1_bw" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="sdwan2_bw" %}
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function()
+  {
+    const all_tabs = document.querySelectorAll('ul.nav.nav-tabs li.nav-item a');
+    update_current_tab_color(all_tabs, 'SOP Infra')
+
+    /*
+     * update tab front background color
+     */
+    function update_current_tab_color(all_tabs, tab_name)
+    {
+      all_tabs.forEach(tab => {
+        if (tab.innerText.trim() == "Site") {
+          tab.classList.remove('active');
+        } else if (tab.innerText.trim() == tab_name) {
+          tab.classList.add('active');
+        }
+      });
+    }
+  });
+</script>
+
 {% endblock content %}

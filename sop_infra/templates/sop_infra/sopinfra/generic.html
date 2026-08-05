@@ -1,0 +1,27 @@
+{% extends "generic/object.html" %}
+{% load buttons %}
+{% load custom_links %}
+{% load helpers %}
+{% load perms %}
+{% load plugins %}
+{% load sop_perms %}
+{% load sop_buttons %}
+{% load sopinfra_buttons %}
+{% load infra_custom_tags %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+  {{ block.super }}
+  {% if object.site.region %}
+    {% for region in object.site.region.get_ancestors %}
+      <li class="breadcrumb-item"><a href="{% url 'dcim:site_list' %}?region_id={{ region.pk }}">{{ region }}</a></li>
+    {% endfor %}
+    <li class="breadcrumb-item"><a href="{% url 'dcim:site_list' %}?region_id={{ object.site.region.pk }}">{{ object.site.region }}</a></li>
+  {% elif object.site.group %}
+    {% for group in object.site.group.get_ancestors %}
+      <li class="breadcrumb-item"><a href="{% url 'dcim:site_list' %}?group_id={{ group.pk }}">{{ group }}</a></li>
+    {% endfor %}
+    <li class="breadcrumb-item"><a href="{% url 'dcim:site_list' %}?group_id={{ object.site.group.pk }}">{{ object.site.group }}</a></li>
+  {% endif %}
+{% endblock %}
+

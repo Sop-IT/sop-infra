@@ -8,22 +8,22 @@
 
 
 
-{% block controls %}
-  <div class="btn-list justify-content-end mb-2">
-  {% if infra.pk and request.user|can_recompute_sizing:infra  %}
-    {% include 'sop_infra/inc/recompute_sizing.html' with object=infra %}
+{% block custom-links %}
+  {{ block.super }}
+  {% if infra.pk and request.user|can_view:infra  %}
+    <div class="d-flex justify-content-end">
+      <div class="btn-list">
+        <a href="{% url 'plugins:sop_infra:sopinfra_detail' pk=infra.pk %}?return_url={{ request.get_full_path }}" type="button" class="btn btn-purple">
+          <i class="mdi mdi-loupe"></i> SOP Infra detail
+        </a>
+      </div>
+    </div>
   {% endif %}
-  {% if infra.pk and request.user|can_change:infra  %}
-    <a href="{% url 'plugins:sop_infra:sopinfra_edit' pk=infra.pk %}?return_url={{ request.get_full_path }}" type="button" class="btn btn-yellow">
-      <i class="mdi mdi-pencil"></i>{% trans "Edit Infrastructure" %}
-    </a>
-  {% endif %}
-  </div>
-{% endblock controls %}
+{% endblock custom-links %}
 
 
 {% block content %}
-  {% include "sop_infra/inc/sopinfra_content.html" with object=infra %}
+  {% include "sop_infra/site/inc/sopinfra_content.html" with object=infra %}
 
 <script>
   document.addEventListener('DOMContentLoaded', function()

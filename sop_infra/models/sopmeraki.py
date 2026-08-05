@@ -113,7 +113,7 @@ class SopMerakiOrg(JobsMixin, NetBoxModel):
             ),
         ]
         permissions = [
-            ('claim_devices', 'Claim devices to inventory'),
+            ('claim_meraki_devices', 'Claim devices to inventory'),
         ]
 
 

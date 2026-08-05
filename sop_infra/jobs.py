@@ -26,26 +26,26 @@ from utilities.exceptions import AbortRequest
 class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
-        name = "Refresh Meraki dashboards"
+        name = "Create Meraki Networks"
 
     def run(self, *args, **kwargs):
-        SopMerakiUtils.create_meraki_networks(self, False, kwargs.pop('site'), kwargs.pop('details'))
+        SopMerakiUtils.create_meraki_networks(self, False, kwargs.pop('sopinfra'), kwargs.pop('details'))
 
     @staticmethod
-    def launch_interactive(request, message:bool, site:Site, details:bool=False)->Job:
-        job:Job=SopMerakiCreateNetworkJob.enqueue(user=request.user, immediate=True, site=site, details=details)
+    def launch_interactive(request, message:bool, sopinfra:SopInfra, details:bool=False)->Job:
+        job:Job=SopMerakiCreateNetworkJob.enqueue(user=request.user, immediate=True, sopinfra=sopinfra, details=details, instance=sopinfra)
         if message:
             if job.status==JobStatusChoices.STATUS_COMPLETED:
-                messages.success(request, f'Created Meraki Networks for site {site} !')
+                messages.success(request, f'Created Meraki Networks for site {sopinfra} !')
             else:
-                messages.error(request, f'Failed to create Meraki Networks for site {site}, see logs for job #{job.pk} !')
+                messages.error(request, f'Failed to create Meraki Networks for site {sopinfra}, see logs for job #{job.pk} !')
         return job
     
     @staticmethod
-    def launch_background(request, message:bool, site:Site, details:bool=False)->Job:    
-        job:Job=SopMerakiCreateNetworkJob.enqueue(user=request.user, site=site, details=details)
+    def launch_background(request, message:bool, sopinfra:SopInfra, details:bool=False)->Job:    
+        job:Job=SopMerakiCreateNetworkJob.enqueue(user=request.user, sopinfra=sopinfra, details=details, instance=sopinfra)
         if message:
-            messages.success(request, f'Started job #{job.pk} to create Meraki Networks for site {site} !')           
+            messages.success(request, f'Started job #{job.pk} to create Meraki Networks for site {sopinfra} !')           
         return job
     
 

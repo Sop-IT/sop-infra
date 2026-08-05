@@ -40,13 +40,13 @@ import netaddr
 __all__ = (
     "SopDeviceSettingTryManageInNetbox",
     "SopInfraSiteTabView",
-    "SopMerakiSiteTabView",
+    "SopInfraMerakiTabView",
     # "SopInfraAddView",
     "SopInfraEditView",
     "SopInfraListView",
     "SopInfraDeleteView",
     "SopInfraDetailView",
-    "SopInfraRecomputeSizingView",
+    "SopInfraRecomputeSizingChooseView",
     # "SopInfraRefreshNoForm",
     # "SopInfraBulkEditView",
     # "SopInfraBulkDeleteView",
@@ -192,7 +192,7 @@ class SopInfraSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
     tab = ViewTab(
         label="SOP Infra", permission=get_permission_for_model(SopInfra, "view")
     )
-    template_name: str = "sop_infra/tab/sopinfra_on_site.html"
+    template_name: str = "sop_infra/site/tabs/sopinfra_on_site.html"
     # On s'affiche sur un site
     queryset = Site.objects.all()
 
@@ -207,27 +207,25 @@ class SopInfraSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
         return context
 
 
-@register_model_view(Site, name="sopmeraki")
-class SopMerakiSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
-    """
-    creates a "SOP Meraki" tab on the site page
-    """
-
+@register_model_view(SopInfra, name="merakitab", detail=True)
+class SopInfraMerakiTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
+    
     tab = ViewTab(
-        label="SOP Meraki", permission=get_permission_for_model(SopInfra, "view")
+        label="Meraki", permission=get_permission_for_model(SopInfra, "view")
     )
-    template_name: str = "sop_infra/tab/sopmeraki_on_site.html"
-    queryset = Site.objects.all()
+    template_name: str = "sop_infra/sopinfra/tabs/sopmeraki.html"
+    queryset = SopInfra.objects.all()
 
-    def get_extra_context(self, request, instance) -> dict:
-        context = super().get_extra_context(request, instance)
-        if not instance:
-            raise Http404("No instance given.")
-        context["site"] = instance
-        if not instance.sopinfra:
-            instance.sopinfra = SopInfra.objects.create(site=instance)
-        context["infra"] = instance.sopinfra
-        return context
+    # def get_extra_context(self, request, instance) -> dict:
+    #     print(f"getaxtracontext {instance=}")
+    #     context = super().get_extra_context(request, instance)
+    #     if not instance:
+    #         raise Http404("No instance given.")
+    #     context["site"] = instance
+    #     if not instance.sopinfra:
+    #         instance.sopinfra = SopInfra.objects.create(site=instance)
+    #     context["infra"] = instance.sopinfra
+    #     return context
 
 
 
@@ -302,13 +300,6 @@ class SopInfraListView(generic.ObjectListView):
     }
 
 
-class SopMerakiEditView(generic.ObjectEditView):
-    """
-    edits an existing SopInfra instance
-    """
-
-    queryset = SopInfra.objects.all()
-    form = SopMerakiForm
 
 #endregion BASE MODEL VIEWS
 
@@ -468,7 +459,7 @@ class SopMerakiClaimDevicesView(AccessMixin, View):
         if soi.site is None:
             raise AbortScript("SopInfra site cannot be None")
         # Check perms
-        if not request.user.has_perm(get_permission_for_model(Site, "claim_devices"), obj=soi.site):
+        if not request.user.has_perm(get_permission_for_model(SopInfra, "claim_meraki_devices"), obj=soi):
             return self.handle_no_permission()
         # Check form
         restrict_form_fields(self.form(), request.user)
@@ -498,7 +489,7 @@ class SopMerakiClaimDevicesView(AccessMixin, View):
         if soi.site is None:
             raise AbortScript("SopInfra site cannot be None")
         # Check perms
-        if not request.user.has_perm(get_permission_for_model(Site, "claim_devices"), obj=soi.site):
+        if not request.user.has_perm(get_permission_for_model(SopInfra, "claim_meraki_devices"), obj=soi):
             return self.handle_no_permission()
         # Build or fetch return URL
         return_url : str
@@ -544,11 +535,11 @@ class SopMerakiCreateNetworksView(AccessMixin, View):
         elif not request.user.groups.filter(name__in=group_names):
             return self.handle_no_permission()
         # Fetch site
-        site = get_object_or_404(Site, pk=pk)
+        sopinfra=get_object_or_404(SopInfra, pk=pk)
         # Fetch details param
         details: bool = request.GET["details"] == "True"
         # Launch job
-        j: Job = SopMerakiCreateNetworkJob.launch_interactive(request, message=True, site=site, details=details)
+        j: Job = SopMerakiCreateNetworkJob.launch_interactive(request, message=True, sopinfra=sopinfra, details=details)
         # Send to script result
         url = reverse("core:job", args=[j.pk])
         if details:
@@ -557,7 +548,7 @@ class SopMerakiCreateNetworksView(AccessMixin, View):
 
 
 
-class SopInfraRecomputeSizingView(AccessMixin, View):
+class SopInfraRecomputeSizingChooseView(AccessMixin, View):
     """
     refresh targeted sopinfra computed values
     """
@@ -1058,7 +1049,7 @@ class SopInfraHelperDhcp(AccessMixin, View):
 #endregion HELPER VIEWS
 
 
-class SopInfraRecomputeSizingView(AccessMixin, View):
+class SopInfraRecomputeSizingChooseView(AccessMixin, View):
     """
     refresh targeted sopinfra computed values
     """

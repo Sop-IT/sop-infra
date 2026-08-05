@@ -7,8 +7,8 @@ from utilities.urls import get_model_urls
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
 
 from sop_infra.models.infra import SopInfra, SopSwitchTemplate
-from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraRefreshChooseView, SopMerakiClaimDevicesView, SopMerakiCreateNetworksView, SopMerakiEditView
-from sop_infra.views.infra import SopInfraListView, SopInfraDetailView, SopInfraEditView, SopInfraDeleteView, SopInfraRecomputeSizingView
+from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraRefreshChooseView, SopMerakiClaimDevicesView, SopMerakiCreateNetworksView
+from sop_infra.views.infra import SopInfraListView, SopInfraDetailView, SopInfraEditView, SopInfraDeleteView, SopInfraRecomputeSizingChooseView
 from sop_infra.views.infra import SopDeviceSettingDetailView, SopDeviceSettingEditView, SopDeviceSettingTryManageInNetbox
 from sop_infra.views.infra import SopSwitchTemplateListView, SopSwitchTemplateDetailView, SopSwitchTemplateEditView, SopSwitchTemplateDeleteView
 from sop_infra.views.infra import SopInfraSyncAdUsers,SopInfraJsonExportsAdUsers, SopInfraJsonExportsAdSites
@@ -64,32 +64,31 @@ urlpatterns = [
     path('jsonexports/connectivity_statuses/<str:ip>/', SopMerakiJsonConnectivityStatusSite.as_view(), name='jsonexports_connectivity_statuses_ip'),
 
 
-    path('<int:pk>/', SopInfraDetailView.as_view(), name='sopinfra_detail'),
-    # path('add/', SopInfraAddView.as_view(), name='sopinfra_add'),
-    # path('add/<int:pk>/', SopInfraAddView.as_view(), name='sopinfra_add'),
-    path('edit/<int:pk>/', SopInfraEditView.as_view(), name='sopinfra_edit'),
-    path('delete/<int:pk>/', SopInfraDeleteView.as_view(), name='sopinfra_delete'),
-
-    path('sopinfra/refresh/', SopInfraRefreshChooseView.as_view(), name='sopinfra_refresh_choose'),
-    path('sopinfra/<int:pk>/journal', ObjectJournalView.as_view(), name='sopinfra_journal', kwargs={'model': SopInfra}),
-    path('sopinfra/<int:pk>/changelog', ObjectChangeLogView.as_view(), name='sopinfra_changelog', kwargs={'model': SopInfra}),
-    path('sopinfra/<int:pk>/jobs', ObjectJobsView.as_view(), name='sopinfra_jobs', kwargs={'model': SopInfra}),
-    path('sopinfra/recompute_sizing', SopInfraRecomputeSizingView.as_view(), name='recompute_sizing'),
-
     # ========================================================================
-    # list views
-    path('list/', SopInfraListView.as_view(), name='sopinfra_list'),
+    # SOP INFRA - SOP INFRA VIEWS
+    path('sopinfra/', SopInfraListView.as_view(), name='sopinfra_list'),
+    path('sopinfra/<int:pk>/', SopInfraDetailView.as_view(), name='sopinfra_detail'),
+    path('sopinfra/<int:pk>/edit/', SopInfraEditView.as_view(), name='sopinfra_edit'),
+    path('sopinfra/<int:pk>/delete/', SopInfraDeleteView.as_view(), name='sopinfra_delete'),
+    # path('sopinfra/<int:pk>/journal', ObjectJournalView.as_view(), name='sopinfra_journal', kwargs={'model': SopInfra}),
+    # path('sopinfra/<int:pk>/changelog', ObjectChangeLogView.as_view(), name='sopinfra_changelog', kwargs={'model': SopInfra}),
+    # path('sopinfra/<int:pk>/jobs', ObjectJobsView.as_view(), name='sopinfra_jobs', kwargs={'model': SopInfra}),
+
+    path('sopinfra/', include(get_model_urls('sop_infra', 'sopinfra', detail=False))),
+    path('sopinfra/<int:pk>/', include(get_model_urls('sop_infra', 'sopinfra'))),
+
+
+    path('sopinfra/recompute_sizing', SopInfraRecomputeSizingChooseView.as_view(), name='recompute_sizing'),
+    path('sopinfra/refresh/', SopInfraRefreshChooseView.as_view(), name='sopinfra_refresh_choose'),
+    # WARNING : PK are SITE PKs not SOPINFRA PKs
+    path('sopinfra/create_meraki_networks/<int:pk>/', SopMerakiCreateNetworksView.as_view(), name='sopinfra_create_meraki_networks'),
+    path('sopinfra/claim_meraki_devices/<int:pk>/', SopMerakiClaimDevicesView.as_view(), name='sopinfra_claim_meraki_devices'),
+
   
     # ========================================================================
     # HELPERS
     path('helpers/dhcp', SopInfraHelperDhcp.as_view(), name='helpers_dhcp'),
 
-
-    # ========================================================================
-    # SOP INFRA - SOP MERAKI VIEWS
-    path('edit_meraki/<int:pk>/', SopMerakiEditView.as_view(), name='sopmeraki_edit'),
-    path('create_meraki_network/<int:pk>/', SopMerakiCreateNetworksView.as_view(), name='create_meraki_network'),
-    path('sopmeraki/claim_devices/<int:pk>/', SopMerakiClaimDevicesView.as_view(), name='sopmeraki_claim_devices'),
 
     # ========================================================================
     # SOP INFRA - DEVICE SETTINGS VIEWS
@@ -165,7 +164,7 @@ urlpatterns = [
     path('sopmerakiorg/<int:pk>/update_connectivity_statuses/', SopMerakiOrgUpdateConnectivityStatusesView.as_view(), name='sopmerakiorg_update_connectivity_statuses'),
     path('sopmerakiorg/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakiorg_changelog', kwargs={'model': SopMerakiOrg}),
     path('sopmerakiorg/<int:pk>/jobs/', ObjectJobsView.as_view(), name='sopmerakiorg_jobs', kwargs={'model': SopMerakiOrg}),
-    path('sopmerakiorg/<int:pk>/claim_devices', SopMerakiOrgClaimView.as_view(), name='sopmerakiorg_claim_devices'),
+    path('sopmerakiorg/<int:pk>/claim_meraki_devices', SopMerakiOrgClaimView.as_view(), name='sopmerakiorg_claim_meraki_devices'),
     
 
     # ========================================================================

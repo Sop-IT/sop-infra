@@ -21,7 +21,6 @@ from sop_infra.models import *
 
 __all__ = (
     "SopInfraForm",
-    "SopMerakiForm",
     "SopInfraMerakiFilterForm",
     "SopInfraFilterForm",
     "SopInfraSizingFilterForm",
@@ -143,74 +142,6 @@ class SopInfraForm(NetBoxModelForm):
         required=False,
         help_text=_("Does the site run WMS ?"),
     )
-
-    fieldsets = (
-        FieldSet(
-            "site_infra_sysinfra",
-            "site_type_indus",
-            "site_phone_critical",
-            "site_type_red",
-            "site_type_vip",
-            "site_type_wms",
-            name=_("Sizing information"),
-        ),
-        FieldSet(
-            "monitor_in_starting",
-            name=_("Centreon"),
-        ),
-        FieldSet("endpoint", "enabled", name=_("PRISMA")),
-        FieldSet("sdwan1_bw", "sdwan2_bw", name=_("Current link info")),
-        FieldSet(
-            "est_cumulative_users_wc",
-            "est_cumulative_users_bc",
-            "est_cumulative_users_ext",
-            "est_cumulative_users_nom",
-            "site_sdwan_master_location",
-            "master_site",
-            name=_("Site, user count & master/slave"),
-        ),
-        FieldSet(
-            "hub_order_setting",
-            "hub_default_route_setting",
-            "migration_sdwan",
-            name=_("Meraki deployment"),
-        ),
-    )
-
-    class Meta:
-        model = SopInfra
-        fields = [
-            "site_infra_sysinfra",
-            "site_type_indus",
-            "site_phone_critical",
-            "site_type_red",
-            "site_type_vip",
-            "site_type_wms",
-            "est_cumulative_users_wc",
-            "est_cumulative_users_bc",
-            "est_cumulative_users_ext",
-            "est_cumulative_users_nom",
-            "hub_order_setting",
-            "hub_default_route_setting",
-            "sdwan1_bw",
-            "sdwan2_bw",
-            "site_sdwan_master_location",
-            "master_site",
-            "migration_sdwan",
-            "monitor_in_starting",
-            "endpoint",
-            "enabled",
-        ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if "tags" in self.fields:
-            del self.fields["tags"]
-
-
-class SopMerakiForm(NetBoxModelForm):
-
     claim_net_mx = DynamicModelChoiceField(
         label=_("MX claim network"),
         # TODO filter by site org
@@ -253,21 +184,70 @@ class SopMerakiForm(NetBoxModelForm):
 
     fieldsets = (
         FieldSet(
+            "site_infra_sysinfra",
+            "site_type_indus",
+            "site_phone_critical",
+            "site_type_red",
+            "site_type_vip",
+            "site_type_wms",
+            name=_("SITE CRITICAL SYSTEM INFORMATION"),
+        ),
+        FieldSet(
+            "monitor_in_starting",
+            name=_("Centreon"),
+        ),
+        FieldSet("endpoint", "enabled", name=_("PRISMA")),
+        FieldSet("sdwan1_bw", "sdwan2_bw", name=_("Current link info")),
+        FieldSet(
+            "est_cumulative_users_wc",
+            "est_cumulative_users_bc",
+            "est_cumulative_users_ext",
+            "est_cumulative_users_nom",
+            "site_sdwan_master_location",
+            "master_site",
+            name=_("Site, user count & master/slave"),
+        ),
+        FieldSet(
+            "hub_order_setting",
+            "hub_default_route_setting",
+            "migration_sdwan",
+            name=_("Meraki deployment"),
+        ),
+        FieldSet(
             "claim_net_mx",
             "claim_net_ms",
             "claim_net_mr",
             # "claim_net_mv",
-            name=_("Claiming information"),
+            name=_("Meraki claim information"),
         ),
     )
 
     class Meta:
         model = SopInfra
         fields = [
+            "site_infra_sysinfra",
+            "site_type_indus",
+            "site_phone_critical",
+            "site_type_red",
+            "site_type_vip",
+            "site_type_wms",
+            "est_cumulative_users_wc",
+            "est_cumulative_users_bc",
+            "est_cumulative_users_ext",
+            "est_cumulative_users_nom",
+            "hub_order_setting",
+            "hub_default_route_setting",
+            "sdwan1_bw",
+            "sdwan2_bw",
+            "site_sdwan_master_location",
+            "master_site",
+            "migration_sdwan",
+            "monitor_in_starting",
+            "endpoint",
+            "enabled",
             "claim_net_mx",
             "claim_net_ms",
             "claim_net_mr",
-            # "claim_net_mv",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -275,6 +255,8 @@ class SopMerakiForm(NetBoxModelForm):
 
         if "tags" in self.fields:
             del self.fields["tags"]
+
+
 
 
 # _____________

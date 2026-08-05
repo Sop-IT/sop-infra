@@ -5,7 +5,6 @@ from utilities.views import get_viewname
 __all__ = (
     'refresh_button',
     'update_connectivity_statuses_button',
-    'claim_devices_button',
 )
 
 register = template.Library()
@@ -23,15 +22,6 @@ def refresh_button(instance):
 def update_connectivity_statuses_button(instance):
     # TODO : constantes
     viewname = get_viewname(instance, 'update_connectivity_statuses')
-    url = reverse(viewname, kwargs={'pk': instance.pk})
-    return {
-        'url': url,
-    }
-
-@register.inclusion_tag('buttons/claim_devices.html')
-def claim_devices_button(instance):
-    # TODO : constantes
-    viewname = get_viewname(instance, 'claim_devices')
     url = reverse(viewname, kwargs={'pk': instance.pk})
     return {
         'url': url,

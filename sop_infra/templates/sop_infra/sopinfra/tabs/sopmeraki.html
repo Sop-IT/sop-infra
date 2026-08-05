@@ -1,0 +1,149 @@
+{% extends "sop_infra/sopinfra/generic.html" %}
+{% load helpers %}
+{% load plugins %}
+{% load buttons %}
+{% load perms %}
+{% load sop_perms %}
+{% load sop_buttons %}
+{% load sopinfra_buttons %}
+{% load infra_custom_tags %}
+{% load i18n %}
+
+
+
+
+{% block custom-links %}
+  {{ block.super }}
+  {% if object.status and object.status == 'dc' %}
+  {% else %}
+    {% sopinfra_create_meraki_networks_button %} 
+    {% sopinfra_claim_meraki_devices_button %} 
+  {% endif %}
+{% endblock custom-links %}
+
+
+{% block content %}
+<div class="row">
+
+  <div class="col col-md-6">
+
+    <!-- CLAIM INFO CARD -->
+    <div class="card">
+      <h2 class="card-header">Claiming info</h2>
+      <table class="table table-hover attr-table">
+        <!-- TODO LINK TO SOPMERAKINET -->
+        {% include 'sop_infra/tools/display_detail.html' with name="claim_net_mx" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="claim_net_ms" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="claim_net_mr" %}
+      </table>
+    </div>
+
+    <!-- MERAKI TARGET CARD -->
+    <div class="card">
+      <h2 class="card-header">Meraki Target</h2>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="site_mx_model" %}
+        <!-- TODO HUB ORDER TARGET + DUAL LINK TARGET -->
+      </table>
+    </div>
+
+    <!-- MERAKI DEPLOYMENT CARD -->
+    <div class="card">
+      <h2 class="card-header">Meraki Deployment</h2>
+      <table class="table table-hover attr-table">
+        {# % include 'sop_infra/tools/display_detail.html' with name="sdwanha_real" % #}
+        {# % include 'sop_infra/tools/display_detail.html' with name="site_mx_model" % #}
+        {% include 'sop_infra/tools/display_detail.html' with name="hub_order_setting" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="hub_default_route_setting" badge=1 %}
+        {% include 'sop_infra/tools/display_detail.html' with name="migration_sdwan" %}
+      </table>
+    </div>
+
+  </div>
+
+  <div class="col col-md-6">
+
+    <!-- UMBRELLA CONNECTIVITY CARD -->
+    <div class="card">
+      <h2 class="card-header">Umbrella connectivity</h2>
+      <table class="table table-hover attr-table">
+
+        <!-- UMBRELLA CONNECTION -->
+        <tr>
+          <th scope="row">Umbrella link status <b>UNKNOWN</b>
+              <i class="mdi mdi-information text-primary ms-2"
+                data-bs-toggle="tooltip" |
+                title="Meraki API doesn't support reading this info for now"
+              ></i>
+          </th>
+          <td align="right">
+            {# LINK TO UMBRELLA BTN #}
+            <form action="{% url 'plugins:sop_infra:sopmeraki_umblink_site' object.site.pk %}?return_url={{ request.get_full_path }}" method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary btn-yellow">
+                <i class="mdi mdi-link" aria-hidden="true"></i> (Re)link
+              </button>
+            </form>            
+          </td>
+        </tr>
+
+        <!-- UMBRELLA PROTECTION -->
+        <tr>
+          <th scope="row">Protection status <b>UNKNOWN</b>
+              <i class="mdi mdi-information text-primary ms-2"
+                data-bs-toggle="tooltip" |
+                title="Meraki API doesn't support reading this info for now"
+              ></i>
+          </th>
+          <td align="right">
+            {# ENABLE UMBRELLA PROTECTION BTN #}
+            <form action="{% url 'plugins:sop_infra:sopmeraki_umbenable_site' object.site.pk %}?return_url={{ request.get_full_path }}" method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary btn-yellow">
+                <i class="mdi mdi-shield-check" aria-hidden="true"></i> (Re)enable
+              </button>
+            </form>            
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- PRISMA CARD -->
+    <div class="card">
+      <h2 class="card-header">Prisma Access</h5>
+      <table class="table table-hover attr-table">
+        {% include 'sop_infra/tools/display_detail.html' with name="endpoint" link=1 view="detail" %}
+        {% include 'sop_infra/tools/display_detail.html' with name="enabled" badge=1 %}
+        {# % include 'sop_infra/tools/display_detail.html' with name="valid" badge=1 % #}
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function()
+  {
+    const all_tabs = document.querySelectorAll('ul.nav.nav-tabs li.nav-item a');
+    update_current_tab_color(all_tabs, 'Meraki')
+
+    /*
+     * update tab front background color
+     */
+    function update_current_tab_color(all_tabs, tab_name)
+    {
+      all_tabs.forEach(tab => {
+        if (tab.innerText.trim() == "Site") {
+          tab.classList.remove('active');
+        } else if (tab.innerText.trim() == tab_name) {
+          tab.classList.add('active');
+        }
+      });
+    }
+  });
+</script>
+
+{% endblock content %}
+
