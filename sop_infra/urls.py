@@ -7,7 +7,7 @@ from utilities.urls import get_model_urls
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
 
 from sop_infra.models.infra import SopInfra, SopSwitchTemplate
-from sop_infra.views.infra import SopInfraHelperDhcp, SopMerakiCreateNetworksView, SopMerakiEditView
+from sop_infra.views.infra import SopInfraHelperDhcp, SopMerakiClaimDevices, SopMerakiCreateNetworksView, SopMerakiEditView
 from sop_infra.views.infra import SopInfraListView, SopInfraDetailView, SopInfraEditView, SopInfraDeleteView, SopInfraRefreshView
 from sop_infra.views.infra import SopDeviceSettingDetailView, SopDeviceSettingEditView, SopDeviceSettingTryManageInNetbox
 from sop_infra.views.infra import SopSwitchTemplateListView, SopSwitchTemplateDetailView, SopSwitchTemplateEditView, SopSwitchTemplateDeleteView
@@ -86,7 +86,7 @@ urlpatterns = [
     # SOP INFRA - SOP MERAKI VIEWS
     path('edit_meraki/<int:pk>/', SopMerakiEditView.as_view(), name='sopmeraki_edit'),
     path('create_meraki_network/<int:pk>/', SopMerakiCreateNetworksView.as_view(), name='create_meraki_network'),
-    
+    path('sopmeraki/claim_devices/<int:pk>/', SopMerakiClaimDevices.as_view(), name='sopmeraki_claim_devices'),
 
     # ========================================================================
     # SOP INFRA - DEVICE SETTINGS VIEWS
