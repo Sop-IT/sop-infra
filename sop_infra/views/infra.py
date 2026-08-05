@@ -455,7 +455,7 @@ class DeviceSopDeviceSettingTabViewOnMerakiDevice(generic.ObjectView):
 
 
 class SopMerakiClaimDevicesView(AccessMixin, View):
- """
+    """
     Claim Meraki network devices into an Organisation's inventory
     """
 
