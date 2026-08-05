@@ -625,6 +625,9 @@ class SopInfraRefreshForm(forms.Form):
         }
 
 
+
+
+
 class SopMerakiClaimForm(forms.Form):
 
     serials = forms.RegexField(
@@ -633,64 +636,54 @@ class SopMerakiClaimForm(forms.Form):
         regex=SopMerakiRegexps.meraki_list_of_serials_txt,
         help_text="Input serial numbers (XXXX-XXXX-XXXX), separated by commas and/or whitespace",
     )
-    status = forms.ChoiceField(
-        choices=(
-            ("active", "Active"),
-            ("planned", "Planned"),
-            ("staged", "Staged"),
-            ("inventory", "Inventory"),
-        ),
-        required=True,
-        initial="staged",
-        help_text="Netbox status you want to assign to the claimed devices",
-    )
-    allow_netbox_site_change = forms.BooleanField(
-        initial=False,
-        required=False,
-        label="Change netbox site ?",
-        help_text="If the device exists on another netbox site, should we move it or leave it there ?",
-    )
-    allow_netbox_status_change = forms.BooleanField(
-        initial=False,
-        required=False,
-        label="Change netbox device status ?",
-        help_text="If the device exists with a different status, should we override it or leave be ?",
-    )
+    # status = forms.ChoiceField(
+    #     choices=(
+    #         ("active", "Active"),
+    #         ("planned", "Planned"),
+    #         ("staged", "Staged"),
+    #         ("inventory", "Inventory"),
+    #     ),
+    #     required=True,
+    #     initial="staged",
+    #     help_text="Netbox status you want to assign to the claimed devices",
+    # )
+    # allow_netbox_site_change = forms.BooleanField(
+    #     initial=False,
+    #     required=False,
+    #     label="Change netbox site ?",
+    #     help_text="If the device exists on another netbox site, should we move it or leave it there ?",
+    # )
+    # allow_netbox_status_change = forms.BooleanField(
+    #     initial=False,
+    #     required=False,
+    #     label="Change netbox device status ?",
+    #     help_text="If the device exists with a different status, should we override it or leave be ?",
+    # )
 
     fieldsets = (
-        FieldSet("serials", "status", name=""),
         FieldSet(
-            "allow_netbox_site_change",
-            "allow_netbox_status_change",
-            name="Existing NETBOX devices",
+            "serials", 
+            # "status", 
+            name=""
         ),
+        # FieldSet(
+        #     "allow_netbox_site_change",
+        #     "allow_netbox_status_change",
+        #     name="Existing NETBOX devices",
+        # ),
     )
-
     def clean(self):
         data = super().clean()
-
         serials_txt = data.get("serials")
         if not serials_txt:
-            try:
-                request: HttpRequest = current_request.get()  # type: ignore
-                messages.error(
-                    request,
-                    f"Only Meraki serial numbers separated by commas are accepted",
-                )
-            except:
-                pass
             raise forms.ValidationError(
                 "Only Meraki serial numbers separated by commas are accepted"
             )
-
-        serials_txt = re.sub(r"\s+", ",", serials_txt)
-        serials_list = re.split(r",+", serials_txt)
-
         return {
-            "serials_list": serials_list,
-            "status": data.get("status", "inventory"),
-            "allow_netbox_site_change": data.get("allow_netbox_site_change", False),
-            "allow_netbox_status_change": data.get("allow_netbox_status_change", False),
+            "serials_list": SopMerakiUtils.clean_serials_txt(serials_txt),
+            # "status": data.get("status", "inventory"),
+            # "allow_netbox_site_change": data.get("allow_netbox_site_change", False),
+            # "allow_netbox_status_change": data.get("allow_netbox_status_change", False),
         }
 
 
