@@ -9,8 +9,10 @@
 
 {% block controls %}
   <div class="btn-list justify-content-end mb-2">
-  {% if request.user|can_change:infra and infra.pk %}
-    {% include 'sop_infra/inc/refresh_btn.html' with site=object %}
+  {% if infra.pk and request.user|can_recompute_sizing:infra  %}
+    {% include 'sop_infra/inc/recompute_sizing.html' with object=infra %}
+  {% endif %}
+  {% if infra.pk and request.user|can_change:infra  %}
     <a href="{% url 'plugins:sop_infra:sopinfra_edit' pk=infra.pk %}?return_url={{ request.get_full_path }}" type="button" class="btn btn-yellow">
       <i class="mdi mdi-pencil"></i>{% trans "Edit Infrastructure" %}
     </a>

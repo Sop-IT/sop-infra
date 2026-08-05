@@ -6,6 +6,7 @@ __all__ = (
     'can_refresh',
     'can_update_connectivity_statuses',
     'can_claim_devices',
+    'can_recompute_sizing',
 )
 
 register = template.Library()
@@ -25,4 +26,10 @@ def can_update_connectivity_statuses(user, instance):
 def can_claim_devices(user, instance):
     # TODO: constante
     return SopUtils.check_permission(user, instance, 'claim_devices')
+
+@register.filter()
+def can_recompute_sizing(user, instance):
+    # TODO: constante
+    return SopUtils.check_permission(user, instance, 'recompute_sizing')
+
 

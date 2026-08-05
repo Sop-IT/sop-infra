@@ -70,7 +70,18 @@ class RefreshBtnPluginExtension(PluginTemplateExtension):
             if isinstance(self.context.get("object"), SopMerakiDash):
                 return self.render("sop_infra/inc/refresh_dash.html", extra_context={})
             elif isinstance(self.context.get("object"), SopInfra):
-                return self.render("sop_infra/inc/refresh_btn.html", extra_context={})
+                return self.render("sop_infra/inc/refresh_infra.html", extra_context={})
+        return ""
+
+    
+class RecomputeSizingPluginExtension(PluginTemplateExtension):
+
+    models = ['sop_infra.sopinfra']
+
+    def list_buttons(self):
+        if self.context.get("object"):
+            if isinstance(self.context.get("object"), SopInfra):
+                return self.render("sop_infra/inc/recompute_sizing.html", extra_context={})
         return ""
 
 
@@ -318,6 +329,7 @@ class DHCPHelperPluginExtension(PluginTemplateExtension):
 
 template_extensions = list()
 template_extensions.append(RefreshBtnPluginExtension)
+template_extensions.append(RecomputeSizingPluginExtension)
 template_extensions.append(NetboxDevicePluginExtension)
 template_extensions.append(NetboxContactPluginExtension)
 template_extensions.append(SopMerakiDevicePluginExtension)

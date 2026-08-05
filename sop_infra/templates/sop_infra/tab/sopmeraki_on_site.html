@@ -3,6 +3,9 @@
 {% load plugins %}
 {% load buttons %}
 {% load perms %}
+{% load sop_perms %}
+{% load sop_buttons %}
+{% load infra_custom_tags %}
 {% load i18n %}
 
 
@@ -15,9 +18,6 @@
     </a>
   {% endif %}
   </div>
-  {% if object.pk and request.user|can_claim_devices:object %}
-    {% include 'sop_infra/inc/btn/sopinfra_claim_devices_btn.html' wiht object=infra %}
-  {% endif %}
 {% endblock controls %}
 
 

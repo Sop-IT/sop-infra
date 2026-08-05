@@ -1,6 +1,9 @@
 {% load helpers %}
+{% load sop_perms %}
+{% load sop_buttons %}
+{% load infra_custom_tags %}
+{% load i18n %}
 
-{%-- object should be a Site instance --%}
 
 {% if object.status and object.status == 'dc' %}
 {% else %}
@@ -12,7 +15,7 @@
   {% endif %}
   
   {% if object.pk and request.user|can_claim_devices:object %}
-    {% include 'sop_infra/inc/btn/sopinfra_claim_devices_btn.html' wiht object=infra %}
+    {% include 'sop_infra/inc/sopinfra_claim_devices_btn.html' with object=infra %}
   {% endif %}
 
 
