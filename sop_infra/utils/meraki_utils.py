@@ -181,10 +181,11 @@ class SopMerakiUtils:
                 log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
             conn = cls.connect(smd.nom, smd.api_url, simulate)
             nets=conn.organizations.getOrganizationNetworks(smo.meraki_id, total_pages=-1)
+            ids:list[str]=list()
             for net_data in nets:
                 site_name=SopMerakiUtils.extractSiteName(net_data.get("name"))
-                print(f"{site_name=} {soi.site.slug=}")
                 if site_name==soi.site.slug:
+                    ids.append(net_data["id"])
                     if not SopMerakiNet.objects.filter(meraki_id=net_data["id"]).exists():
                         if log:
                             log.info(f"Creating new NET for '{net_data['id']}' on ORG '{smo.nom}'...")
@@ -192,6 +193,13 @@ class SopMerakiUtils:
                     else:
                         smn = SopMerakiNet.objects.get(meraki_id=net_data["id"])
                     SopMerakiNetUtils.refresh_from_meraki_data(smn, conn, net_data, smo, log, details)
+            # Cleanup former nets that aren't here anymore
+            smn:SopMerakiNet
+            for smn in soi.site.meraki_nets.all():
+                if smn.meraki_id not in ids:
+                    log.info(f"Deleting inexistent NET {smn.meraki_id} / {smn.nom}")
+                    smn.delete()
+                
 
 
     @classmethod
