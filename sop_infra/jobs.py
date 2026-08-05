@@ -92,35 +92,35 @@ class SopMerakiClaimDevicesToInfraJob(JobRunnerLogMixin, JobRunner):
         # Checks
         if soi.claim_net_mr is None: 
             raise AbortRequest("Claim net for MR devices is unset !")
+        if soi.claim_net_ms is None: 
+            raise AbortRequest("Claim net for regular MS devices is unset !")
         if soi.claim_net_mx is None: 
             raise AbortRequest("Claim net for regular Meraki devices is unset !")
         if smo is None:
             raise AbortRequest("SopMerakiOrganisation is unset !")     
         # report
-        report:dict[str,list[str]] = {"uniques":0, "claimed":0, "moved":0, "MR":list(), "ALL":list()}
+        report:dict[str,list[str]] = {"uniques":0, "inventory":0, "moved":0, "MR":list(), "MS":list(), "ALL":list()}
         # fetch uniques serials
         serials:list[str]=list(set(kwargs.pop('serials')))
         report["uniques"]=len(serials)
         print(f"{serials=}")
-        # check which of those should be claimed
-        toclaim=serials.copy()
-        refresh=False
-        for a in SopMerakiDevice.objects.filter(serial__in=serials):
-            toclaim.remove(a.serial)
-        print(f"{toclaim=}")
-        if len(toclaim)>0:
-            lst:list[SopMerakiDevice] = SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, smo=smo, serials=toclaim)
-            report["claimed"]=len(lst)
+        # claim or refresh
+        lst:list[SopMerakiDevice] = SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, smo=smo, serials=serials)
+        report["inventory"]=len(lst)
         # refetch all of our serials
         lst=SopMerakiDevice.objects.filter(serial__in=serials)
         print(f"{lst=}")
         # Sort and filter those already in the target net
-        move:dict[str,list[SopMerakiDevice]] = {"MR":list(), "ALL":list()}
+        move:dict[str,list[SopMerakiDevice]] = {"MR":list(), "MS":list(), "ALL":list()}
         for d in lst:
             if d.ptype == SopMerakiUtils.DEV_TYPE_MR:
                 if d.meraki_network!=soi.claim_net_mr:
                     move["MR"].append(d)
                     report["MR"].append(d.serial)
+            if d.ptype == SopMerakiUtils.DEV_TYPE_MS:
+                if d.meraki_network!=soi.claim_net_ms:
+                    move["MS"].append(d)
+                    report["MS"].append(d.serial)
             else:
                 if d.meraki_network!=soi.claim_net_mx:
                     move["ALL"].append(d)
@@ -128,12 +128,9 @@ class SopMerakiClaimDevicesToInfraJob(JobRunnerLogMixin, JobRunner):
         print(f"{move=}")
         # Move
         moved=0
-        if len(move["MR"])>0:
-            lst=SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mr, devices=move["MR"])
-            moved+=len(lst)
-        if len(move["ALL"])>0:
-            lst=SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mx, devices=move["ALL"])
-            moved+=len(lst)
+        moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mr, devices=move["MR"]))
+        moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_ms, devices=move["MS"]))
+        moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mx, devices=move["ALL"]))
         report["moved"]=moved
         # report
         self.job.data=report
