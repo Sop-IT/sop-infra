@@ -342,9 +342,22 @@ class SopMerakiUtils:
         cls,  log:JobRunnerLogMixin, simulate: bool, smo: SopMerakiOrg, serials:list[str]
     )-> list[SopMerakiDevice]:
         print(f"SopMerakiUtils.claim_devices_to_inventory : claiming {len(serials)} serials to org {smo} inventory")
+        if len(serials)==0:
+            return list()
         smd:SopMerakiDash = smo.dash
         conn = cls.connect(smd.nom, smd.api_url, simulate)       
         return SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, conn, log, False)
+
+
+    # @classmethod
+    # def claim_devices_to_infra(
+    #     cls,  log:JobRunnerLogMixin, simulate: bool, smo: SopMerakiOrg, serials:list[str]
+    # )-> list[SopMerakiDevice]:
+    #     print(f"SopMerakiUtils.claim_devices_to_infra : claiming {len(serials)} serials to org {smo} inventory")
+    #     smd:SopMerakiDash = smo.dash
+    #     conn = cls.connect(smd.nom, smd.api_url, simulate)       
+    #     return SopMerakiDeviceUtils.claim_devices_to_inventory(smo, serials, conn, log, False)
+
 
 
     @classmethod
@@ -352,6 +365,8 @@ class SopMerakiUtils:
         cls,  log:JobRunnerLogMixin, simulate: bool, smn:SopMerakiNet, devices:list[SopMerakiDevice] 
     )-> list[SopMerakiDevice]:
         print(f"SopMerakiUtils.move_devices_to_network : claiming {len(devices)} devices to {smn} net")
+        if len(devices)==0:
+            return list()
         if smn is None:
             raise AbortRequest(f"Destination Meraki Network is not set !")
         smd:SopMerakiDash = smn.org.dash
@@ -1402,16 +1417,17 @@ class SopMerakiDeviceUtils:
     ) -> list[SopMerakiDevice]:
         log.log_info(f"Trying to claim {serials} to {smo}")
         ret:list[SopMerakiDevice]=list()
-        conn.organizations.claimIntoOrganizationInventory(smo.meraki_id, serials=serials)
-        log.log_info(f"Claim done, let's refresh claimed SopMerakiDevices from inventory")
-        for dev in conn.organizations.getOrganizationInventoryDevices(
-            smo.meraki_id, total_pages=-1, serials=serials
-        ):
+        # DO not claim already inventoried devices
+        to_claim:list[str]=serials.copy()
+        for dev in conn.organizations.getOrganizationInventoryDevices(smo.meraki_id, total_pages=-1, serials=serials):
             serial=dev.get("serial")
-            # do not refresh devices with networks, will be done when refreshing networks recursively
-            if dev.get("networkId", None) is not None:
-                log.log_warning(f"SopMerakiDevieUtils.claim_devices_to_inventory : device {serial} already has a network set {dev.get("networkId")}")
-                continue
+            log.log_warning(f"SopMerakiDeviceUtils.claim_devices_to_inventory : device {serial} already exists in the inventory")
+            to_claim.remove(serial)
+        log.log_info(f"Claiming {to_claim} to {smo}...")
+        conn.organizations.claimIntoOrganizationInventory(smo.meraki_id, serials=to_claim)
+        log.log_info(f"Claim done, let's refresh claimed SopMerakiDevices from inventory")
+        for dev in conn.organizations.getOrganizationInventoryDevices(smo.meraki_id, total_pages=-1, serials=serials):
+            serial=dev.get("serial")
             # refresh "no net" devices from inventory
             log.log_info(f"Refreshing device {serial} ...")
             smd = SopMerakiDeviceUtils.get_by_serial_or_create(serial, dev['name'])
@@ -1423,7 +1439,7 @@ class SopMerakiDeviceUtils:
             # Now create missing netbox devices
             smd=SopMerakiDeviceUtils.get_by_serial(serial)
             if smd.netbox_device is not None:
-                log.log_info(f"SopmerakiDevice {serial}is already linked to an existing Netbox Device {smd.netbox_device}, nothing left to do...")
+                log.log_info(f"SopmerakiDevice {serial} is already linked to an existing Netbox Device {smd.netbox_device}, nothing left to do...")
             elif smd.netbox_dev_type is not None:
                 log.log_info(f"SopMerakiDeviceUtils.claim_devices_to_inventory : create netbox device for serial {serial} / devicetype {smd.netbox_dev_type}")
                 if smd.pk and hasattr(smd, "snapshot"):
@@ -1478,7 +1494,11 @@ class SopMerakiDeviceUtils:
         serials:list[str]=list()
         for d in devices:
             serials.append(d.serial)
-        log.log_info(f"Trying to claim {serials}...")
+        # TODO on ne peut claimer dans un network qu'un device qui n'est pas déjà dans un réseau
+        # --> prévoir un param pour forcer le move
+        # --> faire le backup pour pouvoir mover
+        # for dev in conn.organizations.getOrganizationInventoryDevices(smo.meraki_id, total_pages=-1, serials=serials):
+        log.log_info(f"Trying to claim/move {serials} to network {smn.nom} ({smn.meraki_id}) ...")
         result=conn.networks.claimNetworkDevices(smn.meraki_id, serials=serials)
         errs=result.get("errors")
         if errs and len(errs)>0:
