@@ -6,6 +6,8 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
+from netbox.models.features import *
+
 from dcim.models import Site, Location, Device
 
 from sop_infra.validators import SopInfraSlaveValidator
@@ -51,7 +53,7 @@ class SopInfraUtils:
             return round(wan * 5)
 
 
-class SopInfra(NetBoxModel):
+class SopInfra(JobsMixin, NetBoxModel):
     site = models.OneToOneField(
         to=Site,
         on_delete=models.CASCADE,
@@ -363,6 +365,12 @@ class SopInfra(NetBoxModel):
                 violation_error_message=_("SDWAN MASTER site cannot be itself"),
             ),
         ]
+        permissions = [
+            ('claim_devices', 'Claim devices to networks'),
+            ('refresh', 'Refresh Meraki networks'),
+            ('recompute_sizing', 'Recompute SOPINFRA sizing'),
+        ]
+
 
     def __str__(self):
         return f"{self.site}"
