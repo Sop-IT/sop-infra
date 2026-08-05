@@ -20,6 +20,7 @@ from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.mixins import JobRunnerLogMixin
 from sop_infra.utils.meraki_tools import NetboxSiteMerakiUpdater
 from sop_infra.utils.umbrella_utils import SopUmbrellaUtils
+from utilities.exceptions import AbortRequest
 
 
 class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
@@ -85,34 +86,61 @@ class SopMerakiClaimDevicesToInfraJob(JobRunnerLogMixin, JobRunner):
         name = "Claim devices to Sop Infrastructure inventory"
 
     def run(self, *args, **kwargs):
+        # Args
         soi:SopInfra=kwargs.pop('soi')
-        lst:list[SopMerakiDevice] = SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, 
-            smo=soi.org, serials=kwargs.pop('serials'))
-        data:dict[str,list[str]]=dict()
-        if soi.claim_net_mr:
-            mrs:list[SopMerakiDevice]=list()
-            sers:list[str]=list()
-            for d in lst:
-                if d.ptype == SopMerakiUtils.DEV_TYPE_MR:
-                    mrs.append(d)
-                    sers.append[d.serial]
-            if mrs.count()>0:
-                SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mr, devices=mrs)
-            data[soi.claim_net_mr.meraki_id]=sers
-        if soi.claim_net_mx:
-            devs:list[SopMerakiDevice]=list()
-            sers:list[str]=list()
-            for d in lst:
-                if d.ptype != SopMerakiUtils.DEV_TYPE_MR:
-                    devs.append(d)
-                    sers.append[d.serial]
-            if devs.count()>0:
-                SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mx, devices=devs)
-            data[soi.claim_net_mx.meraki_id]=sers
-        self.job.data=data
+        smo=SopMerakiUtils.get_site_meraki_org(soi.site)
+        # Checks
+        if soi.claim_net_mr is None: 
+            raise AbortRequest("Claim net for MR devices is unset !")
+        if soi.claim_net_mx is None: 
+            raise AbortRequest("Claim net for regular Meraki devices is unset !")
+        if smo is None:
+            raise AbortRequest("SopMerakiOrganisation is unset !")     
+        # report
+        report:dict[str,list[str]] = {"uniques":0, "claimed":0, "moved":0, "MR":list(), "ALL":list()}
+        # fetch uniques serials
+        serials:list[str]=list(set(kwargs.pop('serials')))
+        report["uniques"]=len(serials)
+        print(f"{serials=}")
+        # check which of those should be claimed
+        toclaim=serials.copy()
+        refresh=False
+        for a in SopMerakiDevice.objects.filter(serial__in=serials):
+            toclaim.remove(a.serial)
+        print(f"{toclaim=}")
+        if len(toclaim)>0:
+            lst:list[SopMerakiDevice] = SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, smo=smo, serials=toclaim)
+            report["claimed"]=len(lst)
+        # refetch all of our serials
+        lst=SopMerakiDevice.objects.filter(serial__in=serials)
+        print(f"{lst=}")
+        # Sort and filter those already in the target net
+        move:dict[str,list[SopMerakiDevice]] = {"MR":list(), "ALL":list()}
+        for d in lst:
+            if d.ptype == SopMerakiUtils.DEV_TYPE_MR:
+                if d.meraki_network!=soi.claim_net_mr:
+                    move["MR"].append(d)
+                    report["MR"].append(d.serial)
+            else:
+                if d.meraki_network!=soi.claim_net_mx:
+                    move["ALL"].append(d)
+                    report["ALL"].append(d.serial)
+        print(f"{move=}")
+        # Move
+        moved=0
+        if len(move["MR"])>0:
+            lst=SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mr, devices=move["MR"])
+            moved+=len(lst)
+        if len(move["ALL"])>0:
+            lst=SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mx, devices=move["ALL"])
+            moved+=len(lst)
+        report["moved"]=moved
+        # report
+        self.job.data=report
 
     @staticmethod
     def launch_interactive(request, message:bool, soi:SopInfra, serials:list[str], )->Job:
+        serials=list(set(serials)) 
         job:Job=SopMerakiClaimDevicesToInfraJob.enqueue(instance=soi, user=request.user, immediate=True, soi=soi, serials=serials)
         if message:
             if job.status==JobStatusChoices.STATUS_COMPLETED:
@@ -122,7 +150,8 @@ class SopMerakiClaimDevicesToInfraJob(JobRunnerLogMixin, JobRunner):
         return job
     
     @staticmethod
-    def launch_background(request, message:bool, org:SopMerakiOrg, serials:list[str], soi:SopInfra)->Job:    
+    def launch_background(request, message:bool, org:SopMerakiOrg, serials:list[str], soi:SopInfra)->Job:   
+        serials=list(set(serials)) 
         job:Job=SopMerakiClaimDevicesToInfraJob.enqueue(instance=soi, user=request.user, immediate=True, soi=soi, serials=serials)
         if message:
             messages.success(request, f'Started job #{job.pk} to claim {len(serials)} devices to networks for sopinfra {soi} !')           
