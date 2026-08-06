@@ -479,6 +479,7 @@ class SopMerakiClaimDevicesView(AccessMixin, View):
                 "infra": soi,
                 "claim_net_mx": soi.claim_net_mx if soi else None,
                 "claim_net_mr": soi.claim_net_mr if soi else None,
+                "claim_net_ms": soi.claim_net_ms if soi else None,
                 "merorg": SopMerakiUtils.get_site_meraki_org(soi.site),
             },
         )
@@ -509,6 +510,7 @@ class SopMerakiClaimDevicesView(AccessMixin, View):
                     "infra": soi,
                     "claim_net_mx": soi.claim_net_mx if soi else None,
                     "claim_net_mr": soi.claim_net_mr if soi else None,
+                    "claim_net_ms": soi.claim_net_ms if soi else None,
                     "merorg": SopMerakiUtils.get_site_meraki_org(soi.site),
                 },
             )

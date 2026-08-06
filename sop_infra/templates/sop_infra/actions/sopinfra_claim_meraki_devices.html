@@ -7,21 +7,31 @@
 
 
 {% block tabs %}
-  This page claims Meraki <b><u>NETWORK</u></b> devices : Switches (MS), Access Points (MR) and Appliances (MX).<br/>
+  This page claims Meraki <b><u>NETWORK</u></b> devices : Switches (MS), Access Points (MR) and Appliances (MX).
+  <br/>
+  <br/>
+  <strong>Devices already claimed in an existing network WILL NOT be moved.</strong>
+  <br/>
   <br/>
   {% if merorg %}
     Network devices for this site will be claimed in the «<a href={{merorg.get_absolute_url}}>{{merorg}}</a>» Meraki Organisation.<br/>
-    
+    <br/>
     {% if claim_net_mr %}
-    MR devices (wifi access points) will be claimed/moved into the  «<a href={{claim_net_mr.get_absolute_url}}>{{claim_net_mr}}</a>» Meraki Network.<br/>
+    MR devices (wifi access points) will be claimed into the  «<a href={{claim_net_mr.get_absolute_url}}>{{claim_net_mr}}</a>» Meraki Network.<br/>
     {% else %}
-    MR claim network is undefined → wifi access points wont be moved.<br/>
+    MR claim network is undefined → wifi access points wont be claimed in any network, just the inventory.<br/>
+    {% endif %}
+
+    {% if claim_net_ms %}
+    MS devices (switches) will be claimed into the  «<a href={{claim_net_ms.get_absolute_url}}>{{claim_net_ms}}</a>» Meraki Network.<br/>
+    {% else %}
+    MS claim network is undefined → switches wont be claimed in any network, just the inventory.<br/>
     {% endif %}
 
     {% if claim_net_mx %}
-    All other Meraki devices will be claimed/moved into the  «<a href={{claim_net_mx.get_absolute_url}}>{{claim_net_mx}}</a>» Meraki Network.<br/>
+    All other Meraki devices will be claimed into the  «<a href={{claim_net_mx.get_absolute_url}}>{{claim_net_mx}}</a>» Meraki Network.<br/>
     {% else %}
-    Default claim network is undefined → other Meraki devices wont be moved.<br/>
+    Default claim network is undefined → other Meraki devices wont be claimed in any network, just the inventory.<br/>
     {% endif %}
 
 

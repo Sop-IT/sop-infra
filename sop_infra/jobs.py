@@ -83,7 +83,7 @@ class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):
 class SopMerakiClaimDevicesToInfraJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
-        name = "Claim devices to Sop Infrastructure inventory"
+        name = "Claim devices to Meraki Networks"
 
     def run(self, *args, **kwargs):
         # Args
@@ -109,23 +109,41 @@ class SopMerakiClaimDevicesToInfraJob(JobRunnerLogMixin, JobRunner):
         report["inventory"]=len(lst)
         # refetch all of our serials
         lst=SopMerakiDevice.objects.filter(serial__in=serials)
-        print(f"{lst=}")
         # Sort and filter those already in the target net
         move:dict[str,list[SopMerakiDevice]] = {"MR":list(), "MS":list(), "ALL":list()}
+        sc_by_ptype:dict[str, str]={ 
+            SopMerakiUtils.DEV_TYPE_MR : "MR", 
+            SopMerakiUtils.DEV_TYPE_MS : "MS", 
+        }
+        tgt_by_sc:dict={ 
+            "ALL": soi.claim_net_mx,
+            "MR" : soi.claim_net_mr,
+            "MS" : soi.claim_net_ms
+        }
+        skipped=0
+        failed=0
+        already=0
         for d in lst:
-            if d.ptype == SopMerakiUtils.DEV_TYPE_MR:
-                if d.meraki_network!=soi.claim_net_mr:
-                    move["MR"].append(d)
-                    report["MR"].append(d.serial)
-            if d.ptype == SopMerakiUtils.DEV_TYPE_MS:
-                if d.meraki_network!=soi.claim_net_ms:
-                    move["MS"].append(d)
-                    report["MS"].append(d.serial)
-            else:
-                if d.meraki_network!=soi.claim_net_mx:
-                    move["ALL"].append(d)
-                    report["ALL"].append(d.serial)
+            sc:str=sc_by_ptype.get(d.ptype, "ALL")
+            tgt:SopMerakiNet=tgt_by_sc.get(sc, soi.claim_net_mx)
+            if tgt is None:
+                skipped+=1
+                continue
+            if d.meraki_netid is None:
+                move[sc].append(d)
+                report[sc].append(d.serial)
+            #print(f"{d.ptype=} {sc=} {d.meraki_netid=} {tgt=}")
+            if d.meraki_netid==tgt.meraki_id:
+                already+=1
+                continue
+            self.failure(f"We were asked to move device {d} to from network {d.meraki_netid} to {tgt.meraki_id}. This is not supported yet.")
+            print(f"We were asked to move device {d} to from network {d.meraki_netid} to {tgt.meraki_id}. This is not supported yet.")
+            failed+=1
+            continue
         print(f"{move=}")
+        report["skipped"]=skipped
+        report["already"]=already
+        report["failed"]=failed
         # Move
         moved=0
         moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mr, devices=move["MR"]))
