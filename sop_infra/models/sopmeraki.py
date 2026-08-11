@@ -509,7 +509,9 @@ class SopMerakiDevice(
     class Meta(NetBoxModel.Meta): # pyright: ignore[reportIncompatibleVariableOverride]
         verbose_name = "Meraki Device"
         verbose_name_plural = "Meraki Devices"
-
+        permissions = [
+            ('move_meraki_devices', 'Move Meraki devices between Meraki Networks'),
+        ]
     # ------------------ CHECKS
     @property
     def has_netbox_device(self) -> bool:

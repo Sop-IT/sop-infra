@@ -24,7 +24,7 @@ from tenancy.models import Contact
 from extras.models import Tag
 
 from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopInfraRefreshForm, SopMerakiClaimForm
-from sop_infra.jobs import SopInfraRefreshJob, SopMerakiClaimDevicesToInfraJob, SopMerakiCreateNetworkJob, SopMerakiDashRefreshJob, SopSyncAdUsers
+from sop_infra.jobs import SopInfraRefreshJob, SopMerakiCreateNetworkJob, SopMerakiDashRefreshJob, SopSyncAdUsers
 from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraConstants
 from sop_infra.forms import *
@@ -445,86 +445,86 @@ class DeviceSopDeviceSettingTabViewOnMerakiDevice(generic.ObjectView):
 #region ACTION VIEWS
 
 
-class SopMerakiClaimDevicesView(AccessMixin, View):
-    """
-    Claim Meraki network devices into an Organisation's inventory
-    """
+# class SopMerakiClaimDevicesView(AccessMixin, View):
+#     """
+#     Claim Meraki network devices into an Organisation's inventory
+#     """
 
-    form = SopMerakiClaimForm
-    template_name: str = "sop_infra/actions/sopinfra_claim_meraki_devices.html"
+#     form = SopMerakiClaimForm
+#     template_name: str = "sop_infra/actions/sopinfra_claim_meraki_devices.html"
 
-    def get(self, request, pk:int, *args, **kwargs):
-        # Fetch SopInfra from URL and get it from db
-        soi = get_object_or_404(SopInfra, pk=pk)
-        if soi.site is None:
-            raise AbortScript("SopInfra site cannot be None")
-        # Check perms
-        if not request.user.has_perm(get_permission_for_model(SopInfra, "claim_meraki_devices"), obj=soi):
-            return self.handle_no_permission()
-        # Check form
-        restrict_form_fields(self.form(), request.user)
-        # Build or fetch return URL
-        return_url:str
-        if request.GET.get("return_url"):
-            return_url = request.GET.get("return_url")
-        else:
-            return_url = reverse("plugins:sop_infra:sopinfra_detail", args=(pk,))
-        # Display form
-        return render(
-            request,
-            self.template_name,
-            {
-                "form": self.form(),
-                "return_url": return_url,
-                "infra": soi,
-                "claim_net_mx": soi.claim_net_mx if soi else None,
-                "claim_net_mr": soi.claim_net_mr if soi else None,
-                "claim_net_ms": soi.claim_net_ms if soi else None,
-                "merorg": SopMerakiUtils.get_site_meraki_org(soi.site),
-            },
-        )
+#     def get(self, request, pk:int, *args, **kwargs):
+#         # Fetch SopInfra from URL and get it from db
+#         soi = get_object_or_404(SopInfra, pk=pk)
+#         if soi.site is None:
+#             raise AbortScript("SopInfra site cannot be None")
+#         # Check perms
+#         if not request.user.has_perm(get_permission_for_model(SopInfra, "claim_meraki_devices"), obj=soi):
+#             return self.handle_no_permission()
+#         # Check form
+#         restrict_form_fields(self.form(), request.user)
+#         # Build or fetch return URL
+#         return_url:str
+#         if request.GET.get("return_url"):
+#             return_url = request.GET.get("return_url")
+#         else:
+#             return_url = reverse("plugins:sop_infra:sopinfra_detail", args=(pk,))
+#         # Display form
+#         return render(
+#             request,
+#             self.template_name,
+#             {
+#                 "form": self.form(),
+#                 "return_url": return_url,
+#                 "infra": soi,
+#                 "claim_net_mx": soi.claim_net_mx if soi else None,
+#                 "claim_net_mr": soi.claim_net_mr if soi else None,
+#                 "claim_net_ms": soi.claim_net_ms if soi else None,
+#                 "merorg": SopMerakiUtils.get_site_meraki_org(soi.site),
+#             },
+#         )
 
-    def post(self, request, pk:int, *args, **kwargs):
-        # Fetch SopInfra from URL and get it from db
-        soi = get_object_or_404(SopInfra, pk=pk)
-        if soi.site is None:
-            raise AbortScript("SopInfra site cannot be None")
-        # Check perms
-        if not request.user.has_perm(get_permission_for_model(SopInfra, "claim_meraki_devices"), obj=soi):
-            return self.handle_no_permission()
-        # Build or fetch return URL
-        return_url : str
-        if request.GET.get("return_url"):
-            return_url = request.GET.get("return_url")
-        else: 
-            return_url = reverse("plugins:sop_infra:sopinfra_detail", args=(pk,))
-        # Check and validate form data
-        form = self.form(data=request.POST, files=request.FILES)
-        if not form.is_valid():
-            return render(
-                request,
-                self.template_name,
-                {
-                    "form": self.form(),
-                    "return_url": return_url,
-                    "infra": soi,
-                    "claim_net_mx": soi.claim_net_mx if soi else None,
-                    "claim_net_mr": soi.claim_net_mr if soi else None,
-                    "claim_net_ms": soi.claim_net_ms if soi else None,
-                    "merorg": SopMerakiUtils.get_site_meraki_org(soi.site),
-                },
-            )
-        # Extract form data
-        data: dict = form.cleaned_data
-        serials = data["serials_list"]
-        # Run job and redirect according to return status
-        j: Job = SopMerakiClaimDevicesToInfraJob.launch_interactive(request, True, soi, serials)
-        url:str
-        if j.status==JobStatusChoices.STATUS_COMPLETED:
-            url= reverse("plugins:sop_infra:sopinfra_detail",  args=(pk,))
-        else:
-            url = reverse("core:job", args=[j.pk])
-        return redirect(url)
+#     def post(self, request, pk:int, *args, **kwargs):
+#         # Fetch SopInfra from URL and get it from db
+#         soi = get_object_or_404(SopInfra, pk=pk)
+#         if soi.site is None:
+#             raise AbortScript("SopInfra site cannot be None")
+#         # Check perms
+#         if not request.user.has_perm(get_permission_for_model(SopInfra, "claim_meraki_devices"), obj=soi):
+#             return self.handle_no_permission()
+#         # Build or fetch return URL
+#         return_url : str
+#         if request.GET.get("return_url"):
+#             return_url = request.GET.get("return_url")
+#         else: 
+#             return_url = reverse("plugins:sop_infra:sopinfra_detail", args=(pk,))
+#         # Check and validate form data
+#         form = self.form(data=request.POST, files=request.FILES)
+#         if not form.is_valid():
+#             return render(
+#                 request,
+#                 self.template_name,
+#                 {
+#                     "form": self.form(),
+#                     "return_url": return_url,
+#                     "infra": soi,
+#                     "claim_net_mx": soi.claim_net_mx if soi else None,
+#                     "claim_net_mr": soi.claim_net_mr if soi else None,
+#                     "claim_net_ms": soi.claim_net_ms if soi else None,
+#                     "merorg": SopMerakiUtils.get_site_meraki_org(soi.site),
+#                 },
+#             )
+#         # Extract form data
+#         data: dict = form.cleaned_data
+#         serials = data["serials_list"]
+#         # Run job and redirect according to return status
+#         j: Job = SopMerakiClaimDevicesToInfraJob.launch_interactive(request, True, soi, serials)
+#         url:str
+#         if j.status==JobStatusChoices.STATUS_COMPLETED:
+#             url= reverse("plugins:sop_infra:sopinfra_detail",  args=(pk,))
+#         else:
+#             url = reverse("core:job", args=[j.pk])
+#         return redirect(url)
 
 
 class SopMerakiCreateNetworksView(AccessMixin, View):

@@ -11,10 +11,10 @@ from django.contrib.auth.mixins import AccessMixin
 
 
 from core.choices import JobStatusChoices
-from sop_infra.forms.sopmeraki import SopMerakiOrgClaimForm
+from sop_infra.forms.sopmeraki import SopMerakiDeviceMoveForm, SopMerakiOrgClaimForm
 from sop_infra.utils.meraki_utils import SopMerakiOrgUtils
 from sop_infra.utils.netbox_utils import SopInfraUtils
-from utilities.views import ObjectPermissionRequiredMixin, register_model_view
+from utilities.views import ConditionalLoginRequiredMixin, ObjectPermissionRequiredMixin, register_model_view
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
 
@@ -32,6 +32,7 @@ from sop_infra.jobs import (
     SopMerakiDashUpdateConnectivyStatusesJob,
     SopMerakiEnableUmbrellaJob,
     SopMerakiLinkSiteToUmbrellaJob,
+    SopMerakiMoveDevicesToNetwork,
     SopMerakiNetConnectivityStatusesJob,
     SopMerakiOrgRefreshJob,
     SopMerakiNetRefreshJob,
@@ -515,7 +516,7 @@ class SopMerakiDashRefreshChooseView(View, ObjectPermissionRequiredMixin):
     """
     refresh the dashboards
     """
-
+    # TODOPERM
     form = SopMerakiDashRefreshForm
     template_name: str = "sop_infra/actions/sopmerakidash_refresh.html"
 
@@ -563,7 +564,7 @@ class SopMerakiDashRefreshChooseView(View, ObjectPermissionRequiredMixin):
 
 
 class SopMerakiDashRefreshView(View, ObjectPermissionRequiredMixin):
-
+    # TODOPERM
     def post(self, request, pk, *args, **kwargs):
 
         instance = get_object_or_404(SopMerakiDash, pk=pk)
@@ -580,7 +581,7 @@ class SopMerakiDashRefreshView(View, ObjectPermissionRequiredMixin):
 
 
 class SopMerakiDashConnectivityStatusesView(View, ObjectPermissionRequiredMixin):
-
+    # TODOPERM
     def post(self, request, pk, *args, **kwargs):
 
         instance = get_object_or_404(SopMerakiDash, pk=pk)
@@ -904,12 +905,28 @@ class SopMerakiSwitchStackDeleteView(generic.ObjectDeleteView):
     queryset = SopMerakiSwitchStack.objects.all()
 #endregion
 
-# ========================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ============================================================================================================================
 #region SopMerakiDevice
+
 
 @register_model_view(SopMerakiDevice)
 class SopMerakiDeviceView(generic.ObjectView):
     queryset = SopMerakiDevice.objects.all()
+
 
 
 @register_model_view(SopMerakiDevice, 'list', path='', detail=False)
@@ -920,6 +937,7 @@ class SopMerakiDeviceListView(generic.ObjectListView):
     filterset_form = SopMerakiDeviceFilterForm
 
 
+
 @register_model_view(SopMerakiDevice, 'add', detail=False)
 @register_model_view(SopMerakiDevice, 'edit')
 class SopMerakiDeviceEditView(generic.ObjectEditView):
@@ -927,7 +945,70 @@ class SopMerakiDeviceEditView(generic.ObjectEditView):
     form = SopMerakiDeviceForm
 
 
+
 @register_model_view(SopMerakiDevice, 'delete')
 class SopMerakiDeviceDeleteView(generic.ObjectDeleteView):
     queryset = SopMerakiDevice.objects.all()
+
+
+
+@register_model_view(SopMerakiDevice, 'move')
+class SopMerakiDeviceMoveView(ConditionalLoginRequiredMixin, View):
+
+    form = SopMerakiDeviceMoveForm
+    template_name: str = "sop_infra/sopinfra/actions/sopmerakidevice_move.html"
+
+    def get(self, request, *args, **kwargs):
+
+        # additional security
+        if not request.user.has_perm(
+            get_permission_for_model(SopMerakiDevice, "move")
+        ):
+            return self.handle_no_permission()
+
+        restrict_form_fields(self.form(), request.user)
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": self.form(),
+                "return_url": request.get_full_path(),
+            },
+        )
+
+
+    def post(self, request, pk, *args, **kwargs):
+        # Fetch from DB
+        instance = get_object_or_404(SopMerakiDevice, pk=pk)
+        # Check perms
+        if not SopUtils.check_permission(request.user, instance, "move"):
+            return self.handle_no_permission()
+        # Build or fetch return URL
+        return_url : str
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        else: 
+            return_url = request.get_full_path()
+        # Check and validate form data
+        form = self.form(data=request.POST, files=request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form, "return_url": return_url})
+        # Extract form data
+        data: dict = form.cleaned_data
+        print(f"CLEAN DATA {data=}")
+        destination:SopMerakiNet = data["destination"]
+        print(f"{destination=}")
+        force:bool=data["force"]
+        # Run job and redirect according to return status
+        j: Job = SopMerakiMoveDevicesToNetwork.launch_interactive(request, True, [instance], destination, force)
+        url:str
+        if j.status==JobStatusChoices.STATUS_COMPLETED:
+            url= return_url
+        else:
+            url = reverse("core:job", args=[j.pk])
+        return redirect(url)
+
+
+
 #endregion

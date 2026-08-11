@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.db.models import Count
 
+from core.exceptions import JobFailed
 from netbox.jobs import JobRunner, Job, JobStatusChoices
 
 from dcim.models import Site
@@ -80,97 +81,157 @@ class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):
         return job
 
 
-class SopMerakiClaimDevicesToInfraJob(JobRunnerLogMixin, JobRunner):
+
+class SopMerakiMoveDevicesToNetwork(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore
-        name = "Claim devices to Meraki Networks"
+        name = "Move Meraki Devices to Meraki Network"
 
     def run(self, *args, **kwargs):
         # Args
-        soi:SopInfra=kwargs.pop('soi')
-        smo=SopMerakiUtils.get_site_meraki_org(soi.site)
+        devices:list[SopMerakiDevice]=kwargs.pop('devices')
+        destination:SopMerakiNet=kwargs.pop('destination')
+        force:bool=kwargs.pop('force')
         # Checks
-        if soi.claim_net_mr is None: 
-            raise AbortRequest("Claim net for MR devices is unset !")
-        if soi.claim_net_ms is None: 
-            raise AbortRequest("Claim net for regular MS devices is unset !")
-        if soi.claim_net_mx is None: 
-            raise AbortRequest("Claim net for regular Meraki devices is unset !")
-        if smo is None:
-            raise AbortRequest("SopMerakiOrganisation is unset !")     
+        if destination is None: 
+            raise AbortRequest("Destination is not set !")
         # report
-        report:dict[str,list[str]] = {"uniques":0, "inventory":0, "moved":0, "MR":list(), "MS":list(), "ALL":list()}
+        report:dict[str,list[str]] = {"uniques":0, "skipped":0, "moved":0, "failed":0}
         # fetch uniques serials
-        serials:list[str]=list(set(kwargs.pop('serials')))
+        serials:list[str]=list(set(d.serial for d in devices))
         report["uniques"]=len(serials)
         print(f"{serials=}")
-        # claim or refresh
-        lst:list[SopMerakiDevice] = SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, smo=smo, serials=serials)
-        report["inventory"]=len(lst)
         # refetch all of our serials
-        lst=SopMerakiDevice.objects.filter(serial__in=serials)
+        lst:list[SopMerakiDevice]=list()
         # Sort and filter those already in the target net
-        move:dict[str,list[SopMerakiDevice]] = {"MR":list(), "MS":list(), "ALL":list()}
-        sc_by_ptype:dict[str, str]={ 
-            SopMerakiUtils.DEV_TYPE_MR : "MR", 
-            SopMerakiUtils.DEV_TYPE_MS : "MS", 
-        }
-        tgt_by_sc:dict={ 
-            "ALL": soi.claim_net_mx,
-            "MR" : soi.claim_net_mr,
-            "MS" : soi.claim_net_ms
-        }
         skipped=0
-        failed=0
-        already=0
-        for d in lst:
-            sc:str=sc_by_ptype.get(d.ptype, "ALL")
-            tgt:SopMerakiNet=tgt_by_sc.get(sc, soi.claim_net_mx)
-            if tgt is None:
+        for d in devices:
+            if d.meraki_network==destination:
                 skipped+=1
                 continue
-            if d.meraki_netid is None:
-                move[sc].append(d)
-                report[sc].append(d.serial)
-            #print(f"{d.ptype=} {sc=} {d.meraki_netid=} {tgt=}")
-            if d.meraki_netid==tgt.meraki_id:
-                already+=1
-                continue
-            self.failure(f"We were asked to move device {d} to from network {d.meraki_netid} to {tgt.meraki_id}. This is not supported yet.")
-            print(f"We were asked to move device {d} to from network {d.meraki_netid} to {tgt.meraki_id}. This is not supported yet.")
-            failed+=1
-            continue
-        print(f"{move=}")
+            lst.append(d)
+        print(f"{lst=}")
         report["skipped"]=skipped
-        report["already"]=already
-        report["failed"]=failed
         # Move
-        moved=0
-        moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mr, devices=move["MR"]))
-        moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_ms, devices=move["MS"]))
-        moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mx, devices=move["ALL"]))
-        report["moved"]=moved
+        result:dict=SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=destination, devices=devices, force=force)
         # report
-        self.job.data=report
+        self.job.data=result
+        # check for errors
+        errs=result.get("errors")
+        if errs and len(errs)>0:
+            raise JobFailed(f"Errors detected {errs}")
 
     @staticmethod
-    def launch_interactive(request, message:bool, soi:SopInfra, serials:list[str], )->Job:
-        serials=list(set(serials)) 
-        job:Job=SopMerakiClaimDevicesToInfraJob.enqueue(instance=soi, user=request.user, immediate=True, soi=soi, serials=serials)
+    def launch_interactive(request, message:bool, smds:list[SopMerakiDevice], destination:SopMerakiNet, force:bool )->Job:
+        print(f"{smds=}")
+        job:Job=SopMerakiMoveDevicesToNetwork.enqueue(instance=destination, user=request.user, immediate=True, devices=smds, destination=destination, force=force)
         if message:
             if job.status==JobStatusChoices.STATUS_COMPLETED:
-                messages.success(request, f'Claimed {len(serials)} devices to networks for sopinfra {soi} !')
+                messages.success(request, f'Moved {len(smds)} devices to network {destination} !')
             else:
-                messages.error(request, f'Failed to claim {len(serials)} devices to networks for sopinfra {soi}, see logs for job #{job.pk} !')
+                messages.error(request, f'Failed to move {len(smds)} devices to network {destination}, see logs for job #{job.pk} !')
         return job
     
     @staticmethod
-    def launch_background(request, message:bool, org:SopMerakiOrg, serials:list[str], soi:SopInfra)->Job:   
-        serials=list(set(serials)) 
-        job:Job=SopMerakiClaimDevicesToInfraJob.enqueue(instance=soi, user=request.user, immediate=True, soi=soi, serials=serials)
+    def launch_background(request, message:bool, smds:list[SopMerakiDevice], destination:SopMerakiNet, force:bool )->Job:
+        job:Job=SopMerakiMoveDevicesToNetwork.enqueue(instance=destination, user=request.user, immediate=True, devices=smds, destination=destination, force=force)
         if message:
-            messages.success(request, f'Started job #{job.pk} to claim {len(serials)} devices to networks for sopinfra {soi} !')           
+            messages.success(request, f'Moved {len(smds)} devices to network {destination} !')          
         return job
+
+  
+
+# class SopMerakiClaimDevicesToInfraJob(JobRunnerLogMixin, JobRunner):
+
+#     class Meta: # type: ignore
+#         name = "Claim devices to Meraki Networks"
+
+#     def run(self, *args, **kwargs):
+#         # Args
+#         soi:SopInfra=kwargs.pop('soi')
+#         smo=SopMerakiUtils.get_site_meraki_org(soi.site)
+#         # Checks
+#         if soi.claim_net_mr is None: 
+#             raise AbortRequest("Claim net for MR devices is unset !")
+#         if soi.claim_net_ms is None: 
+#             raise AbortRequest("Claim net for regular MS devices is unset !")
+#         if soi.claim_net_mx is None: 
+#             raise AbortRequest("Claim net for regular Meraki devices is unset !")
+#         if smo is None:
+#             raise AbortRequest("SopMerakiOrganisation is unset !")     
+#         # report
+#         report:dict[str,list[str]] = {"uniques":0, "inventory":0, "moved":0, "MR":list(), "MS":list(), "ALL":list()}
+#         # fetch uniques serials
+#         serials:list[str]=list(set(kwargs.pop('serials')))
+#         report["uniques"]=len(serials)
+#         print(f"{serials=}")
+#         # claim or refresh
+#         lst:list[SopMerakiDevice] = SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, smo=smo, serials=serials)
+#         report["inventory"]=len(lst)
+#         # refetch all of our serials
+#         lst=SopMerakiDevice.objects.filter(serial__in=serials)
+#         # Sort and filter those already in the target net
+#         move:dict[str,list[SopMerakiDevice]] = {"MR":list(), "MS":list(), "ALL":list()}
+#         sc_by_ptype:dict[str, str]={ 
+#             SopMerakiUtils.DEV_TYPE_MR : "MR", 
+#             SopMerakiUtils.DEV_TYPE_MS : "MS", 
+#         }
+#         tgt_by_sc:dict={ 
+#             "ALL": soi.claim_net_mx,
+#             "MR" : soi.claim_net_mr,
+#             "MS" : soi.claim_net_ms
+#         }
+#         skipped=0
+#         failed=0
+#         already=0
+#         for d in lst:
+#             sc:str=sc_by_ptype.get(d.ptype, "ALL")
+#             tgt:SopMerakiNet=tgt_by_sc.get(sc, soi.claim_net_mx)
+#             if tgt is None:
+#                 skipped+=1
+#                 continue
+#             if d.meraki_netid is None:
+#                 move[sc].append(d)
+#                 report[sc].append(d.serial)
+#             #print(f"{d.ptype=} {sc=} {d.meraki_netid=} {tgt=}")
+#             if d.meraki_netid==tgt.meraki_id:
+#                 already+=1
+#                 continue
+#             self.failure(f"We were asked to move device {d} to from network {d.meraki_netid} to {tgt.meraki_id}. This is not supported yet.")
+#             print(f"We were asked to move device {d} to from network {d.meraki_netid} to {tgt.meraki_id}. This is not supported yet.")
+#             failed+=1
+#             continue
+#         print(f"{move=}")
+#         report["skipped"]=skipped
+#         report["already"]=already
+#         report["failed"]=failed
+#         # Move
+#         moved=0
+#         moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mr, devices=move["MR"]))
+#         moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_ms, devices=move["MS"]))
+#         moved+=len(SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=soi.claim_net_mx, devices=move["ALL"]))
+#         report["moved"]=moved
+#         # report
+#         self.job.data=report
+
+#     @staticmethod
+#     def launch_interactive(request, message:bool, soi:SopInfra, serials:list[str], )->Job:
+#         serials=list(set(serials)) 
+#         job:Job=SopMerakiClaimDevicesToInfraJob.enqueue(instance=soi, user=request.user, immediate=True, soi=soi, serials=serials)
+#         if message:
+#             if job.status==JobStatusChoices.STATUS_COMPLETED:
+#                 messages.success(request, f'Claimed {len(serials)} devices to networks for sopinfra {soi} !')
+#             else:
+#                 messages.error(request, f'Failed to claim {len(serials)} devices to networks for sopinfra {soi}, see logs for job #{job.pk} !')
+#         return job
+    
+#     @staticmethod
+#     def launch_background(request, message:bool, org:SopMerakiOrg, serials:list[str], soi:SopInfra)->Job:   
+#         serials=list(set(serials)) 
+#         job:Job=SopMerakiClaimDevicesToInfraJob.enqueue(instance=soi, user=request.user, immediate=True, soi=soi, serials=serials)
+#         if message:
+#             messages.success(request, f'Started job #{job.pk} to claim {len(serials)} devices to networks for sopinfra {soi} !')           
+#         return job
         
 
 

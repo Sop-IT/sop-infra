@@ -19,6 +19,13 @@ __all__ = (
 )
 
 
+MOVE_TO_NETWORK = """
+{% if record.pk %}
+  <a href="{% url 'plugins:sop_infra:sopmerakidevice_move' record.pk %}?return_url={{ request.get_full_path }}" class="btn btn-sm btn-success mdi-move">MOVE</a>
+{% endif %}
+"""
+
+
 class SopMerakiDashTable(NetBoxTable):
 
     nom = tables.Column(linkify=True)
@@ -147,6 +154,9 @@ class SopMerakiDeviceTable(NetBoxTable):
     has_netbox_device = tables.Column(verbose_name="NB device ?", empty_values=(None, False), order_by="netbox_device_id")
     has_netbox_device_in_same_site = tables.Column(verbose_name="Site match ?", empty_values=(None, False), orderable=False)
     has_netbox_device_of_same_type = tables.Column(verbose_name="Type match ?", empty_values=(None, False), orderable=False)
+    actions = columns.ActionsColumn(
+        extra_buttons=MOVE_TO_NETWORK
+    )
 
     class Meta(NetBoxTable.Meta):
         model = SopMerakiDevice

@@ -362,7 +362,7 @@ class SopMerakiUtils:
 
     @classmethod
     def move_devices_to_network(
-        cls,  log:JobRunnerLogMixin, simulate: bool, smn:SopMerakiNet, devices:list[SopMerakiDevice] 
+        cls,  log:JobRunnerLogMixin, simulate: bool, smn:SopMerakiNet, devices:list[SopMerakiDevice], force:bool 
     )-> list[SopMerakiDevice]:
         print(f"SopMerakiUtils.move_devices_to_network : claiming {len(devices)} devices to {smn} net")
         if len(devices)==0:
@@ -371,7 +371,7 @@ class SopMerakiUtils:
             raise AbortRequest(f"Destination Meraki Network is not set !")
         smd:SopMerakiDash = smn.org.dash
         conn = cls.connect(smd.nom, smd.api_url, simulate)       
-        return SopMerakiDeviceUtils.move_devices_to_network(smn, devices, conn, log, False)
+        return SopMerakiDeviceUtils.move_devices_to_network(smn, devices, force, conn, log, False)
 
 
     @classmethod
@@ -1485,46 +1485,73 @@ class SopMerakiDeviceUtils:
     def move_devices_to_network(
         smn: SopMerakiNet,
         devices : list[SopMerakiDevice],
+        force_move:bool,
         conn: meraki.DashboardAPI,
         log: JobRunnerLogMixin,
         details:bool
-    ) -> list[SopMerakiDevice]:
-        ret:list[SopMerakiDevice]=list()
-        # extrat serials
-        serials:list[str]=list()
-        for d in devices:
-            serials.append(d.serial)
-        # TODO on ne peut claimer dans un network qu'un device qui n'est pas déjà dans un réseau
-        # --> prévoir un param pour forcer le move
-        # --> faire le backup pour pouvoir mover
-        # for dev in conn.organizations.getOrganizationInventoryDevices(smo.meraki_id, total_pages=-1, serials=serials):
+    ) -> dict:
+        # Préparer les reports
+        found=list()
+        skipped=list()
+        failed=list()
+        bound=list()
+        moved=list()
+        # extract serials
+        by_serial:dict[str,SopMerakiDevice]=dict( (d.serial, d) for d in devices)
+        serials:list[str]=list(set(d.serial for d in devices))
+        # Loop to classify
+        for dev in conn.organizations.getOrganizationInventoryDevices(smn.org.meraki_id, total_pages=-1, serials=serials):
+            serial=dev.get("serial")
+            nid=dev.get("networkId", "")
+            if nid=="":
+                found.append(serial)
+                serials.remove(serial)
+            elif nid==smn.meraki_id:
+                skipped.append(serial)
+                serials.remove(serial)
+            else:
+                if not force_move:
+                    bound.append(serial)
+                else:
+                    moved.append([serial,nid])
+                serials.remove(serial)
+        not_found=list()
+        not_found.extend(serials)
+        serials=found.copy()
+        print(f"{serials=}")
+        # Free devices from networks
+        for (sn,nid) in moved:
+            conn.networks.removeNetworkDevices(nid, sn)
+            serials.append(sn)
+            smd=by_serial.get(sn)
+            smd.snapshot()
+            smd.meraki_netid=""
+            smd.meraki_network=None
+            smd.full_clean()
+            smd.save()
+        print(f"{serials=}")
         log.log_info(f"Trying to claim/move {serials} to network {smn.nom} ({smn.meraki_id}) ...")
-        result=conn.networks.claimNetworkDevices(smn.meraki_id, serials=serials)
+        result=conn.networks.claimNetworkDevices(smn.meraki_id, serials=serials, addAtomically=False)
         errs=result.get("errors")
         if errs and len(errs)>0:
             log.log_failure(f"Claim to {smn} had errors : {errs}")
-            return list()
-        # claim into network succeeded !
-        log.log_info(f"Move {serials} to {smn}...")
-        # let's update our meraki and netbox devices 
-        with transaction.atomic():
-            for d in devices:
-                d.snapshot()
-                d.meraki_network=smn
-                d.meraki_netid=smn.meraki_id
-                d.full_clean()
-                d.save()
-                ret.append(d)
-                if d.has_netbox_device:
-                    nd=d.netbox_device
-                    nd.snapshot()
-                    nd.site=smn.site
-                    nd.full_clean()
-                    nd.save()
-        # TODO : handle fuckup here 
+        for sn in result.get("serials"):
+            smd=by_serial.get(sn)
+            smd.snapshot()
+            smd.meraki_netid=smn.meraki_id
+            smd.meraki_network=smn
+            smd.full_clean()
+            smd.save()
         log.log_info(f"Move {serials} to {smn} done !")
-        return ret
-
+        return {
+            "to_claim": found,
+            "to_move": moved,
+            "bound" : bound,
+            "to_skip": skipped,
+            "not_found" : not_found,
+            "errors": errs,
+        }
+        
 
 class SopMerakiSwitchStackUtils:
     @staticmethod

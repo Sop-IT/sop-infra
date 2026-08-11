@@ -1,10 +1,12 @@
 import re
 
 from django.contrib import messages
+from django.forms.fields import BooleanField
 import django_filters
 from django import forms
 from django.http import HttpRequest
 from django.urls import reverse
+from jsonschema import ValidationError
 from sop_infra.utils.meraki_utils import SopMerakiRegexps, SopMerakiUtils
 from utilities.forms.fields import (
     CommentField,
@@ -309,3 +311,41 @@ class SopMerakiOrgClaimForm(forms.Form):
         }
 
     
+class SopMerakiDeviceMoveForm(forms.Form):
+
+    destination = DynamicModelChoiceField(queryset=SopMerakiNet.objects.all(), required=False)
+    force = forms.BooleanField(required=False)
+    
+    def clean(self):
+        data = super().clean()
+        destination = SopMerakiNet.objects.none()
+        request: HttpRequest = current_request.get()  # type: ignore
+
+        def normalize_queryset(obj):
+            qs = [str(item) for item in obj]
+            if qs == []:
+                return None
+            return f"id=" + "&id=".join(qs)
+
+        if not "destination" in data.keys():
+            raise ValidationError(
+                "Missing key: %(key)s",
+                code="missing",
+                params={"key": "destination"},
+            )
+        
+        destination = SopMerakiNet.objects.filter(pk=data["destination"].pk)
+        if destination.count()!=1:
+            raise ValidationError(
+                "Wrong destination count : %(count)s",
+                code="incorrect_count",
+                params={"count": destination.count()},
+            )        
+
+        return_url = request.GET.get("return_url", "")
+
+        return {
+            "destination": destination[0],
+            "force": data["force"],
+            "return_url": return_url,
+        }
