@@ -103,6 +103,19 @@ class SopMerakiNetFilterForm(NetBoxModelFilterSetForm):
     meraki_url = forms.CharField(required=False)
     meraki_notes = forms.CharField(required=False)
     meraki_id = forms.CharField(required=False)
+    # TODO ptypes
+    # TODO meraki_tags
+    dash = DynamicModelChoiceField(queryset=SopMerakiDash.objects.all(), required=False)
+    # TODO vpnmode
+    # TODO appliance_status
+    # TODO "meraki_peers_reachability",
+    # TODO "exp_subnets_count",
+    # TODO "last_stats_change",
+    # TODO "primary_mx",
+    # TODO "secondary_mx",
+    # TODO with a choice /dropdown
+    supports_ptype = forms.CharField(required=False)
+
 
 
 class SopMerakiSwitchStackFilterForm(NetBoxModelFilterSetForm):
@@ -313,19 +326,20 @@ class SopMerakiOrgClaimForm(forms.Form):
     
 class SopMerakiDeviceMoveForm(forms.Form):
 
-    destination = DynamicModelChoiceField(queryset=SopMerakiNet.objects.all(), required=False)
+    ptype = forms.HiddenInput()
+    destination = DynamicModelChoiceField(
+        queryset=SopMerakiNet.objects.all(), 
+        required=True,
+        query_params={
+            "ptypes__icontains": "$ptype",
+        },
+    )
     force = forms.BooleanField(required=False)
     
     def clean(self):
         data = super().clean()
         destination = SopMerakiNet.objects.none()
         request: HttpRequest = current_request.get()  # type: ignore
-
-        def normalize_queryset(obj):
-            qs = [str(item) for item in obj]
-            if qs == []:
-                return None
-            return f"id=" + "&id=".join(qs)
 
         if not "destination" in data.keys():
             raise ValidationError(
