@@ -65,6 +65,24 @@ class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
 @register_filterset
 class SopMerakiNetFilterSet(NetBoxModelFilterSet):
 
+    supports_ptype = django_filters.CharFilter(method="filter_custom")
+    has_meraki_tag = django_filters.CharFilter(method="filter_custom")
+
+    def filter_custom(self, queryset, name, value):
+        print(f"filter_custom {queryset=} {name=} {value=}")
+        if value is None:
+            return queryset
+        q: Q
+        if name == "supports_ptype":
+            q = Q(ptypes__icontains=value)
+            print(f"{q=}")
+            return queryset.filter(q)
+        if name == "has_meraki_tag":
+            q = Q(meraki_tags__icontains=value)
+            return queryset.filter(q)
+        raise Exception(f"unknown field name {name}")
+
+ 
     class Meta:
         model = SopMerakiNet
         fields = (
@@ -98,6 +116,7 @@ class SopMerakiNetFilterSet(NetBoxModelFilterSet):
                 },
             }
         }
+
 
     def search(self, queryset, name, value):
         if not value.strip():

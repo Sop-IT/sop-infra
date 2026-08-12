@@ -3,7 +3,7 @@ from django.db.models import Count
 from django.shortcuts import render, redirect
 from django.views import View
 from django.conf import settings
-
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.http import HttpRequest, JsonResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
@@ -14,12 +14,14 @@ from core.choices import JobStatusChoices
 from sop_infra.forms.sopmeraki import SopMerakiDeviceMoveForm, SopMerakiOrgClaimForm
 from sop_infra.utils.meraki_utils import SopMerakiOrgUtils
 from sop_infra.utils.netbox_utils import SopInfraUtils
+from sop_infra.utils.object_actions import MoveObject
 from utilities.views import ConditionalLoginRequiredMixin, ObjectPermissionRequiredMixin, register_model_view
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
 
 from netbox.views import generic
 from netbox.jobs import Job
+from netbox.object_actions import BulkDelete, BulkEdit, CloneObject, DeleteObject, EditObject
 
 from dcim.models import Region, Site, SiteGroup
 from ipam.models import IPAddress, Prefix
@@ -769,16 +771,19 @@ class SopMerakiOrgClaimView(AccessMixin, View):
 #endregion
 
 
-# ========================================================================
+# ============================================================================================================================
 #region SopMerakiNet
 
 
+@register_model_view(SopMerakiNet)
 class SopMerakiNetView(generic.ObjectView):
     queryset = SopMerakiNet.objects.all().annotate(
         devs_count=Count("devices", distinct=True)
     )
 
 
+
+@register_model_view(SopMerakiNet, 'list', path='', detail=False)
 class SopMerakiNetListView(generic.ObjectListView):
     queryset = SopMerakiNet.objects.all().annotate(
         devs_count=Count("devices", distinct=True)
@@ -788,13 +793,19 @@ class SopMerakiNetListView(generic.ObjectListView):
     filterset_form = SopMerakiNetFilterForm
 
 
+
+@register_model_view(SopMerakiNet, 'add', detail=False)
+@register_model_view(SopMerakiNet, 'edit')
 class SopMerakiNetEditView(generic.ObjectEditView):
     queryset = SopMerakiNet.objects.all()
     form = SopMerakiNetForm
 
 
+
+@register_model_view(SopMerakiNet, 'delete')
 class SopMerakiNetDeleteView(generic.ObjectDeleteView):
     queryset = SopMerakiNet.objects.all()
+
 
 
 class SopMerakiNetRefreshChooseView(AccessMixin, View):
@@ -842,6 +853,7 @@ class SopMerakiNetRefreshChooseView(AccessMixin, View):
         
 
 
+@register_model_view(SopMerakiNet, 'refresh')
 class SopMerakiNetRefreshView(AccessMixin, View):
 
     def post(self, request, pk, *args, **kwargs):
@@ -858,6 +870,7 @@ class SopMerakiNetRefreshView(AccessMixin, View):
         url = reverse("core:job", args=[j.pk])
         return redirect(url)
     
+
 
 class SopMerakiNetUpdateConnectivityStatusesView(AccessMixin, View):
 
@@ -877,7 +890,17 @@ class SopMerakiNetUpdateConnectivityStatusesView(AccessMixin, View):
 
 #endregion
 
-# ========================================================================
+
+
+
+
+
+
+
+
+
+
+# ============================================================================================================================
 #region SopMerakiSwitchStack
 
 @register_model_view(SopMerakiSwitchStack)
@@ -925,8 +948,8 @@ class SopMerakiSwitchStackDeleteView(generic.ObjectDeleteView):
 
 @register_model_view(SopMerakiDevice)
 class SopMerakiDeviceView(generic.ObjectView):
+    actions = [MoveObject]
     queryset = SopMerakiDevice.objects.all()
-
 
 
 @register_model_view(SopMerakiDevice, 'list', path='', detail=False)
@@ -958,22 +981,34 @@ class SopMerakiDeviceMoveView(ConditionalLoginRequiredMixin, View):
     form = SopMerakiDeviceMoveForm
     template_name: str = "sop_infra/sopinfra/actions/sopmerakidevice_move.html"
 
-    def get(self, request, *args, **kwargs):
-
-        # additional security
-        if not request.user.has_perm(
-            get_permission_for_model(SopMerakiDevice, "move")
-        ):
-            return self.handle_no_permission()
-
-        restrict_form_fields(self.form(), request.user)
-
+    def get(self, request, pk, *args, **kwargs):
+        # Fetch from DB
+        instance = get_object_or_404(SopMerakiDevice, pk=pk)
+        # Check perms
+        # - can move the device
+        if not SopUtils.check_permission(request.user, instance, "move"):
+            raise PermissionDenied(f"You do not have 'move' permission on this device ({instance}) !")
+        # - can move on source network
+        if instance.meraki_network is not None and not SopUtils.check_permission(request.user, instance.meraki_network, "move"):
+            raise PermissionDenied(f"You do not have 'move' permission on the source network {instance.meraki_network} !")
+        # Build or fetch return URL
+        return_url : str = request.get_full_path()
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Prepare form (give ptype to filter possible networks)
+        frm=self.form(initial={"ptype":instance.ptype})
+        fld=frm.fields.get("destination")
+        fld.help_text=f"Filtered by product_type={instance.ptype}"
+        fld.widget.add_query_params({"ptypes__icontains": instance.ptype})
+        # Filter out networks where the user has move rights 
+        #restrict_form_fields(frm, request.user, "move")
+        # render
         return render(
             request,
             self.template_name,
             {
-                "form": self.form(),
-                "return_url": request.get_full_path(),
+                "form": frm,
+                "return_url": return_url,
             },
         )
 
@@ -982,8 +1017,12 @@ class SopMerakiDeviceMoveView(ConditionalLoginRequiredMixin, View):
         # Fetch from DB
         instance = get_object_or_404(SopMerakiDevice, pk=pk)
         # Check perms
+        # - can move the device
         if not SopUtils.check_permission(request.user, instance, "move"):
-            return self.handle_no_permission()
+            raise PermissionDenied(f"You do not have 'move' permission on this device ({instance}) !")
+        # - can move on source network
+        if instance.meraki_network is not None and not SopUtils.check_permission(request.user, instance.meraki_network, "move"):
+            raise PermissionDenied(f"You do not have 'move' permission on the source network {instance.meraki_network} !")
         # Build or fetch return URL
         return_url : str
         if request.GET.get("return_url"):
@@ -996,10 +1035,12 @@ class SopMerakiDeviceMoveView(ConditionalLoginRequiredMixin, View):
             return render(request, self.template_name, {"form": form, "return_url": return_url})
         # Extract form data
         data: dict = form.cleaned_data
-        print(f"CLEAN DATA {data=}")
         destination:SopMerakiNet = data["destination"]
-        print(f"{destination=}")
         force:bool=data["force"]
+        # Check perms
+        # - can move to destination network
+        if destination is not None and not SopUtils.check_permission(request.user, destination, "move"):
+            raise PermissionDenied(f"You do not have 'move' permission on the destination network {destination} !")
         # Run job and redirect according to return status
         j: Job = SopMerakiMoveDevicesToNetwork.launch_interactive(request, True, [instance], destination, force)
         url:str

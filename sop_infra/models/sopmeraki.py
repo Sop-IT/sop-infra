@@ -50,7 +50,9 @@ class SopMerakiDash(JobsMixin, NetBoxModel):
     class Meta(NetBoxModel.Meta):
         verbose_name = "Meraki dashboard"
         verbose_name_plural = "Meraki dashboards"
-
+        permissions = [
+            ('refresh', 'Refresh from dashboard'),
+        ]
 
 
 class SopMerakiOrg(JobsMixin, NetBoxModel):
@@ -113,7 +115,8 @@ class SopMerakiOrg(JobsMixin, NetBoxModel):
             ),
         ]
         permissions = [
-            ('claim_meraki_devices', 'Claim devices to inventory'),
+            ('claim', 'Claim new devices'),
+            ('refresh', 'Refresh from dashboard'),
         ]
 
 
@@ -210,16 +213,19 @@ class SopMerakiNet(JobsMixin, NetBoxModel):
         related_name="net_where_secondary",
     )
 
-    
     def __str__(self):
         return f"{self.nom}"
 
     def get_absolute_url(self) -> str:
-        return reverse("plugins:sop_infra:sopmerakinet_detail", args=[self.pk])
+        return reverse("plugins:sop_infra:sopmerakinet", args=[self.pk])
 
     class Meta(NetBoxModel.Meta):
         verbose_name = "Meraki Network"
         verbose_name_plural = "Meraki Networks"
+        permissions = [
+            ('refresh', 'Refresh from dashboard'),
+            ('move', 'Move'),
+        ]
 
     @property
     def is_ha(self) -> bool:
@@ -510,7 +516,7 @@ class SopMerakiDevice(
         verbose_name = "Meraki Device"
         verbose_name_plural = "Meraki Devices"
         permissions = [
-            ('move_meraki_devices', 'Move Meraki devices between Meraki Networks'),
+            ('move', 'Move'),
         ]
     # ------------------ CHECKS
     @property

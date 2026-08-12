@@ -366,9 +366,8 @@ class SopInfra(JobsMixin, NetBoxModel):
             ),
         ]
         permissions = [
-            ('claim_meraki_devices', 'Claim Meraki devices'),
-            ('create_meraki_networks', 'Create Meraki networks'),
-            ('refresh', 'Refresh Meraki networks'),
+            ('create_networks', 'Create Meraki networks'),
+            ('refresh_networks', 'Refresh Meraki networks'),
             ('recompute_sizing', 'Recompute SOPINFRA sizing'),
         ]
 

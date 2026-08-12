@@ -169,13 +169,15 @@ urlpatterns = [
 
     # ========================================================================
     # SopMerakiNet
-    path('sopmerakinet/', SopMerakiNetListView.as_view(), name='sopmerakinet_list'),
-    path('sopmerakinet/add/', SopMerakiNetEditView.as_view(), name='sopmerakinet_add'),
-    path('sopmerakinet/<int:pk>/', SopMerakiNetView.as_view(), name='sopmerakinet_detail'),
-    path('sopmerakinet/<int:pk>/edit/', SopMerakiNetEditView.as_view(), name='sopmerakinet_edit'),
-    path('sopmerakinet/<int:pk>/delete/', SopMerakiNetDeleteView.as_view(), name='sopmerakinet_delete'),
+    path('sopmerakinet/', include(get_model_urls('sop_infra', 'sopmerakinet', detail=False))),
+    path('sopmerakinet/<int:pk>/', include(get_model_urls('sop_infra', 'sopmerakinet'))),
+    #path('sopmerakinet/', SopMerakiNetListView.as_view(), name='sopmerakinet_list'),
+    #path('sopmerakinet/add/', SopMerakiNetEditView.as_view(), name='sopmerakinet_add'),
+    #path('sopmerakinet/<int:pk>/', SopMerakiNetView.as_view(), name='sopmerakinet_detail'),
+    #path('sopmerakinet/<int:pk>/edit/', SopMerakiNetEditView.as_view(), name='sopmerakinet_edit'),
+    #path('sopmerakinet/<int:pk>/delete/', SopMerakiNetDeleteView.as_view(), name='sopmerakinet_delete'),
     path('sopmerakinet/refresh/', SopMerakiNetRefreshChooseView.as_view(), name='sopmerakinet_refresh_choose'),
-    path('sopmerakinet/<int:pk>/refresh/', SopMerakiNetRefreshView.as_view(), name='sopmerakinet_refresh'),
+    #path('sopmerakinet/<int:pk>/refresh/', SopMerakiNetRefreshView.as_view(), name='sopmerakinet_refresh'),
     path('sopmerakinet/<int:pk>/update_connectivity_statuses/', SopMerakiNetUpdateConnectivityStatusesView.as_view(), name='sopmerakinet_update_connectivity_statuses'),
     path('sopmerakinet/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakinet_changelog', kwargs={'model': SopMerakiNet}),
     path('sopmerakinet/<int:pk>/jobs/', ObjectJobsView.as_view(), name='sopmerakinet_jobs', kwargs={'model': SopMerakiNet}),
