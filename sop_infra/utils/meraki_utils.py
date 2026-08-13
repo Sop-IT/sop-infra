@@ -1418,17 +1418,28 @@ class SopMerakiDeviceUtils:
     ) -> list[SopMerakiDevice]:
         log.log_info(f"Trying to claim {serials} to {smo}")
         ret:list[SopMerakiDevice]=list()
-        # DO not claim already inventoried devices
-        to_claim:list[str]=serials.copy()
-        # TODO INCORRECT SERIALS
-        for dev in conn.organizations.getOrganizationInventoryDevices(smo.meraki_id, total_pages=-1, serials=serials):
-            serial=dev.get("serial")
-            log.log_warning(f"SopMerakiDeviceUtils.claim_devices_to_inventory : device {serial} already exists in the inventory")
-            to_claim.remove(serial)
-        log.log_info(f"Claiming {to_claim} to {smo}...")
-        conn.organizations.claimIntoOrganizationInventory(smo.meraki_id, serials=to_claim)
+        
+        # Check where we stand
+        devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, smo.meraki_id, serials)
+        # Report existing
+        existing:list[str]=(d.serial for d in devs.get("found"))
+        log.log_warning(f"SopMerakiDeviceUtils.claim_devices_to_inventory : devices {existing} already exists in the inventory")
+        # Only try to claim missing
+        to_claim:list[str]=(d.serial for d in devs.get("missing"))
+        log.log_info(f"Trying to claim {to_claim} to {smo}...")
+        claims=SopMerakiOrgUtils.claim_devices_into_inventory(conn, smo.meraki_id, serials=to_claim)
+        # Report failures
+        failed:list[str]=list()
+        for claim in claims.get("failed"):
+            failed.extend(claim.get("serials"))
+        log.log_warning(f"SopMerakiDeviceUtils.claim_devices_to_inventory : claim failed for {failed}")
+        claimed:list[str]=list()
+        for claim in claims.get("failed"):
+            claimed.extend(claim.get("serials"))
+        log.log_info(f"SopMerakiDeviceUtils.claim_devices_to_inventory : successfully claimed {claimed}")
         log.log_info(f"Claim done, let's refresh claimed SopMerakiDevices from inventory")
-        for dev in conn.organizations.getOrganizationInventoryDevices(smo.meraki_id, total_pages=-1, serials=serials):
+        devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, smo.meraki_id, serials)
+        for dev in devs.get("found"):
             serial=dev.get("serial")
             # refresh "no net" devices from inventory
             log.log_info(f"Refreshing device {serial} ...")
@@ -1439,7 +1450,7 @@ class SopMerakiDeviceUtils:
                 log.log_info(f"Something changed on device {serial}, let's relink related objects...")
                 SopMerakiDeviceUtils.relink_related_objects(smd, log)
             # Now create missing netbox devices
-            smd=SopMerakiDeviceUtils.get_by_serial(serial)
+            # -removed- no need to requery - smd=SopMerakiDeviceUtils.get_by_serial(serial) 
             if smd.netbox_device is not None:
                 log.log_info(f"SopmerakiDevice {serial} is already linked to an existing Netbox Device {smd.netbox_device}, nothing left to do...")
             elif smd.netbox_dev_type is not None:
@@ -1674,6 +1685,7 @@ class SopMerakiSwitchStackUtils:
         return save
 
 
+
 class SopMerakiOrgUtils:
 
     # ------------------ UTILS
@@ -1683,11 +1695,94 @@ class SopMerakiOrgUtils:
         orgs = SopMerakiOrg.objects.filter(pk=id)
         return orgs[0] if orgs.exists() else None
 
+
     @staticmethod
     def get_by_meraki_id(meraki_id: str)->SopMerakiOrg:
         orgs = SopMerakiOrg.objects.filter(meraki_id=meraki_id)
         return orgs[0] if orgs.exists() else None
 
+    
+    @staticmethod
+    def claim_devices_into_inventory(conn, meraki_org_id: str, serials:list[str])->dict:
+        # Prepare return
+        claimed:list=list()
+        failed:list=list()
+        ret:dict[str,list]={"claimed":claimed,"failed":failed}
+        # Try if we can claim all of those in one shot
+        claims=SopMerakiOrgUtils.try_claim_devices_into_inventory(conn, meraki_org_id, serials)
+        if claims is not None :
+            # No error means all the serial were valid and were claimed into the inventory
+            claimed.extend(claims)
+        else:
+            # one by one then
+            for serial in serials:
+                claims=SopMerakiOrgUtils.try_claim_devices_into_inventory(conn, meraki_org_id, [serial])
+                if claims is not None :
+                    claimed.extend(claims)
+                else:
+                    failed.extends(claims)
+        return ret
+
+
+    @staticmethod
+    def try_claim_devices_into_inventory(conn, meraki_org_id: str, serials:list[str])->list|None:        
+        claims:list=None
+        try:
+            # https://developer.cisco.com/meraki/api-v1/claim-into-organization-inventory/
+            claims=conn.organizations.claimIntoOrganizationInventory(meraki_org_id, serials=serials)
+        except meraki.exceptions.APIError as ex:
+            # bad request normaly means unknown serial : TODO check message
+            # JSON response= 
+            # {
+            #     "errors": [
+            #         "Each element in 'serials' must be in a valid serial number format"
+            #     ]
+            # }
+            if ex.status!=400:
+                raise ex  
+        return claims
+
+
+    @staticmethod
+    def fetch_inventory_devices(conn, meraki_org_id: str, serials:list[str])->dict:
+        # Prepare return
+        found:list=list()
+        missing:list=list()
+        ret:dict[str,list]={"found":found,"missing":missing}
+        # Try if we can fetch all of those
+        devs=SopMerakiOrgUtils.try_fetch_inventory_devices(conn, meraki_org_id, serials)
+        if devs is not None :
+            # No error means all the serial were valid and exist in the inventory
+            found.extend(devs)
+        else:
+            # one by one then
+            for serial in serials:
+                devs=SopMerakiOrgUtils.try_fetch_inventory_devices(conn, meraki_org_id, [serial])
+                if devs is not None :
+                    found.extend(devs)
+                else:
+                    missing.extends(devs)
+        return ret
+
+
+    @staticmethod
+    def try_fetch_inventory_devices(conn, meraki_org_id: str, serials:list[str])->list|None:        
+        devs:list=None
+        try:
+            # https://developer.cisco.com/meraki/api-v1/get-organization-inventory-devices/
+            devs=conn.organizations.getOrganizationInventoryDevices(meraki_org_id, total_pages=-1, serials=serials)
+        except meraki.exceptions.APIError as ex:
+            # bad request normaly means unknown serial : TODO check message
+            # JSON response= 
+            # {
+            #     "errors": [
+            #         "Each element in 'serials' must be in a valid serial number format"
+            #     ]
+            # }
+            if ex.status!=400:
+                raise ex  
+        return devs
+    
 
     @staticmethod
     def refresh_from_meraki(
@@ -1699,6 +1794,7 @@ class SopMerakiOrgUtils:
     ):
         org_data=conn.organizations.getOrganization(smo.meraki_id)
         return SopMerakiOrgUtils.refresh_from_meraki_data(smo, conn, org_data, dash, log, details)
+
 
     @staticmethod
     def refresh_from_meraki_data(
