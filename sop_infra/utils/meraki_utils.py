@@ -1502,8 +1502,8 @@ class SopMerakiDeviceUtils:
         # Loop to classify
         for dev in conn.organizations.getOrganizationInventoryDevices(smn.org.meraki_id, total_pages=-1, serials=serials):
             serial=dev.get("serial")
-            nid=dev.get("networkId", "")
-            if nid=="":
+            nid=dev.get("networkId")
+            if nid is None or nid=="":
                 found.append(serial)
                 serials.remove(serial)
             elif nid==smn.meraki_id:
