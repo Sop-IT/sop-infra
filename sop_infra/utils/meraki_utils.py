@@ -1419,6 +1419,7 @@ class SopMerakiDeviceUtils:
         ret:list[SopMerakiDevice]=list()
         # DO not claim already inventoried devices
         to_claim:list[str]=serials.copy()
+        # TODO INCORRECT SERIALS
         for dev in conn.organizations.getOrganizationInventoryDevices(smo.meraki_id, total_pages=-1, serials=serials):
             serial=dev.get("serial")
             log.log_warning(f"SopMerakiDeviceUtils.claim_devices_to_inventory : device {serial} already exists in the inventory")
@@ -1493,16 +1494,26 @@ class SopMerakiDeviceUtils:
         # Préparer les reports
         found=list()
         skipped=list()
-        failed=list()
-        bound=list()
-        moved=list()
-        # extract serials
-        by_serial:dict[str,SopMerakiDevice]=dict( (d.serial, d) for d in devices)
-        serials:list[str]=list(set(d.serial for d in devices))
-        # Loop to classify
+        blocked=list()
+        not_found=list()
+        moved:dict[str,str]=dict()
+        # extract serials and prepare smd updates
+        by_serial:dict[str,SopMerakiDevice]=dict()
+        serials:list[str]=list()
+        to_save:list(str)=list()
+        for smd in set(devices):
+            serials.append(smd.serial)
+            by_serial[smd.serial]=smd
+            smd.snapshot()
+            smd._changelog_message=f"SopMerakiDeviceUtils.move_devices_to_network move from {smd.meraki_netid} to {smn.meraki_id}"
+        # TODO INCORRECT SERIALS
+        # trouver ceux qui sont inconnus en les chargeant un par un depuis l'inventaire (procéder à un refresh data en passant)
+        # eliminer ceux qui génèrent une erreur de notre liste et de notre dictionnaire tout en logguant not_found
+        # boucle pour décider quoi faire avec chacun --> supprimable comme on vient de refresh --> rework
         for dev in conn.organizations.getOrganizationInventoryDevices(smn.org.meraki_id, total_pages=-1, serials=serials):
             serial=dev.get("serial")
             nid=dev.get("networkId")
+            print(f"{serial=} / {nid=} / {smn.meraki_id=}")
             if nid is None or nid=="":
                 found.append(serial)
                 serials.remove(serial)
@@ -1511,44 +1522,60 @@ class SopMerakiDeviceUtils:
                 serials.remove(serial)
             else:
                 if not force_move:
-                    bound.append(serial)
+                    blocked.append(serial)
                 else:
-                    moved.append([serial,nid])
+                    moved[serial]=nid
                 serials.remove(serial)
-        not_found=list()
+        # devrait disparaître d'ici
         not_found.extend(serials)
         serials=found.copy()
-        print(f"{serials=}")
+        print(f"serials movable first round {serials=}")
         # Free devices from networks
-        for (sn,nid) in moved:
+        for (sn,nid) in moved.items():
+            print(f"remove {sn=} / {nid=}")
             conn.networks.removeNetworkDevices(nid, sn)
             serials.append(sn)
             smd=by_serial.get(sn)
-            smd.snapshot()
+            smd._changelog_message=f"{smd._changelog_message} - remove from {nid} SUCCESS"
             smd.meraki_netid=None
-            # smd.meraki_network=None
-            smd.full_clean()
-            smd.save()
-        print(f"{serials=}")
-        log.log_info(f"Trying to claim/move {serials} to network {smn.nom} ({smn.meraki_id}) ...")
+            to_save.append(smd.serial)
+        print(f"serials movable second round {serials=}")
+        # Try to claim into the destination network
+        log.log_info(f"Trying to claim/move {serials} to network {smn.nom} / {smn.meraki_id} ...")
         result=conn.networks.claimNetworkDevices(smn.meraki_id, serials=serials, addAtomically=False)
+        # Handle errors
         errs=result.get("errors")
         if errs and len(errs)>0:
             log.log_failure(f"Claim to {smn} had errors : {errs}")
+            for err in errs:
+                sn=err.get("serial")
+                smd=by_serial.get(sn)
+                smd._changelog_message=f"{smd._changelog_message} - move to {smn.meraki_id} FAILED : {err.get("errors")}"
+                to_save.append(smd.serial)
+        # Handle successes
         for sn in result.get("serials"):
             smd=by_serial.get(sn)
-            smd.snapshot()
             smd.meraki_netid=smn.meraki_id
-            # smd.meraki_network=smn
+            smd._changelog_message=f"{smd._changelog_message} - move to {smn.meraki_id} SUCCESS ! "
+            to_save.append(smd.serial)
+        # Save those that need it
+        for sn in set(to_save):
+            smd:SopMerakiDevice=by_serial.get(sn)
+            #print(f"saving {sn=} {smd=} {smd.meraki_netid=}")
             smd.full_clean()
+            #print(f"cleaned {sn=} {smd=} {smd.meraki_netid=}")
             smd.save()
+            #print(f"saved {sn=} {smd=} {smd.meraki_netid=}")
+            smd=SopMerakiDevice.objects.get(pk=smd.pk)
+            #print(f"refetched {smd.serial=} {smd=} {smd.meraki_netid=}")           
+        # Log and report back
         log.log_info(f"Move {serials} to {smn} done !")
         return {
-            "to_claim": found,
-            "to_move": moved,
-            "bound" : bound,
-            "to_skip": skipped,
             "not_found" : not_found,
+            "skipped": skipped,
+            "claimed": found,
+            "blocked" : blocked,
+            "moved": moved,
             "errors": errs,
         }
         

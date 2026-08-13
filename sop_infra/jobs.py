@@ -116,10 +116,7 @@ class SopMerakiMoveDevicesToNetwork(JobRunnerLogMixin, JobRunner):
         result:dict=SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=destination, devices=devices, force=force)
         # report
         self.job.data=result
-        # check for errors
-        errs=result.get("errors")
-        if errs and len(errs)>0:
-            raise JobFailed(f"Errors detected {errs}")
+
 
     @staticmethod
     def launch_interactive(request, message:bool, smds:list[SopMerakiDevice], destination:SopMerakiNet, force:bool )->Job:
@@ -127,7 +124,37 @@ class SopMerakiMoveDevicesToNetwork(JobRunnerLogMixin, JobRunner):
         job:Job=SopMerakiMoveDevicesToNetwork.enqueue(instance=destination, user=request.user, immediate=True, devices=smds, destination=destination, force=force)
         if message:
             if job.status==JobStatusChoices.STATUS_COMPLETED:
-                messages.success(request, f'Moved {len(smds)} devices to network {destination} !')
+                result:dict[str, list[str]]=job.data
+                if result is None:
+                    messages.warning(request, f'Job done, but no result !')    
+                else:
+                    msg=""
+                    func=messages.success
+                    claimed=len(result.get("claimed", []))
+                    not_found=len(result.get("not_found", []))
+                    skipped=len(result.get("skipped", []))
+                    moved=len(result.get("moved", []))
+                    blocked=len(result.get("blocked", []))
+                    errors=len(result.get("errors", []))
+                    if claimed>0:
+                        msg=f"{msg}, {claimed} claimed"
+                    if not_found>0:
+                        func=messages.warning
+                        msg=f"{msg}, {not_found} not found"
+                    if skipped>0:
+                        func=messages.warning
+                        msg=f"{msg}, {skipped} skipped"
+                    if moved>0:
+                        func=messages.warning
+                        msg=f"{msg}, {moved} moved"
+                    if blocked>0:
+                        func=messages.error
+                        msg=f"{msg}, {blocked} blocked"
+                    if errors>0:
+                        func=messages.error
+                        msg=f"{msg}, {errors} errored"
+                    msg=msg[1:]
+                    func(request, msg)
             else:
                 messages.error(request, f'Failed to move {len(smds)} devices to network {destination}, see logs for job #{job.pk} !')
         return job
