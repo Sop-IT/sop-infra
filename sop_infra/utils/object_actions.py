@@ -32,7 +32,7 @@ class MoveObject(ObjectAction):
         return_url=context.get("return_url")
         if not return_url:
             return_url=get_action_url(model, None, False, kwargs={'pk': model.pk})
-        print(f"{return_url=} / {context.get("csrf_token")=}")
+        #print(f"{return_url=} / {context.get("csrf_token")=}")
         return {
             'return_url': return_url,
             'object' : model,
