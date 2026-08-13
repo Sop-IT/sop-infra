@@ -360,7 +360,6 @@ class SopMerakiDevice(
         from_fields=["meraki_netid"],
         verbose_name="Network",
         related_name="devices",
-        editable=False,
     )
     meraki_notes = models.CharField(max_length=500, null=True, blank=True)
     ptype = models.CharField(
