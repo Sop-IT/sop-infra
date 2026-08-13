@@ -167,6 +167,7 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
     has_netbox_device_of_same_type = django_filters.BooleanFilter(
         method="filter_custom"
     )
+    meraki_network=django_filters.CharFilter(method="filter_custom")
 
     def filter_custom(self, queryset, name, value):
         if value is None:
@@ -177,18 +178,21 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             if value:
                 return queryset.exclude(q)
             return queryset.filter(q)
-        elif name == "has_netbox_device_in_same_site":
+        if name == "has_netbox_device_in_same_site":
             q = Q(netbox_device__site=F("site"))
             if value:
                 return queryset.filter(q)
             return queryset.exclude(q)
-        elif name == "has_netbox_device_of_same_type":
+        if name == "has_netbox_device_of_same_type":
             q = Q(netbox_device__device_type__part_number=F("model_name"))
             if value:
                 return queryset.filter(q)
             return queryset.exclude(q)
-        else:
-            raise Exception("unknown field name")
+        if name == "meraki_network":
+            print(f"merakicsustom {value}")
+            q = Q(meraki_network__id=value)
+            return queryset.filter(q)
+        raise Exception("unknown field name")
         
 
     class Meta:
@@ -200,7 +204,6 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             "model_name",
             "mac",
             "meraki_netid",
-            "meraki_network",
             "meraki_notes",
             "ptype",
             "meraki_tags",

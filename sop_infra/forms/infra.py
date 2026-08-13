@@ -904,23 +904,17 @@ class SopInfraRefreshForm(forms.Form):
 
     def clean(self):
         data = super().clean()
-        infras = SopInfra.objects.none()
         base_url = reverse("plugins:sop_infra:sopinfra_list")
         request: HttpRequest = current_request.get()  # type: ignore
 
-        def normalize_queryset(obj):
-            qs = [str(item) for item in obj]
-            if qs == []:
-                return None
-            return f"id=" + "&id=".join(qs)
-
+        infra:SopInfra=None
         if data["infra"]:
-            infras = SopInfra.objects.filter(pk=data["infra"].pk)
-        else:
-            infras = SopInfra.objects.all()
+            lst = SopInfra.objects.filter(pk=data["infra"].pk)
+            if lst.exists:
+                infra=lst[0]
 
         return_url = (
-            f"{base_url}?{normalize_queryset(infras.values_list('id', flat=True))}"
+            f"{base_url}?{id=}"
         )
         if request.GET.get("return_url"):
             return_url = request.GET.get("return_url")
@@ -930,7 +924,7 @@ class SopInfraRefreshForm(forms.Form):
             details = data["details"]
 
         return {
-            "infras": infras,
+            "infra": infra,
             "details": details,
             "return_url": return_url,
         }

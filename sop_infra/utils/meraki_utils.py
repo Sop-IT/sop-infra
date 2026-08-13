@@ -1308,18 +1308,18 @@ class SopMerakiDeviceUtils:
                 save = True
 
         # Net ID <-> Sopmeraki net
-        if smd.meraki_netid is not None:
-            mnets = SopMerakiNet.objects.filter(meraki_id=smd.meraki_netid)
-            mnet = None
-            if mnets.exists():
-                mnet = mnets[0]
-            if smd.meraki_network != mnet:
-                smd.meraki_network = mnet
-                save = True
-        else:
-            if smd.meraki_network is not None:
-                smd.meraki_network = None
-                save = True
+        # if smd.meraki_netid is not None:
+        #     mnets = SopMerakiNet.objects.filter(meraki_id=smd.meraki_netid)
+        #     mnet = None
+        #     if mnets.exists():
+        #         mnet = mnets[0]
+        #     if smd.meraki_network != mnet:
+        #         smd.meraki_network = mnet
+        #         save = True
+        # else:
+        #     if smd.meraki_network is not None:
+        #         smd.meraki_network = None
+        #         save = True
 
         # Device net <-> netbox site
         if smd.netbox_device is not None:
@@ -1525,8 +1525,8 @@ class SopMerakiDeviceUtils:
             serials.append(sn)
             smd=by_serial.get(sn)
             smd.snapshot()
-            smd.meraki_netid=""
-            smd.meraki_network=None
+            smd.meraki_netid=None
+            # smd.meraki_network=None
             smd.full_clean()
             smd.save()
         print(f"{serials=}")
@@ -1539,7 +1539,7 @@ class SopMerakiDeviceUtils:
             smd=by_serial.get(sn)
             smd.snapshot()
             smd.meraki_netid=smn.meraki_id
-            smd.meraki_network=smn
+            # smd.meraki_network=smn
             smd.full_clean()
             smd.save()
         log.log_info(f"Move {serials} to {smn} done !")

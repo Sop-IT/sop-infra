@@ -343,13 +343,15 @@ class SopMerakiDevice(
         verbose_name="MAC",
     )
     meraki_netid = models.CharField(
-        max_length=150, null=True, blank=True, verbose_name="Meraki Network ID"
+        max_length=150, null=True, blank=True, verbose_name="Meraki Network ID" 
     )
-    meraki_network = models.ForeignKey(
+    meraki_network = models.ForeignObject(
         to=SopMerakiNet,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        to_fields=["meraki_id"],
+        from_fields=["meraki_netid"],
         verbose_name="Network",
         related_name="devices",
     )
@@ -574,7 +576,7 @@ class SopMerakiDevice(
 
     def orphan_device(self):
         self.meraki_netid = None
-        self.meraki_network = None
+        #self.meraki_network = None
         self.org = None
         self.site = None
         self._changelog_message="SopMerakiDevice.orphan_device"

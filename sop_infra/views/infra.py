@@ -1152,13 +1152,11 @@ class SopInfraRefreshChooseView(AccessMixin, View):
         form = self.form(data=request.POST, files=request.FILES)
         if form.is_valid():
             data: dict = form.cleaned_data
-            infras = data["infras"]
+            infra = data["infra"]
             return_url = data["return_url"]
             details = data["details"]
-
-            # Launch job
-            j: Job = SopInfraRefreshJob.launch_manual(infras, details=details)
-            
-            url = reverse("core:job", args=[j.pk])
-            return redirect(url)
-
+            # Run job and redirect according to return status
+            j: Job = SopInfraRefreshJob.launch_interactive(request=request, message=True, infra=infra, details=details)
+            if j.status!=JobStatusChoices.STATUS_COMPLETED:
+                return_url = reverse("core:job", args=[j.pk])
+            return redirect(return_url)

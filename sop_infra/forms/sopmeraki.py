@@ -72,7 +72,7 @@ class SopMerakiDeviceForm(NetBoxModelForm):
 
     class Meta:
         model = SopMerakiDevice
-        fields = ("nom", "serial", "site", "org", "meraki_network")
+        fields = ("nom", "serial", "site", "org")
 
 
 ##############  FILTER FORMS ################################

@@ -106,7 +106,7 @@ class SopMerakiMoveDevicesToNetwork(JobRunnerLogMixin, JobRunner):
         # Sort and filter those already in the target net
         skipped=0
         for d in devices:
-            if d.meraki_network==destination:
+            if d.meraki_netid==destination.meraki_id:
                 skipped+=1
                 continue
             lst.append(d)
@@ -705,9 +705,9 @@ class SopInfraRefreshJob(JobRunnerLogMixin, JobRunner):
         job:Job=self.job
         obj = job.object
         try:
-            infras=kwargs.pop('infras', None)
+            infra=kwargs.pop('infra', None)
             details=kwargs.pop('details', False)
-            SopMerakiUtils.refresh_infras(self, settings.DEBUG, infras, details)
+            SopMerakiUtils.refresh_infras(self, settings.DEBUG, [infra], details)
         except Exception as e:
             stacktrace = traceback.format_exc()
             text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
@@ -715,12 +715,23 @@ class SopInfraRefreshJob(JobRunnerLogMixin, JobRunner):
             self.job.error = text
             raise
         # finally:
-        #     self.job.data = self.get_job_data()       
-
+        #     self.job.data = self.get_job_data()    
+    
     @staticmethod
-    def launch_manual(infras:list[SopInfra], details:bool)->Job:
-        if settings.DEBUG:
-            return SopInfraRefreshJob.enqueue(immediate=True, infras=infras, details=details)
-        return SopInfraRefreshJob.enqueue(infras=infras, details=details)
-
+    def launch_interactive(request, message:bool, infra:SopInfra, details:bool=False)->Job:
+        job:Job=SopInfraRefreshJob.enqueue(user=request.user, instance=infra, immediate=True, infra=infra, details=details)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Refreshed SopInfra {infra} !')
+            else:
+                messages.error(request, f'Failed to refresh sopinfra {infra}, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, infra:SopInfra, details:bool=False)->Job:    
+        job:Job=SopInfraRefreshJob.enqueue(user=request.user, instance=infra, immediate=True, infra=infra, details=details)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to refresh SopInfra {infra} !')           
+        return job
+    
 # endregion
