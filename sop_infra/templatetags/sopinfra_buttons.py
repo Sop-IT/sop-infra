@@ -15,7 +15,7 @@ register = template.Library()
 @register.inclusion_tag('sop_infra/sopinfra/buttons/claim_meraki_devices.html', takes_context=True)
 def sopinfra_claim_meraki_devices_button(context):
     instance=context['object']  
-    viewname = get_viewname(instance, 'claim_meraki_devices')
+    viewname = 'plugins:sop_infra:sopmerakiorg_claim_meraki_devices' #get_viewname(instance, 'claim')
     url = reverse(viewname, kwargs={'pk': instance.pk}, query={'details':True, 'return_url':context['request'].get_full_path()})
     return {
         'url': url,
@@ -24,7 +24,7 @@ def sopinfra_claim_meraki_devices_button(context):
 @register.inclusion_tag('sop_infra/sopinfra/buttons/create_meraki_networks.html', takes_context=True)
 def sopinfra_create_meraki_networks_button(context):
     instance=context['object']  
-    viewname = get_viewname(instance, 'create_meraki_networks')
+    viewname = 'plugins:sop_infra:sopinfra_create_meraki_networks' #get_viewname(instance, 'create_meraki_networks')
     url = reverse(viewname, kwargs={'pk': instance.pk}, query={'details':True, 'return_url':context['request'].get_full_path()})
     return {
         'url': url,
