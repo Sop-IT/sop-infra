@@ -319,7 +319,7 @@ class SopMerakiDevice(
     #CustomLinksMixin,
     #CustomValidationMixin,
     #ExportTemplatesMixin,
-    #JournalingMixin,
+    JournalingMixin,
     NotificationsMixin,
     TagsMixin,
     #EventRulesMixin, 
