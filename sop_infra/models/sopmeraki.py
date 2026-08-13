@@ -360,6 +360,7 @@ class SopMerakiDevice(
         from_fields=["meraki_netid"],
         verbose_name="Network",
         related_name="devices",
+        editable=False,
     )
     meraki_notes = models.CharField(max_length=500, null=True, blank=True)
     ptype = models.CharField(
@@ -526,6 +527,12 @@ class SopMerakiDevice(
         permissions = [
             ('move', 'Move'),
         ]
+
+    def clean_fields(self, exclude = ...):
+        excl=list(exclude) if exclude is not None else list()
+        excl.append("meraki_network")
+        return super().clean_fields(excl)
+    
     # ------------------ CHECKS
     @property
     def has_netbox_device(self) -> bool:
