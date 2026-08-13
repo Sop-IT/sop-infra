@@ -13,7 +13,7 @@
         
             <li>
                 <a class="dropdown-item"
-                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&initial_device_name=PRT&flavor=printer&return_url={{ request.get_full_path }}">
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&initial_device_name=PRT&flavor=printer&return_url={{ request.get_full_path|urlencode }}">
                     <i class="mdi mdi-printer" aria-hidden="true"></i>
                    &nbsp;-&nbsp;PRINTER
                 </a>
@@ -21,7 +21,7 @@
         
             <li>
                 <a class="dropdown-item"
-                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=user&return_url={{ request.get_full_path }}">
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=user&return_url={{ request.get_full_path|urlencode }}">
                     <i class="mdi mdi-account" aria-hidden="true"></i>
                     &nbsp;-&nbsp;any USER device
                 </a>
@@ -29,7 +29,7 @@
         
             <li>
                 <a class="dropdown-item"
-                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=wms&return_url={{ request.get_full_path }}">
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=wms&return_url={{ request.get_full_path|urlencode }}">
                     <i class="mdi mdi-forklift" aria-hidden="true"></i>
                     &nbsp;-&nbsp;WMS device
                 </a>
@@ -37,7 +37,7 @@
         
             <li>
                 <a class="dropdown-item"
-                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=std&return_url={{ request.get_full_path }}">
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=std&return_url={{ request.get_full_path|urlencode }}">
                     <i class="mdi mdi-auto-fix" aria-hidden="true"></i>
                     &nbsp;-&nbsp;STANDARD LAN devices
                 </a>
@@ -45,7 +45,7 @@
    
             <li>
                 <a class="dropdown-item"
-                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=lan&return_url={{ request.get_full_path }}">
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=lan&return_url={{ request.get_full_path|urlencode }}">
                     <i class="mdi mdi-lan" aria-hidden="true"></i>
                     &nbsp;-&nbsp;ALL LAN devices
                 </a>
@@ -53,7 +53,7 @@
 
             <li>
                 <a class="dropdown-item"
-                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=manual&return_url={{ request.get_full_path }}">
+                    href="{% url 'plugins:sop_infra:helpers_dhcp' %}?forced_site_id={{ object.pk }}&flavor=manual&return_url={{ request.get_full_path|urlencode }}">
                     <i class="mdi mdi-gesture" aria-hidden="true"></i>
                     &nbsp;-&nbsp;MANUAL reservation
                 </a>

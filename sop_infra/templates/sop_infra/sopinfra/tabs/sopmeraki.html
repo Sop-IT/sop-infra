@@ -78,7 +78,7 @@
           </th>
           <td align="right">
             {# LINK TO UMBRELLA BTN #}
-            <form action="{% url 'plugins:sop_infra:sopmeraki_umblink_site' object.site.pk %}?return_url={{ request.get_full_path }}" method="post">
+            <form action="{% url 'plugins:sop_infra:sopmeraki_umblink_site' object.site.pk %}?return_url={{ request.get_full_path|urlencode }}" method="post">
               {% csrf_token %}
               <button type="submit" class="btn btn-primary btn-yellow">
                 <i class="mdi mdi-link" aria-hidden="true"></i> (Re)link
@@ -97,7 +97,7 @@
           </th>
           <td align="right">
             {# ENABLE UMBRELLA PROTECTION BTN #}
-            <form action="{% url 'plugins:sop_infra:sopmeraki_umbenable_site' object.site.pk %}?return_url={{ request.get_full_path }}" method="post">
+            <form action="{% url 'plugins:sop_infra:sopmeraki_umbenable_site' object.site.pk %}?return_url={{ request.get_full_path|urlencode }}" method="post">
               {% csrf_token %}
               <button type="submit" class="btn btn-primary btn-yellow">
                 <i class="mdi mdi-shield-check" aria-hidden="true"></i> (Re)enable

@@ -10,7 +10,7 @@
 {% block controls %}
   <div class="btn-list justify-content-end mb-2">
   {% if sopdevicesetting and request.user|can_change:sopdevicesetting and sopdevicesetting.pk %}
-    <a href="{% url 'plugins:sop_infra:sopdevicesetting_edit' pk=sopdevicesetting.pk %}?return_url={{ request.get_full_path }}" type="button" class="btn btn-yellow">
+    <a href="{% url 'plugins:sop_infra:sopdevicesetting_edit' pk=sopdevicesetting.pk %}?return_url={{ request.get_full_path|urlencode }}" type="button" class="btn btn-yellow">
       <i class="mdi mdi-pencil"></i>{% trans "Edit settings" %}
     </a>
   {% endif %}
