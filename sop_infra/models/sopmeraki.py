@@ -31,6 +31,8 @@ class SopMerakiDash(JobsMixin, NetBoxModel):
     Represents a Meraki dashboard
     """
 
+    objects = RestrictedQuerySet.as_manager()
+    
     nom = models.CharField(
         max_length=50, null=False, blank=False, unique=True, verbose_name="Name"
     )
@@ -59,6 +61,8 @@ class SopMerakiOrg(JobsMixin, NetBoxModel):
     """
     Represents a Meraki Organisation, child of a Meraki dashboard
     """
+
+    objects = RestrictedQuerySet.as_manager()
 
     nom = models.CharField(max_length=50, null=False, blank=False, verbose_name="Name")
     dash = models.ForeignKey(
@@ -124,6 +128,8 @@ class SopMerakiNet(JobsMixin, NetBoxModel):
     """
     Represents a Meraki Network on the dashboard
     """
+
+    objects = RestrictedQuerySet.as_manager()
 
     nom = models.CharField(max_length=150, null=False, blank=False, verbose_name="Name")
     site = models.ForeignKey(
@@ -587,6 +593,8 @@ class SopMerakiDevice(
 
 class SopMerakiSwitchSettings(NetBoxModel):
 
+    objects = RestrictedQuerySet.as_manager()
+
     nom = models.CharField(
         max_length=50, null=False, blank=False, unique=True, verbose_name="Name"
     )
@@ -609,6 +617,8 @@ class SopMerakiSwitchSettings(NetBoxModel):
 
 
 class SopMerakiSwitchPortSettings(NetBoxModel):
+
+    objects = RestrictedQuerySet.as_manager()
 
     port_id = models.CharField(
         max_length=20, null=False, blank=False, unique=True, verbose_name="Port ID",
