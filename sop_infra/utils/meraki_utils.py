@@ -1391,6 +1391,7 @@ class SopMerakiDeviceUtils:
             smd.wan2ip = val
             save = True 
         if save:
+            smd.full_clean()
             smd.save()
    
     @staticmethod
