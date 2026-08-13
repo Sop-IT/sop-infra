@@ -21,7 +21,7 @@ __all__ = (
 
 MOVE_TO_NETWORK = """
 {% if record.pk %}
-  <a href="{% url 'plugins:sop_infra:sopmerakidevice_move' record.pk %}?return_url={{ request.get_full_path }}" class="btn btn-yellow" role="button">
+  <a href="{% url 'plugins:sop_infra:sopmerakidevice_move' record.pk %}?return_url={{ request.get_full_path }}" class="btn btn-purple" role="button">
     <i class="mdi mdi-file-move-outline" aria-hidden="true"></i>
   </a>
 {% endif %}
