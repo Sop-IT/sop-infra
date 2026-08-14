@@ -763,7 +763,7 @@ class SopMerakiOrgClaimView(AccessMixin, View):
         j: Job = SopMerakiClaimDevicesToInventoryJob.launch_interactive(request, True, smo, serials)
         url:str
         if j.status==JobStatusChoices.STATUS_COMPLETED:
-            url= reverse("plugins:sop_infra:sopmerakidevice_list", query={"serial":j.data})
+            url= reverse("plugins:sop_infra:sopmerakidevice_list", query={"serial":serials})
         else:
             url = reverse("core:job", args=[j.pk])
         return redirect(url)
@@ -1049,6 +1049,16 @@ class SopMerakiDeviceMoveView(ConditionalLoginRequiredMixin, View):
         else:
             url = reverse("core:job", args=[j.pk])
         return redirect(url)
+
+
+
+
+# @register_model_view(SopMerakiDevice, 'bulk_move', path='move', detail=False)
+# class SopMerakiDeviceBulkMoveView(generic.BulkEditView):
+#     queryset = SopMerakiDevice.objects.all()
+#     filterset = SopMerakiDeviceFilterSet
+#     table = SopMerakiDeviceTable
+#     form = forms.VRFBulkEditForm
 
 
 
