@@ -147,7 +147,7 @@ class SopInfraForm(NetBoxModelForm):
         # TODO filter by site org
         queryset=SopMerakiNet.objects.all(),
         query_params={
-            "ptypes__contains": SopMerakiUtils.DEV_TYPE_MX,
+            "ptypes__contains": SopMerakiUtils.PRODUCT_TYPE_MX,
             "bound_to_template": False,
         },
         required=False,
@@ -157,7 +157,7 @@ class SopInfraForm(NetBoxModelForm):
         # TODO filter by site org
         queryset=SopMerakiNet.objects.all(),
         query_params={
-            "ptypes__contains": SopMerakiUtils.DEV_TYPE_MS,
+            "ptypes__contains": SopMerakiUtils.PRODUCT_TYPE_MS,
             "bound_to_template": True,
         },
         required=False,
@@ -167,7 +167,7 @@ class SopInfraForm(NetBoxModelForm):
         # TODO filter by site org
         queryset=SopMerakiNet.objects.all(),
         query_params={
-            "ptypes__contains": SopMerakiUtils.DEV_TYPE_MR,
+            "ptypes__contains": SopMerakiUtils.PRODUCT_TYPE_MR,
             "bound_to_template": True,
         },
         required=False,

@@ -402,14 +402,14 @@ class SopMerakiDevice(
         related_name="devices",
     )
     # Netbox
-    netbox_dev_type = models.ForeignKey(
-        to=DeviceType,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="Device Type",
-        related_name="meraki_devices",
-    )
+    # netbox_dev_type = models.ForeignKey(
+    #     to=DeviceType,
+    #     on_delete=models.SET_NULL,
+    #     null=True,
+    #     blank=True,
+    #     verbose_name="Device Type",
+    #     related_name="meraki_devices",
+    # )
     netbox_device = models.OneToOneField(
         to=Device,
         on_delete=models.SET_NULL,
@@ -532,7 +532,14 @@ class SopMerakiDevice(
         excl.append("meraki_network")
         return super().clean_fields(excl)
     
-    # ------------------ CHECKS
+    # ------------------ PROPERTIES
+    @property
+    def netbox_dev_type(self) -> DeviceType|None:
+        if self.model_name is not None and f"{self.model_name}".strip()!="":
+            slug=f"cisco-{self.model_name}".lower()
+            return DeviceType.objects.filter(manufacturer__slug__exact="cisco").filter(slug__iexact=slug).first()
+        return None
+
     @property
     def has_netbox_device(self) -> bool:
         nd:Device|None

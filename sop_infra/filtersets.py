@@ -1,7 +1,9 @@
+from django.forms.fields import MultipleChoiceField
 import django_filters
 from django.db import models
-from django.db.models import Q, F
+from django.db.models import Q, F, IntegerField
 
+from dcim.models.devices import DeviceType
 from utilities.filters import TreeNodeMultipleChoiceFilter, MultiValueCharFilter
 
 from netbox.filtersets import NetBoxModelFilterSet
@@ -156,7 +158,49 @@ class SopMerakiSwitchStackFilterSet(NetBoxModelFilterSet):
             return queryset
         return queryset.filter(Q(nom__icontains=value) | Q(meraki_id__icontains=value))
 
+# from django.forms.fields import MultipleChoiceField
 
+# class MultipleValueField(MultipleChoiceField):
+#     def __init__(self, *args, field_class, **kwargs):
+#         self.inner_field = field_class()
+#         super().__init__(*args, **kwargs)
+
+#     def valid_value(self, value):
+#         return self.inner_field.validate(value)
+
+#     def clean(self, values):
+#         return values and [self.inner_field.clean(value, None) for value in values]
+    
+# from django_filters.filters import Filter
+
+# class MultipleValueFilter(Filter):
+
+#     field_class = MultipleValueField
+
+#     def __init__(self, *args, **kwargs):
+#         kwargs.setdefault('lookup_expr', 'in')
+#         super().__init__(*args, field_class=IntegerField, **kwargs)
+
+#     def filter(self, qs, values):
+#         raise NotImplementedError(_('{class_name} must implement filter(self, qs, values)').format(
+#             class_name=self.__class__.__name__
+#         ))
+    
+# from django.db.models.functions import Lower
+
+# class NetboxDeviceTypeFilter(MultipleValueFilter):
+    
+#     def filter(self, qs, values):
+#         if values is None or len(values)==0:
+#             return qs
+#         dts=DeviceType.objects.filter(manufacturer__slug__exact="cisco").filter(pk__in=values).values_list("slug", flat=True)
+#         # slug=f"cisco-{self.model_name}".lower()
+#         shorts:list[str]=list()
+#         for sl in dts:
+#             shorts.append(sl[6:].lower())
+#         #print(f"netbox_dev_type {self=} {dts=} {values=} {shorts=} ")
+#         return qs.annotate(lower_model=Lower('model_name')).filter(lower_model__in=shorts)
+    
 @register_filterset
 class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
 
@@ -168,6 +212,15 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
         method="filter_custom"
     )
     meraki_network=django_filters.CharFilter(method="filter_custom")
+    ptype=django_filters.CharFilter(method="filter_custom")
+
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     custom_field_filters = {}
+    #     filter_name = f'netbox_device_type'
+    #     custom_field_filters[filter_name] = NetboxDeviceTypeFilter(field_name=filter_name)
+    #     self.filters.update(custom_field_filters)
+
 
     def filter_custom(self, queryset, name, value):
         if value is None:
@@ -189,8 +242,12 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
                 return queryset.filter(q)
             return queryset.exclude(q)
         if name == "meraki_network":
-            print(f"merakicsustom {value}")
+            #print(f"merakicsustom {value}")
             q = Q(meraki_network__id=value)
+            return queryset.filter(q)
+        if name == "ptype":
+            print(f"ptype {value}")
+            q = Q(ptype__iexact=value)
             return queryset.filter(q)
         raise Exception("unknown field name")
         
@@ -214,8 +271,6 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             "site_id",
             "org",
             "org_id",
-            "netbox_dev_type",
-            "netbox_dev_type_id",
             "stack",
             "stack_id",
             "org__dash",

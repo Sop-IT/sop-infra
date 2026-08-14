@@ -57,18 +57,36 @@ class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):
         name = "Claim devices to Meraki inventory"
 
     def run(self, *args, **kwargs):
-        lst:list[SopMerakiDevice] = SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, smo=kwargs.pop('org'), serials=kwargs.pop('serials'))
-        data:list[str]=list()
-        for d in lst:
-            data.append(d.serial)
-        self.job.data=data
+        # Claim
+        result:dict=SopMerakiUtils.claim_devices_to_inventory(log=self, simulate=False, smo=kwargs.pop('org'), serials=kwargs.pop('serials'))
+        # report
+        self.job.data=result
+
 
     @staticmethod
     def launch_interactive(request, message:bool, org:SopMerakiOrg, serials:list[str])->Job:
         job:Job=SopMerakiClaimDevicesToInventoryJob.enqueue(instance=org, user=request.user, immediate=True, org=org, serials=serials)
         if message:
             if job.status==JobStatusChoices.STATUS_COMPLETED:
-                messages.success(request, f'Claimed {len(serials)} devices to inventory for org {org} !')
+                result:dict[str, list[str]]=job.data
+                if result is None:
+                    messages.warning(request, f'Job done, but no result !')    
+                else:
+                    msg=""
+                    func=messages.success
+                    claimed=len(result.get("claimed", []))
+                    existing=len(result.get("existing", []))
+                    failed=len(result.get("failed", []))
+                    if claimed>0:
+                        msg=f"{msg}, {claimed} claimed"
+                    if existing>0:
+                        func=messages.warning
+                        msg=f"{msg}, {existing} already existing"
+                    if failed>0:
+                        func=messages.error
+                        msg=f"{msg}, {failed} failed"
+                    msg=msg[1:]
+                    func(request, msg)
             else:
                 messages.error(request, f'Failed to claim {len(serials)} devices to inventory for org {org}, see logs for job #{job.pk} !')
         return job
@@ -77,7 +95,7 @@ class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):
     def launch_background(request, message:bool, org:SopMerakiOrg, serials:list[str])->Job:    
         job:Job=SopMerakiClaimDevicesToInventoryJob.enqueue(instance=org, user=request.user, org=org, serials=serials)
         if message:
-            messages.success(request, f'Started job #{job.pk} to claim {len(serials)} devices to inventory for org {org} !')           
+            messages.success(request, f'Queued job to claim {len(serials)} devices to inventory for org {org}...')           
         return job
 
 
@@ -95,23 +113,17 @@ class SopMerakiMoveDevicesToNetwork(JobRunnerLogMixin, JobRunner):
         # Checks
         if destination is None: 
             raise AbortRequest("Destination is not set !")
-        # report
-        report:dict[str,list[str]] = {"uniques":0, "skipped":0, "moved":0, "failed":0}
         # fetch uniques serials
-        serials:list[str]=list(set(d.serial for d in devices))
-        report["uniques"]=len(serials)
-        print(f"{serials=}")
-        # refetch all of our serials
-        lst:list[SopMerakiDevice]=list()
-        # Sort and filter those already in the target net
-        skipped=0
-        for d in devices:
-            if d.meraki_netid==destination.meraki_id:
-                skipped+=1
-                continue
-            lst.append(d)
-        print(f"{lst=}")
-        report["skipped"]=skipped
+        # serials:list[str]=list(set(d.serial for d in devices))
+        # #print(f"{serials=}")
+        # # refetch all of our serials
+        # lst:list[SopMerakiDevice]=list()
+        # # Sort and filter those already in the target net
+        # for d in devices:
+        #     if d.meraki_netid==destination.meraki_id:
+        #         continue
+        #     lst.append(d)
+        #print(f"{lst=}")
         # Move
         result:dict=SopMerakiUtils.move_devices_to_network(log=self, simulate=False, smn=destination, devices=devices, force=force)
         # report
@@ -120,7 +132,7 @@ class SopMerakiMoveDevicesToNetwork(JobRunnerLogMixin, JobRunner):
 
     @staticmethod
     def launch_interactive(request, message:bool, smds:list[SopMerakiDevice], destination:SopMerakiNet, force:bool )->Job:
-        print(f"{smds=}")
+        #print(f"{smds=}")
         job:Job=SopMerakiMoveDevicesToNetwork.enqueue(instance=destination, user=request.user, immediate=True, devices=smds, destination=destination, force=force)
         if message:
             if job.status==JobStatusChoices.STATUS_COMPLETED:
@@ -131,16 +143,16 @@ class SopMerakiMoveDevicesToNetwork(JobRunnerLogMixin, JobRunner):
                     msg=""
                     func=messages.success
                     claimed=len(result.get("claimed", []))
-                    not_found=len(result.get("not_found", []))
+                    missing=len(result.get("missing", []))
                     skipped=len(result.get("skipped", []))
                     moved=len(result.get("moved", []))
                     blocked=len(result.get("blocked", []))
                     errors=len(result.get("errors", []))
                     if claimed>0:
                         msg=f"{msg}, {claimed} claimed"
-                    if not_found>0:
+                    if missing>0:
                         func=messages.warning
-                        msg=f"{msg}, {not_found} not found"
+                        msg=f"{msg}, {missing} not found"
                     if skipped>0:
                         func=messages.warning
                         msg=f"{msg}, {skipped} skipped"
@@ -163,7 +175,7 @@ class SopMerakiMoveDevicesToNetwork(JobRunnerLogMixin, JobRunner):
     def launch_background(request, message:bool, smds:list[SopMerakiDevice], destination:SopMerakiNet, force:bool )->Job:
         job:Job=SopMerakiMoveDevicesToNetwork.enqueue(instance=destination, user=request.user, immediate=True, devices=smds, destination=destination, force=force)
         if message:
-            messages.success(request, f'Moved {len(smds)} devices to network {destination} !')          
+            messages.success(request, f'Queued job to move {len(smds)} devices to network {destination}...')          
         return job
 
   

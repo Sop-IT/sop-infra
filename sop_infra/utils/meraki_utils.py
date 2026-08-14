@@ -1,4 +1,7 @@
 import re
+from django.utils.translation import gettext_lazy as _
+
+from utilities.choices import ChoiceSet
 
 from django.db import transaction
 from django.utils.timezone import now as django_now
@@ -44,10 +47,87 @@ class SopMerakiUtils:
 
     # DEV TYPES:
     # 'appliance', 'camera', 'campusGateway', 'cellularGateway', 'secureConnect', 'sensor', 'switch', 'systemsManager', 'wireless' or 'wirelessController'
-    DEV_TYPE_MX = "appliance"
-    DEV_TYPE_MV = "camera"
-    DEV_TYPE_MS = "switch"
-    DEV_TYPE_MR = "wireless"
+    PRODUCT_TYPE_MX = "appliance"
+    PRODUCT_TYPE_MV = "camera"
+    PRODUCT_TYPE_CW = "campusGateway"
+    PRODUCT_TYPE_MG = "cellularGateway"
+    PRODUCT_TYPE_SC = "secureConnect"
+    PRODUCT_TYPE_MT = "sensor"
+    PRODUCT_TYPE_MS = "switch"
+    PRODUCT_TYPE_SM = "systemsManager"
+    PRODUCT_TYPE_MR = "wireless"
+    PRODUCT_TYPE_WC = "wirelessController"
+
+    PRODUCT_TYPES_CONFIG : dict[str, dict[str,str]] = {
+        PRODUCT_TYPE_MX : {
+            "name" : PRODUCT_TYPE_MX, 
+            "hw_name" : "MX",
+            "label" : _("MX appliance"),
+            "color" : "red",
+        },
+        PRODUCT_TYPE_MV : {
+            "name" : PRODUCT_TYPE_MV, 
+            "hw_name" : "MV",
+            "label" : _("MV camera"),
+            "color" : "blue",
+        },
+        PRODUCT_TYPE_CW : {
+            "name" : PRODUCT_TYPE_CW, 
+            "hw_name" : "CW",
+            "label" : _("CW router"),
+            "color" : "gray",
+        },
+        PRODUCT_TYPE_MG : {
+            "name" : PRODUCT_TYPE_MG, 
+            "hw_name" : "MG",
+            "label" : _("MG router"),
+            "color" : "orange",
+        },
+        PRODUCT_TYPE_SC : {
+            "name" : PRODUCT_TYPE_SC, 
+            "hw_name" : "SC",
+            "label" : _("SC router"),
+            "color" : "gray",
+        },
+        PRODUCT_TYPE_MT : {
+            "name" : PRODUCT_TYPE_MT, 
+            "hw_name" : "MT",
+            "label" : _("MT sensor"),
+            "color" : "blue",
+        },
+        PRODUCT_TYPE_MS : {
+            "name" : PRODUCT_TYPE_MS, 
+            "hw_name" : "MS",
+            "label" : _("MS switch"),
+            "color" : "green",
+        },
+        PRODUCT_TYPE_SM : {
+            "name" : PRODUCT_TYPE_SM, 
+            "hw_name" : "SM",
+            "label" : _("SM system manager"),
+            "color" : "gray",
+        },
+        PRODUCT_TYPE_MR : {
+            "name" : PRODUCT_TYPE_MR, 
+            "hw_name" : "MR",
+            "label" : _("MR access point"),
+            "color" : "green",
+        },
+        PRODUCT_TYPE_WC : {
+            "name" : PRODUCT_TYPE_WC, 
+            "hw_name" : "WC",
+            "label" : _("WC wireless controller"),
+            "color" : "gray",
+        },
+    }
+
+    PRODUCT_TYPES = ( pt.get('name') for k,pt in PRODUCT_TYPES_CONFIG.items() )
+
+    PRODUCT_TYPE_CHOICES = [
+        ( pt.get('name'), pt.get('label') ) for k,pt in PRODUCT_TYPES_CONFIG.items()
+    ]
+
+
 
     __parsed: bool = False
     __meraki_api_keys: dict[str, str] = {}
@@ -1122,12 +1202,34 @@ class SopMerakiDeviceUtils:
         log: JobRunnerLogMixin,
         details: bool,
     )->bool:
+        # snapshot if not already done
+        if smd.pk and hasattr(smd, "snapshot") and not hasattr(smd, "_prechange_snapshot"):
+            smd.snapshot()
+            smd._changelog_message=f"SopMerakiDeviceUtils.refresh_from_inventory_data"
+        save:bool=SopMerakiDeviceUtils.__refresh_from_inventory_data_no_save(smd,conn,dev_data, org,log,details)
+        if save:
+            smd._changelog_message=f"{smd._changelog_message} - saving in SopMerakiDeviceUtils.refresh_from_inventory_data"
+            smd.full_clean()
+            smd.save()            
+        return save
+
+    
+    @staticmethod
+    def __refresh_from_inventory_data_no_save(
+        smd:SopMerakiDevice,
+        conn: meraki.DashboardAPI,
+        dev_data:dict,
+        org: SopMerakiOrg,
+        log: JobRunnerLogMixin,
+        details: bool,
+    )->bool:
         # cf https://developer.cisco.com/meraki/api-v1/get-organization-inventory-devices/
         if log and details:
             log.info(f"Refreshing from inventory '{smd.nom}'...")
         save = smd.pk is None
-        if smd.pk and hasattr(smd, "snapshot"):
+        if smd.pk and hasattr(smd, "snapshot") and not hasattr(smd, "_prechange_snapshot"):
             smd.snapshot()
+            smd._changelog_message=f"SopMerakiDeviceUtils.__refresh_from_inventory_data_no_save"
         #print(f" START refresh_from_inventory_data :{save=}")
         if smd.org is None or smd.org != org:  
             print(f" SQUASH ORG :{smd.org=} {org=}")
@@ -1148,8 +1250,6 @@ class SopMerakiDeviceUtils:
         if smd.model_name != dev_data.get("model"):
             smd.model_name = dev_data.get("model")
             save = True
-        # skipping orderNumber
-        #print(f" l1068 refresh_from_inventory_data :{save=}")
         from sop_utils.dates import DateUtils
         dt=DateUtils.parse_date(dev_data.get("claimedAt"))
         if smd.claimed_at != dt:
@@ -1168,7 +1268,6 @@ class SopMerakiDeviceUtils:
         if smd.country_code != dev_data.get("countryCode"):
             smd.country_code = dev_data.get("countryCode")
             save = True            
-        #print(f" l1087 refresh_from_inventory_data :{save=}")
         # sub dict EOX
         eox=dev_data.get("eox", dict())
         if smd.eox_status != eox.get("status"):
@@ -1182,13 +1281,6 @@ class SopMerakiDeviceUtils:
         if smd.eox_end_of_support != dt:
             smd.eox_end_of_support = dt
             save = True
-        # only save if something changed
-        if save:
-            log.success(f"SopMerakiDeviceUtils.refresh_from_inventory_data saving SopDevice '[{smd.nom}]'.")
-            smd._changelog_message="SopMerakiDeviceUtils.refresh_from_inventory_data"
-            smd.full_clean()
-            smd.save()
-
         return save
 
     @staticmethod
@@ -1252,32 +1344,52 @@ class SopMerakiDeviceUtils:
 
         return save
 
+
     @staticmethod
     def relink_related_objects(
-        smd:SopMerakiDevice,
+        smd: SopMerakiDevice,
+        log: JobRunnerLogMixin,
+    ):
+        # snapshot if not already done
+        if smd.pk and hasattr(smd, "snapshot") and not hasattr(smd, "_prechange_snapshot"):
+            smd.snapshot()
+            smd._changelog_message=f"SopMerakiDeviceUtils.relink_related_objects"
+        save:bool=SopMerakiDeviceUtils.__relink_related_objects_no_save(smd, log)
+        if save:
+            smd._changelog_message=f"{smd._changelog_message} - saving in SopMerakiDeviceUtils.relink_related_objects"
+            smd.full_clean()
+            smd.save()            
+        return save
+    
+        
+    @staticmethod
+    def __relink_related_objects_no_save(
+        smd: SopMerakiDevice,
         log: JobRunnerLogMixin,
     ):
         # -----------------------------------------------
         # Rattachement/maintenance d'objets dépendants
         save=False
-        if smd.pk and hasattr(smd, "snapshot"):
+        if smd.pk and hasattr(smd, "snapshot") and not hasattr(smd, "_prechange_snapshot"):
             smd.snapshot()
+            smd._changelog_message=f"SopMerakiDeviceUtils.__relink_related_objects_no_save"
+        smd._changelog_message=f"{smd._changelog_message} - relinking related objects"
         # Model <-> device type
-        if smd.model_name is not None:
-            slug=f"cisco-{smd.model_name}".lower()
-            dts = DeviceType.objects.filter(manufacturer__slug__exact="cisco").filter(slug__iexact=slug)
-            dt = None
-            if dts.exists():
-                dt = dts[0]
-            else:
-                log.warning(f"Unable to match {smd.nom} device type {smd.model_name} (lookup slug={slug})")
-            if smd.netbox_dev_type != dt:
-                smd.netbox_dev_type = dt
-                save = True
-        else:
-            if smd.netbox_dev_type is not None:
-                smd.netbox_dev_type = None
-                save = True
+        # if smd.model_name is not None:
+        #     slug=f"cisco-{smd.model_name}".lower()
+        #     dts = DeviceType.objects.filter(manufacturer__slug__exact="cisco").filter(slug__iexact=slug)
+        #     dt = None
+        #     if dts.exists():
+        #         dt = dts[0]
+        #     else:
+        #         log.warning(f"Unable to match {smd.nom} device type {smd.model_name} (lookup slug={slug})")
+        #     if smd.netbox_dev_type != dt:
+        #         smd.netbox_dev_type = dt
+        #         save = True
+        # else:
+        #     if smd.netbox_dev_type is not None:
+        #         smd.netbox_dev_type = None
+        #         save = True
 
         # Serial <-> device
         if smd.serial is not None:
@@ -1338,6 +1450,7 @@ class SopMerakiDeviceUtils:
         # push if needed
         if len(update_meraki.keys()):
             try:
+                # TODO actualy build and push updates
                 pass
             except Exception:
                 log.failure(
@@ -1347,13 +1460,6 @@ class SopMerakiDeviceUtils:
             log.success(
                 f"Updating Meraki Device '[{smd.nom}]({smd.serial})' : {update_meraki}"
             )
-
-        # only save if something changed
-        if save:
-            log.success(f"SopMerakiDeviceUtils.relink_related_objects saving SopDevice '[{smd.nom}]'.")
-            smd._changelog_message="SopMerakiDeviceUtils.relink_related_objects"
-            smd.full_clean()
-            smd.save()
 
         return save
 
@@ -1417,15 +1523,13 @@ class SopMerakiDeviceUtils:
         details:bool
     ) -> list[SopMerakiDevice]:
         log.log_info(f"Trying to claim {serials} to {smo}")
-        ret:list[SopMerakiDevice]=list()
-        
         # Check where we stand
         devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, smo.meraki_id, serials)
         # Report existing
-        existing:list[str]=(d.serial for d in devs.get("found"))
+        existing:list[str]=list(d.get('serial') for d in devs.get("found"))
         log.log_warning(f"SopMerakiDeviceUtils.claim_devices_to_inventory : devices {existing} already exists in the inventory")
         # Only try to claim missing
-        to_claim:list[str]=(d.serial for d in devs.get("missing"))
+        to_claim:list[str]=list(d.get('serial') for d in devs.get("missing"))
         log.log_info(f"Trying to claim {to_claim} to {smo}...")
         claims=SopMerakiOrgUtils.claim_devices_into_inventory(conn, smo.meraki_id, serials=to_claim)
         # Report failures
@@ -1437,18 +1541,22 @@ class SopMerakiDeviceUtils:
         for claim in claims.get("failed"):
             claimed.extend(claim.get("serials"))
         log.log_info(f"SopMerakiDeviceUtils.claim_devices_to_inventory : successfully claimed {claimed}")
+        ret={ "existing":existing, "claimed":claimed, "failed":failed }
+        if len(claimed)==0:
+            log.log_info(f"Claim done")
+            return ret
         log.log_info(f"Claim done, let's refresh claimed SopMerakiDevices from inventory")
-        devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, smo.meraki_id, serials)
+        devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, smo.meraki_id, claimed)
         for dev in devs.get("found"):
             serial=dev.get("serial")
             # refresh "no net" devices from inventory
             log.log_info(f"Refreshing device {serial} ...")
             smd = SopMerakiDeviceUtils.get_by_serial_or_create(serial, dev['name'])
-            saved = SopMerakiDeviceUtils.refresh_from_inventory_data(smd, conn, dev, smo, log, details)
+            save = SopMerakiDeviceUtils.__refresh_from_inventory_data_no_save(smd, conn, dev, smo, log, details)
             # if something changed we might need to refresh related objects
-            if saved :
+            if save :
                 log.log_info(f"Something changed on device {serial}, let's relink related objects...")
-                SopMerakiDeviceUtils.relink_related_objects(smd, log)
+                save = save or SopMerakiDeviceUtils.__relink_related_objects_no_save(smd, log)
             # Now create missing netbox devices
             # -removed- no need to requery - smd=SopMerakiDeviceUtils.get_by_serial(serial) 
             if smd.netbox_device is not None:
@@ -1470,12 +1578,13 @@ class SopMerakiDeviceUtils:
                 nd.full_clean()
                 nd.save()
                 smd.netbox_device=nd
-                smd._changelog_message = "SopMerakiDeviceUtils.claim_devices_to_inventory"
-                smd.full_clean()
-                smd.save()
+                save = True
             else:
                 log.log_warning(f"SopmerakiDevice {serial} is not yet linked to a Netbox Device but also has no netbox_device_type !")
-            ret.append(smd)
+            if save:
+                smd._changelog_message = f"{smd._changelog_message} - save in SopMerakiDeviceUtils.claim_devices_to_inventory"
+                smd.full_clean()
+                smd.save()
         log.log_info(f"Refresh done !")
         return ret
 
@@ -1504,7 +1613,7 @@ class SopMerakiDeviceUtils:
         details:bool
     ) -> dict:
         # Préparer les reports
-        found=list()
+        inventory=list()
         skipped=list()
         blocked=list()
         not_found=list()
@@ -1512,22 +1621,22 @@ class SopMerakiDeviceUtils:
         # extract serials and prepare smd updates
         by_serial:dict[str,SopMerakiDevice]=dict()
         serials:list[str]=list()
-        to_save:list(str)=list()
+        to_save:list[str]=list()
         for smd in set(devices):
             serials.append(smd.serial)
             by_serial[smd.serial]=smd
             smd.snapshot()
             smd._changelog_message=f"SopMerakiDeviceUtils.move_devices_to_network move from {smd.meraki_netid} to {smn.meraki_id}"
-        # TODO INCORRECT SERIALS
-        # trouver ceux qui sont inconnus en les chargeant un par un depuis l'inventaire (procéder à un refresh data en passant)
-        # eliminer ceux qui génèrent une erreur de notre liste et de notre dictionnaire tout en logguant not_found
-        # boucle pour décider quoi faire avec chacun --> supprimable comme on vient de refresh --> rework
-        for dev in conn.organizations.getOrganizationInventoryDevices(smn.org.meraki_id, total_pages=-1, serials=serials):
+        # Check where we stand
+        devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, smn.org.meraki_id, serials)
+        missing:list[str]=list(d.get('serial') for d in devs.get("missing"))
+        # Loop
+        for dev in devs.get("found"):
             serial=dev.get("serial")
             nid=dev.get("networkId")
             print(f"{serial=} / {nid=} / {smn.meraki_id=}")
             if nid is None or nid=="":
-                found.append(serial)
+                inventory.append(serial)
                 serials.remove(serial)
             elif nid==smn.meraki_id:
                 skipped.append(serial)
@@ -1540,7 +1649,7 @@ class SopMerakiDeviceUtils:
                 serials.remove(serial)
         # devrait disparaître d'ici
         not_found.extend(serials)
-        serials=found.copy()
+        serials=inventory.copy()
         print(f"serials movable first round {serials=}")
         # Free devices from networks
         for (sn,nid) in moved.items():
@@ -1583,9 +1692,9 @@ class SopMerakiDeviceUtils:
         # Log and report back
         log.log_info(f"Move {serials} to {smn} done !")
         return {
-            "not_found" : not_found,
+            "missing" : missing,
             "skipped": skipped,
-            "claimed": found,
+            "claimed": inventory,
             "blocked" : blocked,
             "moved": moved,
             "errors": errs,
@@ -1708,6 +1817,9 @@ class SopMerakiOrgUtils:
         claimed:list=list()
         failed:list=list()
         ret:dict[str,list]={"claimed":claimed,"failed":failed}
+        # short cut
+        if serials is None or not isinstance(serials, list) or len(serials)==0:
+            return ret
         # Try if we can claim all of those in one shot
         claims=SopMerakiOrgUtils.try_claim_devices_into_inventory(conn, meraki_org_id, serials)
         if claims is not None :
@@ -1745,6 +1857,11 @@ class SopMerakiOrgUtils:
 
     @staticmethod
     def fetch_inventory_devices(conn, meraki_org_id: str, serials:list[str])->dict:
+        """
+         found:list=list()
+                missing:list=list()
+                ret:dict[str,list]={"found":found,"missing":missing}
+        """
         # Prepare return
         found:list=list()
         missing:list=list()

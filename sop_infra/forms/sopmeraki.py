@@ -75,6 +75,7 @@ class SopMerakiDeviceForm(NetBoxModelForm):
         fields = ("nom", "serial", "site", "org")
 
 
+
 ##############  FILTER FORMS ################################
 
 
@@ -139,24 +140,19 @@ class SopMerakiDeviceFilterForm(NetBoxModelFilterSetForm):
         queryset=SopMerakiNet.objects.all(), required=False, label="Meraki network",
     )
     meraki_notes = forms.CharField(required=False)
-    ptype = django_filters.MultipleChoiceFilter(
-        choices=(
-            ("appliance", "appliance"),
-            ("camera", "camera"),
-            ("cellularGateway", "cellularGateway"),
-            ("switch", "switch"),
-            ("wireless", "wireless"),
-        ),
-        null_value=None,
+    ptype =  forms.MultipleChoiceField(
+        choices=list(SopMerakiUtils.PRODUCT_TYPE_CHOICES),
+        label="Meraki product type",
+        required=False,
     )
     meraki_tags = forms.CharField(required=False)
     meraki_details = forms.CharField(required=False)
     firmware = forms.CharField(required=False)
     site = DynamicModelMultipleChoiceField(queryset=Site.objects.all(), required=False, label="Netbox Site")
 
-    netbox_device_type = DynamicModelMultipleChoiceField(
-        queryset=DeviceType.objects.all(), required=False
-    )
+    # netbox_device_type = DynamicModelMultipleChoiceField(
+    #     queryset=DeviceType.objects.all(), required=False
+    # )
     netbox_device = DynamicModelMultipleChoiceField(
         queryset=Device.objects.all(), required=False
     )
@@ -363,3 +359,24 @@ class SopMerakiDeviceMoveForm(forms.Form):
             "force": data["force"],
             "return_url": return_url,
         }
+
+
+
+# class SopMerakiDeviceBulkMoveForm(PrimaryModelBulkEditForm):
+#     tenant = DynamicModelChoiceField(
+#         label=_('Tenant'),
+#         queryset=Tenant.objects.all(),
+#         required=False
+#     )
+#     enforce_unique = forms.NullBooleanField(
+#         required=False,
+#         widget=BulkEditNullBooleanSelect(),
+#         label=_('Enforce unique space')
+#     )
+
+#     model = VRF
+#     fieldsets = (
+#         FieldSet('tenant', 'enforce_unique', 'description'),
+#     )
+#     nullable_fields = ('tenant', 'description', 'comments')
+

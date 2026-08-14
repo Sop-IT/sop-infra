@@ -139,7 +139,7 @@ class SopMerakiDeviceSearchIndex(SearchIndex):
         "ptype",
         "site",
         "org",
-        "netbox_dev_type",
+        # "netbox_dev_type",
         "netbox_device",
     )
 
