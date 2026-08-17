@@ -1527,19 +1527,17 @@ class SopMerakiDeviceUtils:
         devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, smo.meraki_id, serials)
         # Report existing
         existing:list[str]=list(d.get('serial') for d in devs.get("found"))
-        log.log_warning(f"SopMerakiDeviceUtils.claim_devices_to_inventory : devices {existing} already exists in the inventory")
+        if len(existing)>0:
+            log.log_warning(f"SopMerakiDeviceUtils.claim_devices_to_inventory : devices {existing} already exists in the inventory")
         # Only try to claim missing
-        to_claim:list[str]=list(d.get('serial') for d in devs.get("missing"))
-        log.log_info(f"Trying to claim {to_claim} to {smo}...")
-        claims=SopMerakiOrgUtils.claim_devices_into_inventory(conn, smo.meraki_id, serials=to_claim)
+        to_claim:list[str]=list(serial for serial in devs.get("missing"))
+        if len(to_claim)>0:
+            log.log_info(f"Trying to claim {to_claim} to {smo}...")
+        claims:dict[str,list[str]]=SopMerakiOrgUtils.claim_devices_into_inventory(conn, smo.meraki_id, serials=to_claim)
         # Report failures
-        failed:list[str]=list()
-        for claim in claims.get("failed"):
-            failed.extend(claim.get("serials"))
+        failed:list[str]=claims.get("failed")
         log.log_warning(f"SopMerakiDeviceUtils.claim_devices_to_inventory : claim failed for {failed}")
-        claimed:list[str]=list()
-        for claim in claims.get("failed"):
-            claimed.extend(claim.get("serials"))
+        claimed:list[str]=claims.get("claimed")
         log.log_info(f"SopMerakiDeviceUtils.claim_devices_to_inventory : successfully claimed {claimed}")
         ret={ "existing":existing, "claimed":claimed, "failed":failed }
         if len(claimed)==0:
@@ -1629,7 +1627,7 @@ class SopMerakiDeviceUtils:
             smd._changelog_message=f"SopMerakiDeviceUtils.move_devices_to_network move from {smd.meraki_netid} to {smn.meraki_id}"
         # Check where we stand
         devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, smn.org.meraki_id, serials)
-        missing:list[str]=list(d.get('serial') for d in devs.get("missing"))
+        missing:list[str]=list(serial for serial in devs.get("missing"))
         # Loop
         for dev in devs.get("found"):
             serial=dev.get("serial")
@@ -1812,33 +1810,44 @@ class SopMerakiOrgUtils:
 
     
     @staticmethod
-    def claim_devices_into_inventory(conn, meraki_org_id: str, serials:list[str])->dict:
+    def claim_devices_into_inventory(conn, meraki_org_id: str, serials:list[str])->dict[str,list[str]]:
+        """
+        { "claimed": [ serial, serial, .... ], "failed": [ serial, serial, .... ], }
+        """
         # Prepare return
         claimed:list=list()
         failed:list=list()
-        ret:dict[str,list]={"claimed":claimed,"failed":failed}
+        ret:dict[str,list[str]]={"claimed":claimed,"failed":failed}
         # short cut
         if serials is None or not isinstance(serials, list) or len(serials)==0:
             return ret
+        # copy because we'll be changing it
+        serials=serials.copy()
         # Try if we can claim all of those in one shot
-        claims=SopMerakiOrgUtils.try_claim_devices_into_inventory(conn, meraki_org_id, serials)
+        claims:dict=SopMerakiOrgUtils.try_claim_devices_into_inventory(conn, meraki_org_id, serials)
         if claims is not None :
-            # No error means all the serial were valid and were claimed into the inventory
-            claimed.extend(claims)
-        else:
-            # one by one then
-            for serial in serials:
-                claims=SopMerakiOrgUtils.try_claim_devices_into_inventory(conn, meraki_org_id, [serial])
-                if claims is not None :
-                    claimed.extend(claims)
-                else:
-                    failed.extends(claims)
+            # No error means all the serial were valid, but not necessarily found
+            for serial in claims.get("serials", list()):
+                claimed.append(serial)
+                serials.remove(serial)
+            failed.extend(serials)
+            return ret
+        # one by one then
+        for serial in serials:
+            claims=SopMerakiOrgUtils.try_claim_devices_into_inventory(conn, meraki_org_id, [serial])
+            if claims is not None :
+                for serial in claims.get("serials", list()):
+                    claimed.append(serial)
+            failed.append(serial)
         return ret
 
 
     @staticmethod
-    def try_claim_devices_into_inventory(conn, meraki_org_id: str, serials:list[str])->list|None:        
-        claims:list=None
+    def try_claim_devices_into_inventory(conn, meraki_org_id: str, serials:list[str])->dict|None:  
+        """
+        { "orders":[], "serials":[], "licences":[] }
+        """      
+        claims:dict=None
         try:
             # https://developer.cisco.com/meraki/api-v1/claim-into-organization-inventory/
             claims=conn.organizations.claimIntoOrganizationInventory(meraki_org_id, serials=serials)
@@ -1858,27 +1867,37 @@ class SopMerakiOrgUtils:
     @staticmethod
     def fetch_inventory_devices(conn, meraki_org_id: str, serials:list[str])->dict:
         """
-         found:list=list()
-                missing:list=list()
-                ret:dict[str,list]={"found":found,"missing":missing}
+         { 
+            "found" : [ meraki_api_dev, meraki_api_dev, ... ],
+            "missing" : [ serial, serial, serial, ...]
+         }
         """
         # Prepare return
         found:list=list()
         missing:list=list()
         ret:dict[str,list]={"found":found,"missing":missing}
-        # Try if we can fetch all of those
+        # short cut
+        if serials is None or not isinstance(serials, list) or len(serials)==0:
+            return ret
+        # copy because we'll be changing it
+        serials=serials.copy()
+        # Try if we can fetch all of those in one go
         devs=SopMerakiOrgUtils.try_fetch_inventory_devices(conn, meraki_org_id, serials)
         if devs is not None :
-            # No error means all the serial were valid and exist in the inventory
+            # No error means all the serial were valid, but not necessarily found
             found.extend(devs)
-        else:
-            # one by one then
-            for serial in serials:
-                devs=SopMerakiOrgUtils.try_fetch_inventory_devices(conn, meraki_org_id, [serial])
-                if devs is not None :
-                    found.extend(devs)
-                else:
-                    missing.extends(devs)
+            for dev in devs:
+                serials.remove(dev.get("serial"))
+            missing.extend(serials)
+            return ret
+        # one by one then
+        for serial in serials:
+            devs=SopMerakiOrgUtils.try_fetch_inventory_devices(conn, meraki_org_id, [serial])
+            if devs is not None :
+                found.extend(devs)
+                for dev in devs:
+                    serials.remove(dev.get("serial"))
+            missing.append(serial)
         return ret
 
 
