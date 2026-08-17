@@ -14,7 +14,7 @@ from tenancy.models import Contact, ContactAssignment, ContactRole, Tenant, Tena
 from sop_utils.strings import StringUtils
 from sop_utils.netbox import NetboxConstants
 from sop_infra.models.infra import SopDeviceSetting, SopSwitchTemplate, SopInfra
-from sop_infra.models.sopmeraki import SopMerakiDevice, SopMerakiNet, SopMerakiSwitchStack
+from sop_infra.models.sopmeraki import SopMerakiDevice, SopMerakiNet, SopMerakiOrg, SopMerakiSwitchStack
 
 
 class SopInfraConstants():
@@ -823,14 +823,30 @@ class NetboxHelpers():
         return ret
     
     @staticmethod
-    def get_vpn_excluded_prefixes_for_site(site:Site)->list[Prefix]:
+    def get_vpn_excluded_prefixes_for_site(site:Site)->set[Prefix]:
         cf="vpnexclude_prefix"
-        return NetboxHelpers.__get_site_hierarchy_cf(Prefix, site, cf)
+        ret:list[Prefix]=NetboxHelpers.__get_site_hierarchy_cf(Prefix, site, cf)
+        for smo in NetboxHelpers._get_unique_sopmerakiorgs_for_site(site):
+            for pref in smo.vpnexclude_prefix.all():
+                ret.append(pref)
+        return set(ret)
 
     @staticmethod
-    def get_vpn_excluded_ipaddresses_for_site(site:Site)->list[IPAddress]:
+    def get_vpn_excluded_ipaddresses_for_site(site:Site)->set[IPAddress]:
         cf="vpnexclude_ipaddress"
-        return NetboxHelpers.__get_site_hierarchy_cf(IPAddress, site, cf)
+        ret:list[IPAddress]=NetboxHelpers.__get_site_hierarchy_cf(IPAddress, site, cf)
+        for smo in NetboxHelpers._get_unique_sopmerakiorgs_for_site(site):
+            for ipadd in smo.vpnexclude_ipadd.all():
+                ret.append(ipadd)
+        return set(ret)
+
+    @staticmethod
+    def _get_unique_sopmerakiorgs_for_site(site:Site)->set[SopMerakiOrg]:
+        orgs:list[SopMerakiOrg]=list()
+        smn:SopMerakiNet
+        for smn in site.meraki_nets.all():
+            orgs.append(smn.org)
+        return set(orgs)
 
     def _get_adm_prefix_for_site(self, site:Site)->Prefix:
         flt=Q(Q(scope_type=NetboxConstants.get_ct_dcim_site())&Q(scope_id=site.pk))

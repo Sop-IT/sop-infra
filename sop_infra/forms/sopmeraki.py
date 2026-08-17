@@ -41,7 +41,7 @@ class SopMerakiOrgForm(NetBoxModelForm):
 
     class Meta:
         model = SopMerakiOrg
-        fields = ("nom", "dash", "meraki_id", "meraki_url")
+        fields = ("nom", "dash", "meraki_id", "meraki_url", "vpnexclude_prefix", "vpnexclude_ipadd")
 
 
 class SopMerakiNetForm(NetBoxModelForm):

@@ -92,6 +92,29 @@
       {% include 'inc/panels/custom_fields.html' %}
     </div>
     <div class="col col-md-6">
+      <div class="card">
+        <h5 class="card-header">VPN Exclusions</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Excluded prefixes</th>
+              <td>
+                {% for x in object.vpnexclude_prefix.all %}
+                  {{ x }}
+                {% endfor %}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Excluded IPAddresses</th>
+              <td>
+                {% for x in object.vpnexclude_ipadd.all %}
+                  {{ x }}
+                {% endfor %}
+              </td>
+            </tr> 
+          </table>
+        </div>
+      </div>    
       {% include 'inc/panels/comments.html' %}
       <div class="card">
         <h5 class="card-header">Related objects</h5>
@@ -110,6 +133,7 @@
       </div>    
     </div>
   </div>
+  {% comment %}
   <div class="row">
     <div class="col col-md-12">
       <div class="card">
@@ -118,4 +142,6 @@
       </div>
     </div>
   </div>
-  {% endblock content %}
+  {% endcomment %}
+
+{% endblock content %}

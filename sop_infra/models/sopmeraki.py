@@ -6,6 +6,7 @@ from django.utils.timezone import now as django_now
 from netbox.models import NetBoxModel
 from netbox.models.features import *
 from dcim.models import Site, DeviceType, Device
+from ipam.models import Prefix, IPAddress
 
 from sop_infra.models.choices import SopMerakiStpGuardChoices
 from sop_infra.utils.mixins import JobRunnerLogMixin
@@ -99,6 +100,20 @@ class SopMerakiOrg(JobsMixin, NetBoxModel):
         blank=True,
         null=True,
     )  
+
+    vpnexclude_prefix = models.ManyToManyField(
+        verbose_name="VPN Exclude Prefixes",
+        to=Prefix,
+        related_name="+",
+        blank=True,
+    )
+
+    vpnexclude_ipadd = models.ManyToManyField(
+        verbose_name="VPN Exclude IP Addresses",
+        to=IPAddress,
+        related_name="+",
+        blank=True,
+    )
 
     def __str__(self):
         return f"{self.nom}"

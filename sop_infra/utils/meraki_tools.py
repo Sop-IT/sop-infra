@@ -647,12 +647,12 @@ class MerakiNetworkUpdater:
         # SYNC VPN EXCLUSIONS
         # Calc what we want to have
         cum:list[str]=[]
-        expref:list[Prefix]=NetboxHelpers.get_vpn_excluded_prefixes_for_site(self.site)
+        expref:set[Prefix]=NetboxHelpers.get_vpn_excluded_prefixes_for_site(self.site)
         for p in expref:
             val=f"{p.prefix}"
             if val not in cum:
                 cum.append(val)
-        exipad:list[IPAddress]=NetboxHelpers.get_vpn_excluded_ipaddresses_for_site(self.site)
+        exipad:set[IPAddress]=NetboxHelpers.get_vpn_excluded_ipaddresses_for_site(self.site)
         for i in exipad:
             val=f"{i.address.ip}/32"
             if val not in cum:
