@@ -241,7 +241,6 @@ class SopInfraTable(NetBoxTable):
             "master_site",
             "migration_sdwan",
             "monitor_in_starting",
-            "tunnel",
             "claim_net_mx",
             "claim_net_ms",
             "claim_net_mr",
@@ -253,7 +252,6 @@ class SopInfraTable(NetBoxTable):
             "criticality_stars",
             "sdwanha",
             "wan_computed_users_wc",
-            "tunnel",
         )
 
         order_by = ("site",)
