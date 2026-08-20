@@ -192,5 +192,9 @@ urlpatterns = [
     path('sopmerakidevice/', include(get_model_urls('sop_infra', 'sopmerakidevice', detail=False))),
     path('sopmerakidevice/<int:pk>/', include(get_model_urls('sop_infra', 'sopmerakidevice'))),
 
+    # ========================================================================
+    # SopMerakiSyslogServer
+    path('sopsyslogserver/', include(get_model_urls('sop_infra', 'sopsyslogserver', detail=False))),
+    path('sopsyslogserver/<int:pk>/', include(get_model_urls('sop_infra', 'sopsyslogserver'))),
 ]
 

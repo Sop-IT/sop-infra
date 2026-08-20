@@ -52,6 +52,7 @@ class SopMerakiOrgFilterSet(NetBoxModelFilterSet):
             "nom",
             "meraki_id",
             "meraki_url",
+            "syslog_servers",
         )
 
     def search(self, queryset, name, value):
@@ -480,6 +481,7 @@ class SopInfraFilterset(NetBoxModelFilterSet):
             "endpoint_id",
             "enabled",
             "valid",
+            "syslog_servers",
         )
 
     def search(self, queryset, name, value):
@@ -534,6 +536,7 @@ class SopSwitchTemplateFilterset(NetBoxModelFilterSet):
         return queryset.filter(Q(nom__icontains=value) | Q(stp_prio__icontains=value))
 
 
+
 @register_filterset
 class SopDeviceSettingFilterset(NetBoxModelFilterSet):
 
@@ -551,3 +554,23 @@ class SopDeviceSettingFilterset(NetBoxModelFilterSet):
         return queryset.filter(
             Q(device__icontains=value) | Q(switch_template__icontains=value)
         )
+
+
+
+@register_filterset
+class SopSyslogServerFilterset(NetBoxModelFilterSet):
+
+    class Meta:
+        model = SopSyslogServer
+        fields = (
+            "id",
+            "nom",
+            "server_address",
+            "server_port",
+            "enabled",
+        )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(Q(nom__icontains=value) | Q(server_address__icontains=value) | Q(server_port__icontains=value))

@@ -8,7 +8,7 @@ menu = PluginMenu(
     icon_class="mdi mdi-router-network-wireless",
     groups=(
         (
-            "MERAKI INTEGRATION",
+            "MERAKI SITE HIERARCHY",
             (
                 PluginMenuItem(
                     link="plugins:sop_infra:sopmerakidash_list",
@@ -67,6 +67,11 @@ menu = PluginMenu(
                         ),
                     ),
                 ),
+            ),
+        ),
+        (
+            "MERAKI DEVICES",
+            (
                 PluginMenuItem(
                     link="plugins:sop_infra:sopmerakidevice_list",
                     link_text="Devices",
@@ -93,6 +98,19 @@ menu = PluginMenu(
                         ),
                     ),
                 ),
+                PluginMenuItem(
+                    link="plugins:sop_infra:sopswitchtemplate_list",
+                    link_text="Switch templates",
+                    permissions=["sop_infra.view_sopswitchtemplate"],
+                    buttons=(
+                        PluginMenuButton(
+                            link="plugins:sop_infra:sopswitchtemplate_add",
+                            title="Add",
+                            icon_class="mdi mdi-plus-thick",
+                            permissions=["sop_infra.add_sopswitchtemplate"],
+                        ),
+                    ),
+                ),
             ),
         ),
         (
@@ -112,16 +130,10 @@ menu = PluginMenu(
                     ),
                 ),
                 PluginMenuItem(
-                    link="plugins:sop_infra:sopswitchtemplate_list",
-                    link_text="Switch templates",
-                    permissions=["sop_infra.view_sopswitchtemplate"],
+                    link=f"plugins:sop_infra:sopsyslogserver_list",
+                    link_text=_("Syslog Servers"),
+                    permissions=[f"sop_infra.view_sopsyslogserver"],
                     buttons=(
-                        PluginMenuButton(
-                            link="plugins:sop_infra:sopswitchtemplate_add",
-                            title="Add",
-                            icon_class="mdi mdi-plus-thick",
-                            permissions=["sop_infra.add_sopswitchtemplate"],
-                        ),
                     ),
                 ),
             ),

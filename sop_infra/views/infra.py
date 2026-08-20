@@ -10,20 +10,33 @@ from django.contrib import messages
 from django.contrib.auth.mixins import AccessMixin
 from django.core.exceptions import ValidationError
 
-from utilities.views import register_model_view, ViewTab
+from sop_infra.tables.infra import SopSyslogServerTable
+from utilities.views import GetRelatedModelsMixin, register_model_view, ViewTab
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
 from utilities.exceptions import AbortScript
-
+from extras.ui.panels import CustomFieldsPanel, ImageAttachmentsPanel, TagsPanel
 from netbox.jobs import Job, JobStatusChoices
 from netbox.views import generic
+from netbox.ui import actions, layout
+from netbox.ui.panels import (
+    CommentsPanel,
+    ContextTablePanel,
+    JSONPanel,
+    NestedGroupObjectPanel,
+    ObjectsTablePanel,
+    OrganizationalObjectPanel,
+    RelatedObjectsPanel,
+    TemplatePanel,
+)
 
 from dcim.models import DeviceRole, Location, MACAddress
 from ipam.models import IPAddress, Role
 from tenancy.models import Contact
 from extras.models import Tag
+from sop_infra.ui import panels
 
-from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopInfraRefreshForm, SopMerakiClaimForm
+from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopInfraRefreshForm, SopMerakiClaimForm, SopSyslogServerFilterForm, SopSyslogServerForm
 from sop_infra.jobs import SopInfraRefreshJob, SopMerakiCreateNetworkJob, SopMerakiDashRefreshJob, SopSyncAdUsers
 from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraConstants
@@ -58,6 +71,12 @@ __all__ = (
     "SopSwitchTemplateListView",
     "SopDeviceSettingDetailView",
     "SopDeviceSettingEditView",
+
+    # -- SopSyslogServer
+    "SopSyslogServerView",
+    "SopSyslogServerListView",
+    "SopSyslogServerEditView",
+    "SopSyslogServerDeleteView",
 )
 
 
@@ -1160,3 +1179,89 @@ class SopInfraRefreshChooseView(AccessMixin, View):
             if j.status!=JobStatusChoices.STATUS_COMPLETED:
                 return_url = reverse("core:job", args=[j.pk])
             return redirect(return_url)
+
+
+
+#region SYSLOG SERVER
+
+
+@register_model_view(SopSyslogServer)
+class SopSyslogServerView(GetRelatedModelsMixin, generic.ObjectView):
+    queryset = SopSyslogServer.objects.all()
+    layout = layout.SimpleLayout(
+        left_panels=[
+            panels.SopSyslogServerPanel(),
+            CustomFieldsPanel(),
+            TagsPanel(),
+            
+        ],
+        right_panels=[
+            RelatedObjectsPanel(),
+            CommentsPanel(),
+        ],
+        bottom_panels=[
+            # ObjectsTablePanel(
+            #     model='dcim.Location',
+            #     filters={'site_id': lambda ctx: ctx['object'].pk},
+            #     exclude_columns=['site'],
+            #     actions=[
+            #         actions.AddObject('dcim.Location', url_params={'site': lambda ctx: ctx['object'].pk}),
+            #     ],
+            # ),
+            # ObjectsTablePanel(
+            #     model='dcim.Device',
+            #     title=_('Non-Racked Devices'),
+            #     filters={
+            #         'site_id': lambda ctx: ctx['object'].pk,
+            #         'rack_id': settings.FILTERS_NULL_CHOICE_VALUE,
+            #         'parent_bay_id': settings.FILTERS_NULL_CHOICE_VALUE,
+            #     },
+            #     exclude_columns=['site'],
+            #     actions=[
+            #         actions.AddObject('dcim.Device', url_params={'site': lambda ctx: ctx['object'].pk}),
+            #     ],
+            # ),
+        ]
+    )
+
+    def get_extra_context(self, request, instance):
+        return {
+            'related_models': self.get_related_models(
+                request,
+                instance,
+                # omit=(CableTermination, CircuitTermination, Cluster, Prefix, WirelessLAN),
+                extra=(
+                    (SopInfra.objects.restrict(request.user, 'view').filter(syslog_servers__in=[instance.pk]), 'syslog_servers'),
+                    (SopMerakiOrg.objects.restrict(request.user, 'view').filter(syslog_servers__in=[instance.pk]), 'syslog_servers'),
+                ),
+            ),
+        }
+
+
+@register_model_view(SopSyslogServer, 'list', path='', detail=False)
+class SopSyslogServerListView(generic.ObjectListView):
+    queryset = SopSyslogServer.objects.all()
+    table = SopSyslogServerTable
+    filterset = SopSyslogServerFilterset
+    filterset_form = SopSyslogServerFilterForm
+
+
+
+@register_model_view(SopSyslogServer, 'add', detail=False)
+@register_model_view(SopSyslogServer, 'edit')
+class SopSyslogServerEditView(generic.ObjectEditView):
+    queryset = SopSyslogServer.objects.all()
+    form = SopSyslogServerForm
+
+
+
+@register_model_view(SopSyslogServer, 'delete')
+class SopSyslogServerDeleteView(generic.ObjectDeleteView):
+    queryset = SopSyslogServer.objects.all()
+
+
+    
+
+
+#endregion
+

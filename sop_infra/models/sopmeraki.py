@@ -9,6 +9,7 @@ from dcim.models import Site, DeviceType, Device
 from ipam.models import Prefix, IPAddress
 
 from sop_infra.models.choices import SopMerakiStpGuardChoices
+from sop_infra.models.infra import SopSyslogServer
 from sop_infra.utils.mixins import JobRunnerLogMixin
 from timezone_field import TimeZoneField
 from utilities.querysets import RestrictedQuerySet
@@ -107,11 +108,17 @@ class SopMerakiOrg(JobsMixin, NetBoxModel):
         related_name="+",
         blank=True,
     )
-
     vpnexclude_ipadd = models.ManyToManyField(
         verbose_name="VPN Exclude IP Addresses",
         to=IPAddress,
         related_name="+",
+        blank=True,
+    )
+
+    syslog_servers = models.ManyToManyField(
+        verbose_name="SYSLOG Servers",
+        to=SopSyslogServer,
+        related_name="meraki_orgs",
         blank=True,
     )
 

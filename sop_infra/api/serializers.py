@@ -7,6 +7,7 @@ from netbox.api.serializers import NetBoxModelSerializer
 from dcim.api.serializers import SiteSerializer, LocationSerializer
 
 from sop_infra.models import *
+from sop_infra.models.infra import SopSyslogServer
 from sop_infra.models.sopmeraki import SopMerakiSwitchStack
 
 
@@ -368,4 +369,31 @@ class SopDeviceSettingSerializer(NetBoxModelSerializer):
             "url",
             "device",
             "switch_template",
+        )
+
+
+class SopSyslogServerSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:sop_infra-api:sopsyslogserver-detail"
+    )
+
+    class Meta: # pyright: ignore[reportIncompatibleVariableOverride]
+        model = SopSyslogServer
+        fields = (
+            "id",
+            "url",
+            "display",
+            "nom",
+            "server_address",
+            "server_port",
+            "enabled",
+        )
+        brief_fields = (
+            "id",
+            "url",
+            "display",
+            "nom",
+            "server_address",
+            "server_port",
+            "enabled",
         )

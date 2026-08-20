@@ -27,6 +27,7 @@
 
   <div class="col col-md-6">
 
+    {% comment %}
     <!-- CLAIM INFO CARD -->
     <div class="card">
       <h2 class="card-header">Claiming info</h2>
@@ -37,6 +38,7 @@
         {% include 'sop_infra/tools/display_detail.html' with name="claim_net_mr" %}
       </table>
     </div>
+    {% endcomment %}
 
     <!-- MERAKI TARGET CARD -->
     <div class="card">
@@ -44,6 +46,19 @@
       <table class="table table-hover attr-table">
         {% include 'sop_infra/tools/display_detail.html' with name="site_mx_model" %}
         <!-- TODO HUB ORDER TARGET + DUAL LINK TARGET -->
+      </table>
+    </div>
+
+    <!-- SYSLOG SERVER -->
+    <div class="card">
+      <h2 class="card-header">Syslog servers</h2>
+      <table class="table table-hover attr-table">
+          <th scope="row">Syslog servers</th>
+          <td>
+            {% for x in object.syslog_servers.all %}
+              {{ x }} - {{ x.description }}<br/>
+            {% endfor %}
+          </td>
       </table>
     </div>
 

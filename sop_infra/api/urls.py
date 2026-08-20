@@ -18,5 +18,6 @@ router.register("sopmerakiswitchstack", SopMerakiSwitchStackViewSet)
 router.register("sopdevicesetting", SopDeviceSettingViewSet)
 router.register("sopswitchtemplate", SopSwitchTemplateViewSet)
 
+router.register("sopsyslogserver", SopSyslogServerViewSet)
 
 urlpatterns = router.urls

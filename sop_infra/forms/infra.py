@@ -4,11 +4,14 @@ from django.urls import reverse
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 
+from ipam.models.ip import IPAddress
+from sop_infra.models.infra import SopSyslogServer
 from sop_infra.utils.meraki_utils import SopMerakiRegexps, SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraConstants
 from sop_utils.regexps import SopRegExps
 from utilities.forms.fields import DynamicModelChoiceField
 from netbox.forms import NetBoxModelFilterSetForm, NetBoxModelForm
+from utilities.forms.fields.fields import CommentField
 from utilities.forms.widgets import DatePicker
 from utilities.forms.rendering import FieldSet
 from netbox.context import current_request
@@ -152,26 +155,26 @@ class SopInfraForm(NetBoxModelForm):
         },
         required=False,
     )
-    claim_net_ms = DynamicModelChoiceField(
-        label=_("MS claim network"),
-        # TODO filter by site org
-        queryset=SopMerakiNet.objects.all(),
-        query_params={
-            "ptypes__contains": SopMerakiUtils.PRODUCT_TYPE_MS,
-            "bound_to_template": True,
-        },
-        required=False,
-    )
-    claim_net_mr = DynamicModelChoiceField(
-        label=_("MR claim network"),
-        # TODO filter by site org
-        queryset=SopMerakiNet.objects.all(),
-        query_params={
-            "ptypes__contains": SopMerakiUtils.PRODUCT_TYPE_MR,
-            "bound_to_template": True,
-        },
-        required=False,
-    )
+    # claim_net_ms = DynamicModelChoiceField(
+    #     label=_("MS claim network"),
+    #     # TODO filter by site org
+    #     queryset=SopMerakiNet.objects.all(),
+    #     query_params={
+    #         "ptypes__contains": SopMerakiUtils.PRODUCT_TYPE_MS,
+    #         "bound_to_template": True,
+    #     },
+    #     required=False,
+    # )
+    # claim_net_mr = DynamicModelChoiceField(
+    #     label=_("MR claim network"),
+    #     # TODO filter by site org
+    #     queryset=SopMerakiNet.objects.all(),
+    #     query_params={
+    #         "ptypes__contains": SopMerakiUtils.PRODUCT_TYPE_MR,
+    #         "bound_to_template": True,
+    #     },
+    #     required=False,
+    # )
     # claim_net_mv = DynamicModelChoiceField(
     #     label=_("MV claim network"),
     #     # TODO filter by site org
@@ -179,6 +182,11 @@ class SopInfraForm(NetBoxModelForm):
     #     query_params={
     #         "ptypes__contains": SopMerakiUtils.DEV_TYPE_MR,
     #     },
+    #     required=False,
+    # )
+    # syslog_servers = DynamicModelChoiceField(
+    #     label=_("Syslog Server"),
+    #     queryset=SopSyslogServer.objects.all(),
     #     required=False,
     # )
 
@@ -213,12 +221,16 @@ class SopInfraForm(NetBoxModelForm):
             "migration_sdwan",
             name=_("Meraki deployment"),
         ),
+        # FieldSet(
+        #     "claim_net_mx",
+        #     "claim_net_ms",
+        #     "claim_net_mr",
+        #     # "claim_net_mv",
+        #     name=_("Meraki claim information"),
+        # ),
         FieldSet(
-            "claim_net_mx",
-            "claim_net_ms",
-            "claim_net_mr",
-            # "claim_net_mv",
-            name=_("Meraki claim information"),
+            "syslog_servers",
+            name=_("SYSLOG servers"),
         ),
     )
 
@@ -245,9 +257,10 @@ class SopInfraForm(NetBoxModelForm):
             "monitor_in_starting",
             "endpoint",
             "enabled",
-            "claim_net_mx",
-            "claim_net_ms",
-            "claim_net_mr",
+            #"claim_net_mx",
+            #"claim_net_ms",
+            #"claim_net_mr",
+            "syslog_servers",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -928,3 +941,30 @@ class SopInfraRefreshForm(forms.Form):
             "details": details,
             "return_url": return_url,
         }
+
+
+# ======================================================================
+###  OTHER FORMS
+
+
+class SopSyslogServerFilterForm(NetBoxModelFilterSetForm):
+    model = SopSyslogServer
+    nom = forms.CharField(required=False)
+    server_address = DynamicModelChoiceField(queryset=IPAddress.objects.all(), required=False)
+    server_port = forms.CharField(required=False)
+    
+
+
+class SopSyslogServerForm(NetBoxModelForm):
+
+    comments = CommentField()
+
+    class Meta:
+        model = SopSyslogServer
+        fields = (
+            "nom", 
+            "server_address", 
+            "server_port",
+            "enabled",
+        )
+

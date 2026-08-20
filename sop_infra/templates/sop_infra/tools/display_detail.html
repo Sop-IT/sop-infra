@@ -11,11 +11,9 @@
     {% endif %}
   </th>
   <td>
-
       {% if badge %}
         {% include 'sop_infra/tools/badge.html' with object=object|field_value:name %}
       {% else %}
-
         {% if link and object|field_exists:name %}
           {% with obj=object|field_value:name %}
             <a href="{% url object|field_value:name|viewname:view pk=obj.pk %}">
@@ -24,9 +22,7 @@
         {% else %}
           {{object|field_value:name|placeholder}}
         {% endif %}
-
       {% endif %}
-
   </td>
 </tr>
 

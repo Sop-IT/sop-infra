@@ -293,3 +293,29 @@ class SopSwitchTemplateTable(NetBoxTable):
         )
         order_by = ("nom",)
 
+
+
+
+# ======================================================================
+#  OTHER
+
+class SopSyslogServerTable(NetBoxTable):
+
+    class Meta(NetBoxTable.Meta):
+        model = SopSyslogServer
+        fields = (
+            "pk",
+            "id",
+            "server_address",
+            "server_port",
+            "enabled",
+        )
+        default_columns = (
+            "id",
+            "server_address",
+            "server_port",
+            "enabled",
+        )
+
+        order_by = ("server_address","server_port","enabled",)
+

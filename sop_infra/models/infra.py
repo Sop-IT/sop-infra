@@ -1,16 +1,19 @@
 import django.core.validators
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
+from ipam.models import IPAddress
 from netbox.models import NetBoxModel
 from netbox.models.features import *
 
 from dcim.models import Site, Location, Device
 
 from sop_infra.validators import SopInfraSlaveValidator
+from utilities.querysets import RestrictedQuerySet
 
 from .prisma import *
 from .choices import *
@@ -20,6 +23,7 @@ __all__ = (
     "SopInfra",
     "SopSwitchTemplate",
     "SopDeviceSetting",
+    "SopSyslogServer",
 )
 
 
@@ -265,6 +269,10 @@ class SopInfra(JobsMixin, NetBoxModel):
         related_name="+",
         verbose_name="MR claim network",
         help_text="In which Meraki Network should we try to claim MR devices",
+    )
+    syslog_servers = models.ManyToManyField(
+        to="SopSyslogServer",
+        blank=True,
     )
     # _______
     # PRISMA
@@ -748,3 +756,49 @@ class SopDeviceSetting(NetBoxModel):
 
         self.save()
         return self.manage_in_netbox
+
+
+# ======================================================================
+#  OTHER
+
+
+class SopSyslogServer(NetBoxModel):
+
+    objects = RestrictedQuerySet.as_manager()
+
+    nom = models.CharField(
+        max_length=50, null=False, blank=False, unique=True, verbose_name="Name"
+    )
+    server_address = models.ForeignKey(
+        to=IPAddress,
+        on_delete=models.RESTRICT,
+        null=False,
+        blank=False,
+        related_name="+",
+    )
+    server_port = models.PositiveIntegerField(
+        default=514,
+        validators=[MinValueValidator(1)],
+        null=False,
+        blank=False,
+        help_text=_("Only clear UDP for now"),
+    )
+    enabled =  models.BooleanField(
+        null=False,
+        blank=False,
+        default=True,
+        verbose_name=_("Enabled ?"),
+        help_text=_("This server will only be pushed to Meraki if enabled."),
+    )
+
+    def __str__(self):
+        return f"{self.nom}"
+
+    def get_absolute_url(self) -> str:
+        return reverse(
+            "plugins:sop_infra:sopsyslogserver", args=[self.pk]
+        )
+
+    class Meta(NetBoxModel.Meta):
+        verbose_name = "Syslog Server"
+        verbose_name_plural = "Syslog Server"

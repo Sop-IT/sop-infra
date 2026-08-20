@@ -100,7 +100,7 @@
               <th scope="row">Excluded prefixes</th>
               <td>
                 {% for x in object.vpnexclude_prefix.all %}
-                  {{ x }}
+                  {{ x }} - {{ x.description }}<br/>
                 {% endfor %}
               </td>
             </tr>
@@ -108,13 +108,29 @@
               <th scope="row">Excluded IPAddresses</th>
               <td>
                 {% for x in object.vpnexclude_ipadd.all %}
-                  {{ x }}
+                  {{ x }} - {{ x.description }}<br/>
                 {% endfor %}
               </td>
             </tr> 
           </table>
         </div>
-      </div>    
+      </div>
+      <div class="card">
+        <h5 class="card-header">SYSLOG</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Servers</th>
+              <td>
+                {% for x in object.syslog_servers.all %}
+                {# TODO #}
+                  {{ x.nom }} - {{ x.server_address }} - {{ x.server_port }} - {{ x.enabled }}<br/>
+                {% endfor %}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>       
       {% include 'inc/panels/comments.html' %}
       <div class="card">
         <h5 class="card-header">Related objects</h5>

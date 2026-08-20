@@ -17,6 +17,7 @@ __all__ = (
     "SopMerakiDeviceViewSet",
     "SopSwitchTemplateViewSet",
     "SopDeviceSettingViewSet",
+    "SopSyslogServerViewSet"
 )
 
 
@@ -92,3 +93,9 @@ class SopDeviceSettingViewSet(NetBoxModelViewSet):
     queryset = SopDeviceSetting.objects.all().order_by("pk")
     serializer_class = SopDeviceSettingSerializer
     filterset_class = SopDeviceSettingFilterset
+
+
+class SopSyslogServerViewSet(NetBoxModelViewSet):
+    queryset = SopSyslogServer.objects.all().order_by("pk")
+    serializer_class = SopSyslogServerSerializer
+    filterset_class = SopSyslogServerFilterset
