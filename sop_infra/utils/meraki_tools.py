@@ -8,12 +8,13 @@ from django.db.models import Min
 from django.db.models.functions.math import Mod
 
 from ipam.models.ip import IPAddress
-from sop_infra.models.infra import SopInfra
+from sop_infra.models.infra import SopInfra, SopSyslogServer
 from sop_infra.utils.meraki_early_access import EarlyAccessAppliance
 from sop_infra.utils.meraki_utils import SopMerakiRegexps, SopMerakiUtils
 from sop_infra.utils.DHCPUtils import TargetPrefix
 from sop_infra.utils.netbox_utils import NetboxHelpers
 from sop_infra.utils.umbrella_utils import SopUmbrellaUtils
+from sop_utils.arrays import ArrayUtils
 from utilities.exceptions import AbortScript
 
 import dcim.models
@@ -1189,6 +1190,60 @@ class NetboxSiteMerakiUpdater():
             elif details:
                 self.__logger.log_debug(f"No change in QOS Rules for [{mnet}]")
 
+    def _syslog_enforce_site( 
+        self, nbs: Site, mns: MerakiNets, details: bool = False
+    ):
+        # Fetch syslog roles
+        av_syslog_roles_items=self.__get_dash().organizations.getOrganizationDevicesSyslogServersRolesByNetwork(
+            self.__smorg.meraki_id, total_pages=-1, networkIds=[mn.id for mn in mns.get_unbound_appliance_nets()]
+        )
+        #av_syslog_roles_items={'items': [{'network': {'id': 'N_731271989494315852'}, 'available': [{'name': 'Appliance Event log', 'value': 'applianceEventLog'}, {'name': 'Appliance Flows',
+        #print(f"{av_syslog_roles_items=} {[mn.id for mn in mns.get_unbound_appliance_nets()]}")
+        av_syslog_roles_by_net:dict[str:list[str]]=dict()
+        for rit in av_syslog_roles_items.get("items", list()):
+            nid=rit.get("network",dict()).get("id")
+            avl=rit.get("available", list())
+            vals:list[str]=[av.get("value") for av in avl]
+            av_syslog_roles_by_net[nid]=list(filter(lambda x: ("event" in x.lower() or "alert" in x.lower()), vals))
+        #print(f"{av_syslog_roles_by_net=}")
+        # Fetch target syslog servers
+        syssrvs:list[SopSyslogServer]=NetboxHelpers.get_syslog_servers_for_site(nbs)
+        # Apply syslog roles
+        for mn in mns.get_unbound_appliance_nets():
+            srvs_items=self.__get_dash().organizations.getOrganizationDevicesSyslogServersByNetwork(
+                self.__smorg.meraki_id, total_pages=-1, networkIds=[mn.id] 
+            )
+            rits=srvs_items.get("items", list())
+            if len(rits)!=1:
+                raise Exception(f"Dashboard API inconsistency :  should have a single item got {len(rits)} : {rits=}")            
+            rit=rits[0]
+            nid=rit.get("network",dict()).get("id")
+            if mn.id!=nid:
+                raise Exception(f"Dashboard API inconsistency :  {mn.id=} VS {nid=} ")
+            # Build target servers
+            servers_tgt:list=list()
+            for syssrv in syssrvs:
+                srv={ 
+                    "host"  : f"{syssrv.server_address.address.ip}",
+                    "port"  : syssrv.server_port,
+                    "transportProtocol": "UDP",
+                    "encryption": {
+                        "enabled": False,
+                        'certificate': {'id': ''}
+                    },
+                    "roles" : av_syslog_roles_by_net[nid],
+                }
+                servers_tgt.append(srv)
+            # Fetch current value
+            servers_cur=rit.get("servers", list())
+            if not(SopUtils.deep_equals_json_ic(servers_tgt, servers_cur)):
+                print(f"UPDATING SYSLOG FOR {mn.id}/{mn.name}")
+                #print(f"{servers_tgt=}")
+                #print(f"{servers_cur=}")
+                self.__get_dash().networks.updateNetworkDevicesSyslogServers(mn.id, servers_tgt)
+        
+
+
     # ============================================================================================
 
     def _get_all_mer_nets_for_site(
@@ -1304,24 +1359,17 @@ class NetboxSiteMerakiUpdater():
                 f"Please verify both your slug (lower case match) and your Meraki network naming (must match {SopMerakiRegexps.meraki_sitename_str})."
             )
             return
-        org_ids: list[str] = list()
+        
         si = self.__site.sopinfra
 
         # PATCH SITE
         self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH NETWORKS SETTINGS")
+        # Loop on meraki nets
         for mn in mns.get_unbound_appliance_nets():
             self.__logger.log_debug(
                 f"MERAKI NETWORK {mn.name}/{mn.id} : {mn.has_appliances=}/{mn.bound=}"
             )
-                    
-            # Save Org ID for later
-            if self.__details:
-                self.__logger.log_debug(f"{mn.appliances=}")
-            for v in mn.appliances.values():
-                if v not in org_ids:
-                    if self.__details:
-                        self.__logger.log_debug(f"append {v=}")
-                    org_ids.append(v)
+
             # Reset AMP/IDS/ContentFiltering
             # TODO move that to scheduled task
             if not ("disabled" == mn._amp_mode):
@@ -1450,6 +1498,7 @@ class NetboxSiteMerakiUpdater():
                 )
                 for p in current_peers:
                     if si.endpoint.name == p.get("name"):
+                        # TODO : compare and correct if necessary
                         self.__logger.log_info(f"Peer {si.endpoint.name} found -> SKIPPING")
                         break
                 else:
@@ -1521,6 +1570,11 @@ class NetboxSiteMerakiUpdater():
             self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH QOS")
         self._switches_push_qos_rules(self.__site, self.__details)
 
+        # PATCH SYSLOG
+        if self.__details:
+            self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH SYSLOG")
+        self._syslog_enforce_site(self.__site, mns, self.__details)
+        
 
 
     @classmethod

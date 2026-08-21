@@ -13,7 +13,7 @@ from tenancy.models import Contact, ContactAssignment, ContactRole, Tenant, Tena
 
 from sop_utils.strings import StringUtils
 from sop_utils.netbox import NetboxConstants
-from sop_infra.models.infra import SopDeviceSetting, SopSwitchTemplate, SopInfra
+from sop_infra.models.infra import SopDeviceSetting, SopSwitchTemplate, SopInfra, SopSyslogServer
 from sop_infra.models.sopmeraki import SopMerakiDevice, SopMerakiNet, SopMerakiOrg, SopMerakiSwitchStack
 
 
@@ -840,6 +840,16 @@ class NetboxHelpers():
                 ret.append(ipadd)
         return set(ret)
 
+    @staticmethod
+    def get_syslog_servers_for_site(site:Site)->set[SopSyslogServer]:
+        ret:list[SopSyslogServer]=list()
+        for syssrv in site.sopinfra.syslog_servers.filter(enabled=True):
+            ret.append(syssrv)
+        for smo in NetboxHelpers._get_unique_sopmerakiorgs_for_site(site):
+            for syssrv in smo.syslog_servers.filter(enabled=True):
+                ret.append(syssrv)
+        return set(ret)
+    
     @staticmethod
     def _get_unique_sopmerakiorgs_for_site(site:Site)->set[SopMerakiOrg]:
         orgs:list[SopMerakiOrg]=list()
