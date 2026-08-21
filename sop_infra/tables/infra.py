@@ -2,6 +2,7 @@
 import django_tables2 as tables
 
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable, ChoiceFieldColumn
 
@@ -300,22 +301,27 @@ class SopSwitchTemplateTable(NetBoxTable):
 #  OTHER
 
 class SopSyslogServerTable(NetBoxTable):
+    nom = tables.Column(
+        verbose_name=_('Name'),
+        linkify=True
+    )
 
     class Meta(NetBoxTable.Meta):
         model = SopSyslogServer
         fields = (
             "pk",
             "id",
+            "nom",
             "server_address",
             "server_port",
             "enabled",
         )
         default_columns = (
-            "id",
+            "nom",
             "server_address",
             "server_port",
             "enabled",
         )
 
-        order_by = ("server_address","server_port","enabled",)
+        order_by = ("nom", "server_address","server_port","enabled",)
 
