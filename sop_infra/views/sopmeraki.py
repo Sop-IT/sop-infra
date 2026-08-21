@@ -7,7 +7,7 @@ from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.http import HttpRequest, JsonResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
-from django.contrib.auth.mixins import AccessMixin
+from django.contrib.auth.mixins import AccessMixin, PermissionRequiredMixin
 
 
 from core.choices import JobStatusChoices
@@ -40,6 +40,7 @@ from sop_infra.jobs import (
     SopMerakiNetRefreshJob,
     SopMerakiOrgConnectivityStatusesJob,
     SopMerakiPushSiteJob,
+    SopSyncMgmtInterfaces,
 )
 
 from sop_utils.misc import SopUtils
@@ -1049,6 +1050,21 @@ class SopMerakiDeviceMoveView(ConditionalLoginRequiredMixin, View):
         else:
             url = reverse("core:job", args=[j.pk])
         return redirect(url)
+
+
+
+class SopMerakiDeviceRefreshView(PermissionRequiredMixin, View):
+
+    def get_permission_required(self):
+        return ['sop_infra.refresh_sopmerakidevice']
+
+    def get(self, request, *args, **kwargs):
+        j: Job
+        if settings.DEBUG:
+            j=SopSyncMgmtInterfaces.launch_interactive(request, True)
+        else:
+            j=SopSyncMgmtInterfaces.launch_background(request, True)
+        return redirect(reverse("core:job", args=[j.pk]))
 
 
 

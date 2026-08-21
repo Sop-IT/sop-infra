@@ -5,10 +5,17 @@ class MerakiConstants():
     action_site_status=['staging','starting','active','decommissioning','test-poc']
     active_route_statuses=['active','noncompliant','decommissioning']
     upstream_dns='upstream_dns'
-    dev_types=["appliance","camera","cellularGateway","secureConnect","sensor","switch","systemsManager","wireless"]
     dev_type_appliance="appliance"
+    dev_type_switch="switch"
     dev_type_wireless="wireless"
-
+    dev_types=[
+        dev_type_appliance,
+        "camera","cellularGateway","secureConnect","sensor",
+        dev_type_switch,
+        "systemsManager",
+        dev_type_wireless,
+    ]
+    
 
 
 class MerakiS2SHub():

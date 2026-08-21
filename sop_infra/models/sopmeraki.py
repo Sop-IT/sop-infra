@@ -536,6 +536,25 @@ class SopMerakiDevice(
         blank=True,
         unique=False,)      
 
+    ddns_hostnames = models.JSONField(
+        verbose_name="DDNS names",
+        default=dict,
+        blank=True,
+        null=True,
+    )
+    wan1 = models.JSONField(
+        verbose_name="WAN1 interface",
+        default=dict,
+        blank=True,
+        null=True,
+    )
+    wan2 = models.JSONField(
+        verbose_name="WAN2 interface",
+        default=dict,
+        blank=True,
+        null=True,
+    )
+
     def __str__(self):
         return f"{self.nom}"
 
@@ -547,6 +566,7 @@ class SopMerakiDevice(
         verbose_name_plural = "Meraki Devices"
         permissions = [
             ('move', 'Move'),
+            ('refresh', 'Refresh'),
         ]
 
     def clean_fields(self, exclude = ...):

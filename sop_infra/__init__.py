@@ -16,5 +16,6 @@ class SopInfraConfig(PluginConfig):
         from sop_infra.auto_jobs.dash_ref_job import SopMerakiDashAutoRefreshJob
         from sop_infra.auto_jobs.dash_connectivitystatuses_job import SopMerakiDashAutoUpdateConnectivityStatusesJob
         from sop_infra.auto_jobs.sync_ad_users import SopAutoSyncAdUsers
+        from sop_infra.auto_jobs.sync_mgmt_int import SopAutoSyncMgmtInterfaces
 
 config = SopInfraConfig

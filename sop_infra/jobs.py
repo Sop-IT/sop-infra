@@ -768,9 +768,55 @@ class SopInfraRefreshJob(JobRunnerLogMixin, JobRunner):
     
     @staticmethod
     def launch_background(request, message:bool, infra:SopInfra, details:bool=False)->Job:    
-        job:Job=SopInfraRefreshJob.enqueue(user=request.user, instance=infra, immediate=True, infra=infra, details=details)
+        job:Job=SopInfraRefreshJob.enqueue(user=request.user, instance=infra, immediate=False, infra=infra, details=details)
         if message:
             messages.success(request, f'Started job #{job.pk} to refresh SopInfra {infra} !')           
         return job
     
 # endregion
+
+
+
+
+
+
+
+class SopSyncMgmtInterfaces(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Refresh Meraki devices management interfaces"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            details=kwargs.pop('details', False)
+            SopMerakiUtils.refresh_mgmt_interfaces(self, False, details)
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        # finally:
+        #     self.job.data = self.get_job_data()    
+    
+    @staticmethod
+    def launch_interactive(request, message:bool, details:bool=False)->Job:
+        job:Job=SopSyncMgmtInterfaces.enqueue(user=request.user, immediate=True,  details=details)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Refreshed Meraki devices management interfaces !')
+            else:
+                messages.error(request, f'Failed to refresh Meraki devices management interfaces, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, details:bool=False)->Job:    
+        job:Job=SopSyncMgmtInterfaces.enqueue(user=request.user, immediate=False, details=details)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to refresh Meraki devices management interfaces !')           
+        return job
+
+
+    

@@ -78,6 +78,12 @@ menu = PluginMenu(
                     permissions=["sop_infra.view_sopmerakidevice"],
                     buttons=(
                         PluginMenuButton(
+                            link="plugins:sop_infra:sopmerakidevice_refresh_mgmt",
+                            title="Refetch devices management interfaces from Meraki",
+                            icon_class="mdi mdi-refresh",
+                            permissions=["sop_infra.refresh_sopmerakidevice"],
+                        ),
+                        PluginMenuButton(
                             link="plugins:sop_infra:sopmerakidevice_add",
                             title="Add",
                             icon_class="mdi mdi-plus-thick",

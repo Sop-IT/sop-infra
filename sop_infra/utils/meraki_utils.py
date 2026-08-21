@@ -1,6 +1,7 @@
 import re
 from django.utils.translation import gettext_lazy as _
 
+from sop_infra.utils.meraki_objects import MerakiConstants
 from utilities.choices import ChoiceSet
 
 from django.db import transaction
@@ -245,6 +246,34 @@ class SopMerakiUtils:
                 log.info(f"Trying to refresh '{smn.nom}'")
             SopMerakiNetUtils.refresh_from_meraki(smn, conn, smo, log, details)
 
+    @classmethod
+    def refresh_mgmt_interfaces(
+        cls, log: JobRunnerLogMixin, simulate: bool, details: bool = False
+    ):
+        smd:SopMerakiDevice
+        for smd in SopMerakiDevice.objects.all():
+            if smd.ptype not in [ MerakiConstants.dev_type_switch, MerakiConstants.dev_type_appliance, MerakiConstants.dev_type_wireless ]:
+                continue
+            smo:SopMerakiOrg=smd.org
+            if smo is None:
+                print(f"No org for {smd=}")
+                continue
+            if smd.meraki_netid is None or smd.meraki_network is None:
+                print(f"No net for {smd=}")
+                continue
+            smdash:SopMerakiDash=smo.dash
+            if log:
+                log.info(f"Trying to connect to '{smdash.nom}' via url '{smdash.api_url}'...")
+            conn = cls.connect(smdash.nom, smdash.api_url, simulate)
+            data = conn.devices.getDeviceManagementInterface(smd.serial)
+            smd.snapshot()
+            smd.ddns_hostnames=data.get("ddnsHostnames")
+            smd.wan1=data.get("wan1")
+            smd.wan2=data.get("wan2")
+            smd.full_clean()
+            smd.save()
+
+                
     @classmethod
     def refresh_infras(
         cls, log: JobRunnerLogMixin, simulate: bool, infras: list[SopInfra], details: bool = False
