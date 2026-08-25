@@ -177,7 +177,9 @@ class SopMerakiDeviceFilterForm(NetBoxModelFilterSetForm):
     wan2ip = forms.CharField(required=False)
     wan1status = forms.CharField(required=False)
     wan2status = forms.CharField(required=False)
-    
+    has_compliant_management_dns = forms.NullBooleanField(
+        required=False, label="Compliant DNS ?"
+    )
 
 ##############  ACTION FORMS ################################
 

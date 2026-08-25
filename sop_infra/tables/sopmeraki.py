@@ -156,6 +156,7 @@ class SopMerakiDeviceTable(NetBoxTable):
     has_netbox_device = tables.Column(verbose_name="NB device ?", empty_values=(None, False), order_by="netbox_device_id")
     has_netbox_device_in_same_site = tables.Column(verbose_name="Site match ?", empty_values=(None, False), orderable=False)
     has_netbox_device_of_same_type = tables.Column(verbose_name="Type match ?", empty_values=(None, False), orderable=False)
+    has_compliant_management_dns  = tables.Column(verbose_name="Compliant DNS ?", empty_values=(None, False), orderable=False)
     actions = columns.ActionsColumn(
         extra_buttons=MOVE_TO_NETWORK
     )
@@ -183,6 +184,7 @@ class SopMerakiDeviceTable(NetBoxTable):
             "has_netbox_device",
             "has_netbox_device_in_same_site",
             "has_netbox_device_of_same_type",
+            "has_compliant_management_dns",
             "stack",
             "lan_ip",
             "cfg_updated_at",

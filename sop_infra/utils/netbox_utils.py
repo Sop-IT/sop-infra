@@ -239,6 +239,12 @@ class SopInfraUtils:
         if sd is None or not isinstance(sd, SopMerakiDevice):
             raise Exception(f"sd must be a SopMerakiDevice instance")
         return sd.has_netbox_device_of_same_type
+                          
+    @staticmethod
+    def check_if_meraki_device_has_compliant_management_dns(sd:SopMerakiDevice) -> bool:
+        if sd is None or not isinstance(sd, SopMerakiDevice):
+            raise Exception(f"sd must be a SopMerakiDevice instance")
+        return sd.has_compliant_management_dns
 
     @staticmethod
     def list_meraki_devices_without_netbox_device_of_same_type(site:Site) -> list[SopMerakiDevice]:
@@ -271,6 +277,9 @@ class SopInfraUtils:
         if not SopInfraUtils.check_if_meraki_device_has_netbox_device_of_same_type(sd):
             msg=f"Meraki Device has a matching Netbox Device but of another type"
             ret.append(msg)
+        if not SopInfraUtils.check_if_meraki_device_has_compliant_management_dns(sd):
+            msg=f"Meraki Device has incorrect static dns servers"
+            ret.append(msg)       
         return ret
     
     @staticmethod

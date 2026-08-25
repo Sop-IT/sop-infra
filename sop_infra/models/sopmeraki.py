@@ -635,6 +635,19 @@ class SopMerakiDevice(
             return False
         return self.model_name==ndt.part_number
 
+    @property
+    def has_compliant_management_dns(self) -> bool:
+        # TODO : proper DNS target for China
+        if self.wan1 is not None:
+            dns:list[str]=self.wan1.get("staticDns", list())
+            if dns!=["8.8.8.8","8.8.4.4"]:
+                return False
+        if self.wan2 is not None:
+            dns:list[str]=self.wan1.get("staticDns", list())
+            if dns!=["8.8.8.8","8.8.4.4"]:
+                return False
+        return False
+
     def orphan_device(self):
         self.meraki_netid = None
         #self.meraki_network = None

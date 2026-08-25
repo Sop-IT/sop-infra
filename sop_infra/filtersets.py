@@ -214,6 +214,9 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
     )
     meraki_network=django_filters.CharFilter(method="filter_custom")
     ptype=django_filters.CharFilter(method="filter_custom")
+    has_compliant_management_dns = django_filters.BooleanFilter(
+        method="filter_custom"
+    )
 
     # def __init__(self, *args, **kwargs):
     #     super().__init__(*args, **kwargs)
@@ -250,6 +253,15 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             print(f"ptype {value}")
             q = Q(ptype__iexact=value)
             return queryset.filter(q)
+        if name == "has_compliant_management_dns":
+            # TODO CHINE AND WAN2
+            qw1:Q = Q(Q(wan1__staticDns__isnull=True) | Q(wan1__staticDns=["8.8.8.8","8.8.4.4"]))
+            qw2:Q = Q(Q(wan2__staticDns__isnull=True) | Q(wan2__staticDns=["8.8.8.8","8.8.4.4"]))
+            q:Q=qw1 | qw2
+            if value:
+                return queryset.filter(q)
+            return queryset.exclude(q)
+        
         raise Exception("unknown field name")
         
 
