@@ -104,7 +104,7 @@ class SopInfraUtils:
     # --------------------  DEVICE CHECKS --------------------------------
        
     @staticmethod
-    def check_if_meraki_switch_stack_push_would_succeed(ss:SopMerakiSwitchStack) -> bool:
+    def check_if_meraki_switchstack_push_would_succeed(ss:SopMerakiSwitchStack) -> bool:
         if ss is None or not isinstance(ss, SopMerakiSwitchStack):
             raise Exception(f"ss must be a SopMerakiSwitchStack instance")
         # Filter for members of stacks push
@@ -118,7 +118,7 @@ class SopInfraUtils:
         return sds.count()>0
 
     @staticmethod
-    def list_meraki_switch_stacks_where_push_would_not_success(site:Site) -> list[SopMerakiSwitchStack]:
+    def list_meraki_switchstacks_where_push_would_not_success(site:Site) -> list[SopMerakiSwitchStack]:
         ret:list[SopMerakiSwitchStack]=list()
         sws=SopMerakiSwitchStack.objects.filter(site_id=site.pk)
         for ss in sws:
@@ -251,8 +251,8 @@ class SopInfraUtils:
     @staticmethod
     def get_meraki_device_compliance_messages(sd:SopMerakiDevice)->dict[str,list[str]]:
         return {
-            "danger" : SopInfraUtils.get_meraki_device_compliance_alert_messages(sd),
-            "warning" : SopInfraUtils.get_meraki_device_compliance_warning_messages(sd),
+            "danger" : SopInfraUtils.get_meraki_device_compliance_alert_messages(sd) or list(),
+            "warning" : SopInfraUtils.get_meraki_device_compliance_warning_messages(sd) or list(),
             "info" : list() , #TODO
         }
 
@@ -276,11 +276,11 @@ class SopInfraUtils:
     def get_meraki_device_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
         if SopInfraUtils.check_if_meraki_device_is_in_inventory(sd):
-            return
+            return ret
         if not SopInfraUtils.check_if_meraki_device_has_netbox_device(sd):
             msg=f"Meraki Device has no matching Netbox Device"
             ret.append(msg)
-            return
+            return ret
         if not SopInfraUtils.check_if_meraki_device_has_netbox_device_in_same_site(sd):
             msg=f"Meraki Device has a matching Netbox Device but on another site"
             ret.append(msg)
@@ -292,25 +292,25 @@ class SopInfraUtils:
     # --------------------  SWITCH STACKS CHECKS --------------------------------
 
     @staticmethod
-    def get_switch_stack_compliance_messages(ss:SopMerakiSwitchStack)->dict[str,list[str]]:
+    def get_switchstack_compliance_messages(ss:SopMerakiSwitchStack)->dict[str,list[str]]:
         return {
-            "danger" : SopInfraUtils.get_switch_stack_alert_messages(ss),
-            "warning" : list() , #TODO SopInfraUtils.get_switch_stack_compliance_warning_messages(ss),
+            "danger" : SopInfraUtils.get_switchstack_alert_messages(ss),
+            "warning" : list() , #TODO SopInfraUtils.get_switchstack_compliance_warning_messages(ss),
             "info" : list() , #TODO
         }
 
     @staticmethod
-    def get_switch_stack_compliance_messages_count(ss:SopMerakiSwitchStack)->int:
-        messages=SopInfraUtils.get_switch_stack_compliance_messages(ss)
+    def get_switchstack_compliance_messages_count(ss:SopMerakiSwitchStack)->int:
+        messages=SopInfraUtils.get_switchstack_compliance_messages(ss)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
         return len(danger_messages)+len(warning_messages)+len(info_messages)
             
     @staticmethod
-    def get_switch_stack_alert_messages(ss:SopMerakiSwitchStack)->list[str]:
+    def get_switchstack_alert_messages(ss:SopMerakiSwitchStack)->list[str]:
         ret:list[str]=list()
-        if not SopInfraUtils.check_if_meraki_switch_stack_push_would_succeed(ss):
+        if not SopInfraUtils.check_if_meraki_switchstack_push_would_succeed(ss):
             msg=f"Meraki PUSH would NOT succeed for this switch stack due to configuration issues"
             ret.append(msg) 
         return ret
@@ -876,7 +876,7 @@ class SopInfraUtils:
         if len(lstct) > 0:
             msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
             ret.append(msg)
-        lstss:list[SopMerakiSwitchStack]=SopInfraUtils.list_meraki_switch_stacks_where_push_would_not_success(site)
+        lstss:list[SopMerakiSwitchStack]=SopInfraUtils.list_meraki_switchstacks_where_push_would_not_success(site)
         if len(lstss) > 0:
             ss_msgs=[ f'<a href="{ss.get_absolute_url()}">{ss.nom}</a>' for ss in lstss ]
             msg=f"Switch stacks BLOCKING PUSH : "+ ", ".join(ss_msgs)

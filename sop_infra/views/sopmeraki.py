@@ -937,9 +937,9 @@ class SopMerakiSwitchStackComplianceTabView(generic.ObjectView):
     tab = ViewTab(
         label="Compliance", 
         permission=get_permission_for_model(SopMerakiSwitchStack, "view"),
-        badge=lambda obj: SopInfraUtils.get_switch_stack_compliance_messages_count(obj),
+        badge=lambda obj: SopInfraUtils.get_switchstack_compliance_messages_count(obj),
     )
-    template_name: str = "sop_infra/switch_stack/tabs/compliance.html"
+    template_name: str = "sop_infra/switchstack/tabs/compliance.html"
     # On s'affiche sur un site
     queryset = SopMerakiSwitchStack.objects.all()
 
@@ -947,8 +947,8 @@ class SopMerakiSwitchStackComplianceTabView(generic.ObjectView):
         context = super().get_extra_context(request, instance)
         if not instance:
             raise Http404("No instance given.")
-        context["switch_stack"] = instance
-        messages=SopInfraUtils.get_switch_stack_compliance_messages(instance)
+        context["switchstack"] = instance
+        messages=SopInfraUtils.get_switchstack_compliance_messages(instance)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
