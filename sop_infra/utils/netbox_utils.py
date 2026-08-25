@@ -104,7 +104,7 @@ class SopInfraUtils:
     # --------------------  DEVICE CHECKS --------------------------------
        
     @staticmethod
-    def check_if_meraki_switch_stack_push_would_succeed(ss:SopMerakiSwitchStack) -> bool:
+    def check_if_meraki_switchstack_push_would_succeed(ss:SopMerakiSwitchStack) -> bool:
         if ss is None or not isinstance(ss, SopMerakiSwitchStack):
             raise Exception(f"ss must be a SopMerakiSwitchStack instance")
         # Filter for members of stacks push
@@ -118,7 +118,7 @@ class SopInfraUtils:
         return sds.count()>0
 
     @staticmethod
-    def list_meraki_switch_stacks_where_push_would_not_success(site:Site) -> list[SopMerakiSwitchStack]:
+    def list_meraki_switchstacks_where_push_would_not_success(site:Site) -> list[SopMerakiSwitchStack]:
         ret:list[SopMerakiSwitchStack]=list()
         sws=SopMerakiSwitchStack.objects.filter(site_id=site.pk)
         for ss in sws:
@@ -251,8 +251,8 @@ class SopInfraUtils:
     @staticmethod
     def get_meraki_device_compliance_messages(sd:SopMerakiDevice)->dict[str,list[str]]:
         return {
-            "danger" : SopInfraUtils.get_meraki_device_compliance_alert_messages(sd),
-            "warning" : SopInfraUtils.get_meraki_device_compliance_warning_messages(sd),
+            "danger" : SopInfraUtils.get_meraki_device_compliance_alert_messages(sd) or list(),
+            "warning" : SopInfraUtils.get_meraki_device_compliance_warning_messages(sd) or list(),
             "info" : list() , #TODO
         }
 
@@ -276,11 +276,11 @@ class SopInfraUtils:
     def get_meraki_device_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
         if SopInfraUtils.check_if_meraki_device_is_in_inventory(sd):
-            return
+            return ret
         if not SopInfraUtils.check_if_meraki_device_has_netbox_device(sd):
             msg=f"Meraki Device has no matching Netbox Device"
             ret.append(msg)
-            return
+            return ret
         if not SopInfraUtils.check_if_meraki_device_has_netbox_device_in_same_site(sd):
             msg=f"Meraki Device has a matching Netbox Device but on another site"
             ret.append(msg)
@@ -292,25 +292,25 @@ class SopInfraUtils:
     # --------------------  SWITCH STACKS CHECKS --------------------------------
 
     @staticmethod
-    def get_switch_stack_compliance_messages(ss:SopMerakiSwitchStack)->dict[str,list[str]]:
+    def get_switchstack_compliance_messages(ss:SopMerakiSwitchStack)->dict[str,list[str]]:
         return {
-            "danger" : SopInfraUtils.get_switch_stack_alert_messages(ss),
-            "warning" : list() , #TODO SopInfraUtils.get_switch_stack_compliance_warning_messages(ss),
+            "danger" : SopInfraUtils.get_switchstack_alert_messages(ss),
+            "warning" : list() , #TODO SopInfraUtils.get_switchstack_compliance_warning_messages(ss),
             "info" : list() , #TODO
         }
 
     @staticmethod
-    def get_switch_stack_compliance_messages_count(ss:SopMerakiSwitchStack)->int:
-        messages=SopInfraUtils.get_switch_stack_compliance_messages(ss)
+    def get_switchstack_compliance_messages_count(ss:SopMerakiSwitchStack)->int:
+        messages=SopInfraUtils.get_switchstack_compliance_messages(ss)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
         return len(danger_messages)+len(warning_messages)+len(info_messages)
             
     @staticmethod
-    def get_switch_stack_alert_messages(ss:SopMerakiSwitchStack)->list[str]:
+    def get_switchstack_alert_messages(ss:SopMerakiSwitchStack)->list[str]:
         ret:list[str]=list()
-        if not SopInfraUtils.check_if_meraki_switch_stack_push_would_succeed(ss):
+        if not SopInfraUtils.check_if_meraki_switchstack_push_would_succeed(ss):
             msg=f"Meraki PUSH would NOT succeed for this switch stack due to configuration issues"
             ret.append(msg) 
         return ret
@@ -370,7 +370,7 @@ class SopInfraUtils:
         return False
        
     @staticmethod
-    def check_if_vlan_vlan_group_is_compliant(vl:VLAN) -> bool:
+    def check_if_vlan_vlangroup_is_compliant(vl:VLAN) -> bool:
         if vl is None or not isinstance(vl, VLAN):
             raise Exception(f"vl must be a VLAN instance")
         # Ignore exempted vlans
@@ -412,7 +412,7 @@ class SopInfraUtils:
         if not SopInfraUtils.check_if_vlan_naming_is_compliant(vl):
             msg=f"Vlan <b>ID/name</b> is not compliant with Soprema standards."
             ret.append(msg)
-        if not SopInfraUtils.check_if_vlan_vlan_group_is_compliant(vl):
+        if not SopInfraUtils.check_if_vlan_vlangroup_is_compliant(vl):
             msg=f"Vlan <b>VLAN GROUP</b> is missing or not compliant with Soprema standards."
             ret.append(msg)
         return ret
@@ -607,16 +607,16 @@ class SopInfraUtils:
         return ret
 
     @staticmethod
-    def get_tenant_group_compliance_messages(tg:TenantGroup)->dict[str,list[str]]:
+    def get_tenantgroup_compliance_messages(tg:TenantGroup)->dict[str,list[str]]:
         return {
-            "danger" : list() , #TODO SopInfraUtils.get_tenant_group_compliance_danger_messages(vg),
-            "warning" : SopInfraUtils.get_tenant_group_compliance_warning_messages(tg),
+            "danger" : list() , #TODO SopInfraUtils.get_tenantgroup_compliance_danger_messages(vg),
+            "warning" : SopInfraUtils.get_tenantgroup_compliance_warning_messages(tg),
             "info" : list() , #TODO
         }
 
     @staticmethod
-    def get_tenant_group_compliance_messages_count(tg:TenantGroup)->int:
-        messages=SopInfraUtils.get_tenant_group_compliance_messages(tg)
+    def get_tenantgroup_compliance_messages_count(tg:TenantGroup)->int:
+        messages=SopInfraUtils.get_tenantgroup_compliance_messages(tg)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
@@ -666,7 +666,7 @@ class SopInfraUtils:
     
     # --------------------  VLAN GROUP CHECKS --------------------------------
     @staticmethod
-    def is_exempted_vlan_group(vlg:VLANGroup)->bool:
+    def is_exempted_vlangroup(vlg:VLANGroup)->bool:
         if vlg is None or not isinstance(vlg, VLANGroup):
             raise Exception(f"vlg must be a VLANGroup instance")
         # No scope -> no exemption
@@ -686,11 +686,11 @@ class SopInfraUtils:
         return False
     
     @staticmethod
-    def check_if_vlan_group_name_is_compliant(vlg:VLANGroup) -> bool:
+    def check_if_vlangroup_name_is_compliant(vlg:VLANGroup) -> bool:
         # VlanGroups have to be attached to a site, but this is handled by a saparate check
         if vlg.scope_type != NetboxConstants.get_ct_dcim_site() :
             return True
-        if SopInfraUtils.is_exempted_vlan_group(vlg):
+        if SopInfraUtils.is_exempted_vlangroup(vlg):
             return True
         if vlg.name is None:
             return False
@@ -701,56 +701,56 @@ class SopInfraUtils:
         return m is not None
 
     @staticmethod
-    def list_non_compliant_vlan_group_names(site:Site) -> list[VLANGroup]:
+    def list_non_compliant_vlangroup_names(site:Site) -> list[VLANGroup]:
         ret:list[VLANGroup]=list()
         vlgs=VLANGroup.objects.filter(scope_type=NetboxConstants.get_ct_dcim_site(), scope_id=site.pk)
         for vlg in vlgs:
-            if not SopInfraUtils.check_if_vlan_group_name_is_compliant(vlg):
+            if not SopInfraUtils.check_if_vlangroup_name_is_compliant(vlg):
                 ret.append(vlg)
         return ret
    
     @staticmethod
-    def check_if_vlan_group_scope_is_compliant(vlg:VLANGroup) -> bool:
+    def check_if_vlangroup_scope_is_compliant(vlg:VLANGroup) -> bool:
         # VlanGroups have to be attached to a site
         if vlg.scope_type != NetboxConstants.get_ct_dcim_site() :
             return False
-        if SopInfraUtils.is_exempted_vlan_group(vlg):
+        if SopInfraUtils.is_exempted_vlangroup(vlg):
             return True
         # ok for now, perhaps we'll implement tenant checks later
         return True
 
     @staticmethod
-    def list_non_compliant_vlan_group_scopes(site:Site) -> list[VLANGroup]:
+    def list_non_compliant_vlangroup_scopes(site:Site) -> list[VLANGroup]:
         ret:list[VLANGroup]=list()
         vlgs=VLANGroup.objects.filter(scope_type=NetboxConstants.get_ct_dcim_site(), scope_id=site.pk)
         for vlg in vlgs:
-            if not SopInfraUtils.check_if_vlan_group_scope_is_compliant(vlg):
+            if not SopInfraUtils.check_if_vlangroup_scope_is_compliant(vlg):
                 ret.append(vlg)
         return ret 
 
     @staticmethod
-    def get_vlan_group_compliance_messages(vg:VLANGroup)->dict[str,list[str]]:
+    def get_vlangroup_compliance_messages(vg:VLANGroup)->dict[str,list[str]]:
         return {
-            "danger" : list() , #TODO SopInfraUtils.get_vlan_group_compliance_danger_messages(vg),
-            "warning" : SopInfraUtils.get_vlan_group_compliance_warning_messages(vg),
+            "danger" : list() , #TODO SopInfraUtils.get_vlangroup_compliance_danger_messages(vg),
+            "warning" : SopInfraUtils.get_vlangroup_compliance_warning_messages(vg),
             "info" : list() , #TODO
         }
 
     @staticmethod
-    def get_vlan_group_compliance_messages_count(vg:VLANGroup)->int:
-        messages=SopInfraUtils.get_vlan_group_compliance_messages(vg)
+    def get_vlangroup_compliance_messages_count(vg:VLANGroup)->int:
+        messages=SopInfraUtils.get_vlangroup_compliance_messages(vg)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
         return len(danger_messages)+len(warning_messages)+len(info_messages)
     
     @staticmethod
-    def get_vlan_group_compliance_warning_messages(vg:VLANGroup)->list[str]:
+    def get_vlangroup_compliance_warning_messages(vg:VLANGroup)->list[str]:
         ret:list[str]=list()
-        if not SopInfraUtils.check_if_vlan_group_name_is_compliant(vg):
+        if not SopInfraUtils.check_if_vlangroup_name_is_compliant(vg):
             msg=f"VLAN Group <b>NAME</b> is not compliant with Soprema standards."
             ret.append(msg)
-        if not SopInfraUtils.check_if_vlan_group_scope_is_compliant(vg):
+        if not SopInfraUtils.check_if_vlangroup_scope_is_compliant(vg):
             msg=f"VLAN Group <b>SCOPE</b> is not compliant with Soprema standards."
             ret.append(msg)
         return ret        
@@ -800,11 +800,11 @@ class SopInfraUtils:
         return ret
  
     @staticmethod
-    def list_non_compliant_vlan_vlan_groups(site:Site) -> list[VLAN]:
+    def list_non_compliant_vlan_vlangroups(site:Site) -> list[VLAN]:
         ret:list[VLAN]=list()
         vls=VLAN.objects.filter(site_id=site.pk)
         for vl in vls:
-            if not SopInfraUtils.check_if_vlan_vlan_group_is_compliant(vl):
+            if not SopInfraUtils.check_if_vlan_vlangroup_is_compliant(vl):
                 ret.append(vl)
         return ret
 
@@ -838,7 +838,7 @@ class SopInfraUtils:
             vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.vid}/{v.name}</a>' for v in lstv ]
             msg=f"Non compliant VLAN ID/name(s) : "+ ", ".join(vl_msgs)
             ret.append(msg)
-        lstv:list[VLAN]=SopInfraUtils.list_non_compliant_vlan_vlan_groups(site)
+        lstv:list[VLAN]=SopInfraUtils.list_non_compliant_vlan_vlangroups(site)
         if len(lstv) > 0:
             vl_msgs=[ f'<a href="{v.get_absolute_url()}">{v.vid}/{v.name}</a>' for v in lstv ]
             msg=f"Non compliant VLAN vlan group(s) : "+ ", ".join(vl_msgs)
@@ -848,12 +848,12 @@ class SopInfraUtils:
             pfx_msgs=[ f'<a href="{p.get_absolute_url()}">{p.prefix}</a>' for p in lstp ]
             msg=f"Non compliant PREFIX role(s) : "+ ", ".join(pfx_msgs)
             ret.append(msg)
-        lstvg:list[VLANGroup]=SopInfraUtils.list_non_compliant_vlan_group_names(site)
+        lstvg:list[VLANGroup]=SopInfraUtils.list_non_compliant_vlangroup_names(site)
         if len(lstvg) > 0:
             vg_msgs=[ f'<a href="{vg.get_absolute_url()}">{vg}</a>' for vg in lstvg ]
             msg=f"Non compliant VLANGROUP name(s) : "+ ", ".join(vg_msgs)
             ret.append(msg)
-        lstvg:list[VLANGroup]=SopInfraUtils.list_non_compliant_vlan_group_scopes(site)
+        lstvg:list[VLANGroup]=SopInfraUtils.list_non_compliant_vlangroup_scopes(site)
         if len(lstvg) > 0:
             vg_msgs=[ f'<a href="{vg.get_absolute_url()}">{vg}</a>' for vg in lstvg ]
             msg=f"Non compliant VLANGROUP scope(s) : "+ ", ".join(vg_msgs)
@@ -876,7 +876,7 @@ class SopInfraUtils:
         if len(lstct) > 0:
             msg=f"Missing mandatory contact for : "+ ", ".join(lstct)
             ret.append(msg)
-        lstss:list[SopMerakiSwitchStack]=SopInfraUtils.list_meraki_switch_stacks_where_push_would_not_success(site)
+        lstss:list[SopMerakiSwitchStack]=SopInfraUtils.list_meraki_switchstacks_where_push_would_not_success(site)
         if len(lstss) > 0:
             ss_msgs=[ f'<a href="{ss.get_absolute_url()}">{ss.nom}</a>' for ss in lstss ]
             msg=f"Switch stacks BLOCKING PUSH : "+ ", ".join(ss_msgs)
