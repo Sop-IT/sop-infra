@@ -1,0 +1,9 @@
+{% block content %}
+  {% include "sop_infra/inc/alerts/danger.html" with title="CRITICAL ISSUES" messages=danger_messages %}
+  {% include "sop_infra/inc/alerts/warning.html" with title="COMPLIANCE ISSUES" messages=warning_messages %}
+  {% include "sop_infra/inc/alerts/info.html" with title="INFORMATION" messages=info_messages %}
+  {% if message_count is 0 %}
+  NO COMPLIANCE MESSAGES YET !
+  {% endif %}
+{% endblock content %}
+

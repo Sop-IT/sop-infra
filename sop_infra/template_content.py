@@ -119,18 +119,6 @@ class NetboxContactPluginExtension(PluginTemplateExtension):
         return ret        
 
 
-class SopMerakiDevicePluginExtension(PluginTemplateExtension):
-
-    models = ['sop_infra.sopmerakidevice']
-    
-    def alerts(self):
-        ret=""
-        danger_messages:list[str]=SopInfraUtils.get_device_compliance_alert_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
-        warning_messages:list[str]=SopInfraUtils.get_device_compliance_warning_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT DEVICE", "messages":warning_messages})
-        # TODO : INFO  MESSAGES
-        return ret          
 
 
 class SopMerakiSwitchStackPluginExtension(PluginTemplateExtension):
@@ -143,34 +131,8 @@ class SopMerakiSwitchStackPluginExtension(PluginTemplateExtension):
         ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
         # TODO : INFO  MESSAGES
         return ret          
+  
 
-
-class NetboxSitePluginExtension(PluginTemplateExtension):
-
-    models = ['dcim.site']
-    
-    def alerts(self):
-        ret=""
-        danger_messages:list[str]=SopInfraUtils.get_site_compliance_danger_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
-        warning_messages:list[str]=SopInfraUtils.get_site_compliance_warning_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
-        # TODO : INFO  MESSAGES
-        return ret        
-
-
-class NetboxTenantPluginExtension(PluginTemplateExtension):
-
-    models = ['tenancy.tenant']
-    
-    def alerts(self):
-        ret=""
-        danger_messages:list[str]=SopInfraUtils.get_tenant_compliance_danger_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
-        warning_messages:list[str]=SopInfraUtils.get_tenant_compliance_warning_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
-        # TODO : INFO  MESSAGES
-        return ret        
 
 
 class NetboxTenantGroupPluginExtension(PluginTemplateExtension):
@@ -187,16 +149,6 @@ class NetboxTenantGroupPluginExtension(PluginTemplateExtension):
         return ret        
     
     
-class NetboxVlanPluginExtension(PluginTemplateExtension):
-
-    models = ['ipam.vlan']
-    
-    def alerts(self):
-        ret=""
-        warning_messages:list[str]=SopInfraUtils.get_vlan_compliance_warning_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT VLAN", "messages":warning_messages})
-        # TODO : INFO and ALERT MESSAGES
-        return ret   
 
 
 class NetboxPrefixPluginExtension(PluginTemplateExtension):
@@ -210,17 +162,6 @@ class NetboxPrefixPluginExtension(PluginTemplateExtension):
         # TODO : INFO and ALERT MESSAGES
         return ret   
 
-
-class NetboxVlanGroupPluginExtension(PluginTemplateExtension):
-
-    models = ['ipam.vlangroup']
-    
-    def alerts(self):
-        ret=""
-        warning_messages:list[str]=SopInfraUtils.get_vlan_group_compliance_warning_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT VLAN GROUP", "messages":warning_messages})
-        # TODO : INFO and ALERT MESSAGES
-        return ret   
 
 
 class TrigramSearch(PluginTemplateExtension):
@@ -332,14 +273,11 @@ template_extensions.append(RefreshBtnPluginExtension)
 template_extensions.append(RecomputeSizingPluginExtension)
 template_extensions.append(NetboxDevicePluginExtension)
 template_extensions.append(NetboxContactPluginExtension)
-template_extensions.append(SopMerakiDevicePluginExtension)
+
 template_extensions.append(SopMerakiSwitchStackPluginExtension)
-template_extensions.append(NetboxSitePluginExtension)
-template_extensions.append(NetboxTenantPluginExtension)
 template_extensions.append(NetboxTenantGroupPluginExtension)
-template_extensions.append(NetboxVlanPluginExtension)
 template_extensions.append(NetboxPrefixPluginExtension)
-template_extensions.append(NetboxVlanGroupPluginExtension)
+
 template_extensions.append(TrigramSearch)  
 template_extensions.append(DHCPHelperPluginExtension)  
 template_extensions.append(MerakiPushPluginExtension)

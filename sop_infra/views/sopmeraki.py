@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect
 from django.views import View
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
-from django.http import HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, JsonResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import AccessMixin
@@ -15,7 +15,7 @@ from sop_infra.forms.sopmeraki import SopMerakiDeviceMoveForm, SopMerakiOrgClaim
 from sop_infra.utils.meraki_utils import SopMerakiOrgUtils
 from sop_infra.utils.netbox_utils import SopInfraUtils
 from sop_infra.utils.object_actions import MoveObject
-from utilities.views import ConditionalLoginRequiredMixin, ObjectPermissionRequiredMixin, register_model_view
+from utilities.views import ConditionalLoginRequiredMixin, ObjectPermissionRequiredMixin, ViewTab, register_model_view
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
 
@@ -1050,15 +1050,48 @@ class SopMerakiDeviceMoveView(ConditionalLoginRequiredMixin, View):
             url = reverse("core:job", args=[j.pk])
         return redirect(url)
 
-
-
-
 # @register_model_view(SopMerakiDevice, 'bulk_move', path='move', detail=False)
 # class SopMerakiDeviceBulkMoveView(generic.BulkEditView):
 #     queryset = SopMerakiDevice.objects.all()
 #     filterset = SopMerakiDeviceFilterSet
 #     table = SopMerakiDeviceTable
 #     form = forms.VRFBulkEditForm
+
+
+@register_model_view(SopMerakiDevice, name="compliance", detail=True)
+class SopMerakiDeviceComplianceTabView(generic.ObjectView):
+    """
+    creates an "compliance" tab on the SopMerakiDevice page
+    """
+
+    tab = ViewTab(
+        label="Compliance", 
+        permission=get_permission_for_model(SopMerakiDevice, "view"),
+        badge=lambda obj: SopInfraUtils.get_merakidev_compliance_messages_count(obj),
+    )
+    template_name: str = "sop_infra/tenant/tabs/compliance.html" \
+    ".html"
+    # On s'affiche sur un site
+    queryset = SopMerakiDevice.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["sopmerakidevice"] = instance
+        messages=SopInfraUtils.get_merakidev_compliance_messages(instance)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        message_count:int=len(danger_messages)+len(warning_messages)+len(info_messages)
+        # put that in the context
+        context["danger_messages"]=danger_messages
+        context["warning_messages"]=warning_messages
+        context["info_messages"]=info_messages
+        context["message_count"]=message_count
+        return context
+#endregion TENANCY TENANT TABS
+
 
 
 

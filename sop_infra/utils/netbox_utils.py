@@ -247,9 +247,25 @@ class SopInfraUtils:
         for sd in sds:
             ret.append(sd)
         return ret
-            
+
     @staticmethod
-    def get_device_compliance_alert_messages(sd:SopMerakiDevice)->list[str]:
+    def get_merakidev_compliance_messages(sd:SopMerakiDevice)->dict[str,list[str]]:
+        return {
+            "danger" : SopInfraUtils.get_merakidev_compliance_alert_messages(sd),
+            "warning" : SopInfraUtils.get_merakidev_compliance_warning_messages(sd),
+            "info" : list() , #TODO
+        }
+
+    @staticmethod
+    def get_merakidev_compliance_messages_count(sd:SopMerakiDevice)->int:
+        messages=SopInfraUtils.get_vlan_compliance_messages(sd)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        return len(danger_messages)+len(warning_messages)+len(info_messages)
+                
+    @staticmethod
+    def get_merakidev_compliance_alert_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
         if not SopInfraUtils.check_if_meraki_device_push_would_succeed(sd):
             msg=f"Meraki PUSH would NOT succeed for this device due to configuration issues"
@@ -257,7 +273,7 @@ class SopInfraUtils:
         return ret
     
     @staticmethod
-    def get_device_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
+    def get_merakidev_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
         if SopInfraUtils.check_if_meraki_device_is_in_inventory(sd):
             return
@@ -357,6 +373,22 @@ class SopInfraUtils:
         return True
 
     @staticmethod
+    def get_vlan_compliance_messages(vlan:VLAN)->dict[str,list[str]]:
+        return {
+            "danger" : list(), #SopInfraUtils.get_vlan_compliance_danger_messages(vlan),
+            "warning" : SopInfraUtils.get_vlan_compliance_warning_messages(vlan),
+            "info" : list() , #TODO
+        }
+
+    @staticmethod
+    def get_vlan_compliance_messages_count(vlan:VLAN)->int:
+        messages=SopInfraUtils.get_vlan_compliance_messages(vlan)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        return len(danger_messages)+len(warning_messages)+len(info_messages)
+    
+    @staticmethod
     def get_vlan_compliance_warning_messages(vl:VLAN)->list[str]:
         ret:list[str]=list()
         if not SopInfraUtils.check_if_vlan_naming_is_compliant(vl):
@@ -442,6 +474,22 @@ class SopInfraUtils:
         return ret
 
     @staticmethod
+    def get_tenant_compliance_messages(tenant:Tenant)->dict[str,list[str]]:
+        return {
+            "danger" : SopInfraUtils.get_tenant_compliance_danger_messages(tenant),
+            "warning" : SopInfraUtils.get_tenant_compliance_warning_messages(tenant),
+            "info" : list() , #TODO
+        }
+
+    @staticmethod
+    def get_tenant_compliance_messages_count(tenant:Tenant)->int:
+        messages=SopInfraUtils.get_tenant_compliance_messages(tenant)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        return len(danger_messages)+len(warning_messages)+len(info_messages)
+    
+    @staticmethod
     def get_tenant_compliance_warning_messages(tn:Tenant) -> list[str]:
         ret:list[str]=list()
         if tn.slug=="sopit":
@@ -523,6 +571,22 @@ class SopInfraUtils:
             if SopInfraUtils.has_tenant_compliance_danger_messages(tn):
                 ret.append(tn)
         return ret
+
+    @staticmethod
+    def get_tenant_group_compliance_messages(tg:TenantGroup)->dict[str,list[str]]:
+        return {
+            "danger" : list() , #TODO SopInfraUtils.get_tenant_group_compliance_danger_messages(vg),
+            "warning" : SopInfraUtils.get_tenant_group_compliance_warning_messages(tg),
+            "info" : list() , #TODO
+        }
+
+    @staticmethod
+    def get_tenant_group_compliance_messages_count(tg:TenantGroup)->int:
+        messages=SopInfraUtils.get_tenant_group_compliance_messages(tg)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        return len(danger_messages)+len(warning_messages)+len(info_messages)
 
     @staticmethod
     def get_tenantgroup_compliance_warning_messages(tg:TenantGroup) -> list[str]:
@@ -631,6 +695,22 @@ class SopInfraUtils:
         return ret 
 
     @staticmethod
+    def get_vlan_group_compliance_messages(vg:VLANGroup)->dict[str,list[str]]:
+        return {
+            "danger" : list() , #TODO SopInfraUtils.get_vlan_group_compliance_danger_messages(vg),
+            "warning" : SopInfraUtils.get_vlan_group_compliance_warning_messages(vg),
+            "info" : list() , #TODO
+        }
+
+    @staticmethod
+    def get_vlan_group_compliance_messages_count(vg:VLANGroup)->int:
+        messages=SopInfraUtils.get_vlan_group_compliance_messages(vg)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        return len(danger_messages)+len(warning_messages)+len(info_messages)
+    
+    @staticmethod
     def get_vlan_group_compliance_warning_messages(vg:VLANGroup)->list[str]:
         ret:list[str]=list()
         if not SopInfraUtils.check_if_vlan_group_name_is_compliant(vg):
@@ -693,6 +773,22 @@ class SopInfraUtils:
             if not SopInfraUtils.check_if_vlan_vlan_group_is_compliant(vl):
                 ret.append(vl)
         return ret
+
+    @staticmethod
+    def get_site_compliance_messages(site:Site)->dict[str,list[str]]:
+        return {
+            "danger" : SopInfraUtils.get_site_compliance_danger_messages(site),
+            "warning" : SopInfraUtils.get_site_compliance_warning_messages(site),
+            "info" : list() , #TODO
+        }
+
+    @staticmethod
+    def get_site_compliance_messages_count(site:Site)->int:
+        messages=SopInfraUtils.get_site_compliance_messages(site)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        return len(danger_messages)+len(warning_messages)+len(info_messages)
 
     @staticmethod
     def get_site_compliance_warning_messages(site:Site)->list[str]:

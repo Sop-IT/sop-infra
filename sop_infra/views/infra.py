@@ -31,15 +31,15 @@ from netbox.ui.panels import (
 )
 
 from dcim.models import DeviceRole, Location, MACAddress
-from ipam.models import IPAddress, Role
-from tenancy.models import Contact
+from ipam.models import IPAddress, Role, VLAN, VLANGroup
+from tenancy.models import Contact, Tenant, TenantGroup
 from extras.models import Tag
 from sop_infra.ui import panels
 
 from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopInfraRefreshForm, SopMerakiClaimForm, SopSyslogServerFilterForm, SopSyslogServerForm
 from sop_infra.jobs import SopInfraRefreshJob, SopMerakiCreateNetworkJob, SopMerakiDashRefreshJob, SopSyncAdUsers
 from sop_infra.utils.meraki_utils import SopMerakiUtils
-from sop_infra.utils.netbox_utils import SopInfraConstants
+from sop_infra.utils.netbox_utils import SopInfraConstants, SopInfraUtils
 from sop_infra.forms import *
 from sop_infra.tables import *
 from sop_infra.models import *
@@ -52,7 +52,6 @@ import netaddr
 
 __all__ = (
     "SopDeviceSettingTryManageInNetbox",
-    "SopInfraSiteTabView",
     "SopInfraMerakiTabView",
     # "SopInfraAddView",
     "SopInfraEditView",
@@ -71,6 +70,19 @@ __all__ = (
     "SopSwitchTemplateListView",
     "SopDeviceSettingDetailView",
     "SopDeviceSettingEditView",
+
+    # -- Site tabs
+    "DcimSiteComplianceTabView",
+    "DcimSiteInfrastructureTabView",
+
+    # -- Vlan tabs
+    "IpamVlanComplianceTabView",
+
+    # -- Vlan group tabs
+    "IpamVlanGroupComplianceTabView",
+    
+    # -- Tenant tabs
+    "TenancyTenantComplianceTabView",
 
     # -- SopSyslogServer
     "SopSyslogServerView",
@@ -199,17 +211,22 @@ class SopInfraJsonExportsAdSites(View):
             exp.append(d)
         return JsonResponse(exp, safe=False)
 
+
+
+
 # ===========================================================================================
-#region SITE TABS
+#region DCIM SITE TABS
+
+
 
 @register_model_view(Site, name="infra", detail=True)
-class SopInfraSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
+class DcimSiteInfrastructureTabView(generic.ObjectView):
     """
-    creates an "infrastructure" tab on the site page
+    creates a "Infrastructure" tab on the site page
     """
 
     tab = ViewTab(
-        label="SOP Infra", permission=get_permission_for_model(SopInfra, "view")
+        label="Infrastructure", permission=get_permission_for_model(SopInfra, "view")
     )
     template_name: str = "sop_infra/site/tabs/sopinfra_on_site.html"
     # On s'affiche sur un site
@@ -226,11 +243,176 @@ class SopInfraSiteTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
         return context
 
 
+
+@register_model_view(Site, name="compliance", detail=True)
+class DcimSiteComplianceTabView(generic.ObjectView):
+    """
+    creates an "compliance" tab on the SITE page
+    """
+
+    tab = ViewTab(
+        label="Compliance", 
+        permission=get_permission_for_model(SopInfra, "view"),
+        badge=lambda obj: SopInfraUtils.get_site_compliance_messages_count(site=obj),
+    )
+    template_name: str = "sop_infra/site/tabs/compliance.html"
+    # On s'affiche sur un site
+    queryset = Site.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["site"] = instance
+        messages=SopInfraUtils.get_site_compliance_messages(instance)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        message_count:int=len(danger_messages)+len(warning_messages)+len(info_messages)
+        # put that in the context
+        context["danger_messages"]=danger_messages
+        context["warning_messages"]=warning_messages
+        context["info_messages"]=info_messages
+        context["messge_count"]=message_count
+        if not instance.sopinfra:
+            instance.sopinfra = SopInfra.objects.create(site=instance)
+        context["infra"] = instance.sopinfra
+        return context
+#endregion DCIM SITE TABS
+
+
+
+
+# ===========================================================================================
+#region IPAM VLAN TABS
+
+
+
+@register_model_view(VLAN, name="compliance", detail=True)
+class IpamVlanComplianceTabView(generic.ObjectView):
+    """
+    creates an "compliance" tab on the VLAN page
+    """
+
+    tab = ViewTab(
+        label="Compliance", 
+        permission=get_permission_for_model(VLAN, "view"),
+        badge=lambda obj: SopInfraUtils.get_vlan_compliance_messages_count(obj),
+    )
+    template_name: str = "sop_infra/vlan/tabs/compliance.html"
+    # On s'affiche sur un site
+    queryset = VLAN.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["vlan"] = instance
+        messages=SopInfraUtils.get_vlan_compliance_messages(instance)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        message_count:int=len(danger_messages)+len(warning_messages)+len(info_messages)
+        # put that in the context
+        context["danger_messages"]=danger_messages
+        context["warning_messages"]=warning_messages
+        context["info_messages"]=info_messages
+        context["message_count"]=message_count
+        return context
+#endregion IPAM VLAN TABS
+
+
+
+# ===========================================================================================
+#region IPAM VLANGROUP TABS
+
+
+
+@register_model_view(VLANGroup, name="compliance", detail=True)
+class IpamVlanGroupComplianceTabView(generic.ObjectView):
+    """
+    creates an "compliance" tab on the VLANGroup page
+    """
+
+    tab = ViewTab(
+        label="Compliance", 
+        permission=get_permission_for_model(VLAN, "view"),
+        badge=lambda obj: SopInfraUtils.get_vlan_group_compliance_messages_count(obj),
+    )
+    template_name: str = "sop_infra/vlangroup/tabs/compliance.html"
+    # On s'affiche sur un site
+    queryset = VLANGroup.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["vlangroup"] = instance
+        messages=SopInfraUtils.get_vlan_group_compliance_messages(instance)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        message_count:int=len(danger_messages)+len(warning_messages)+len(info_messages)
+        # put that in the context
+        context["danger_messages"]=danger_messages
+        context["warning_messages"]=warning_messages
+        context["info_messages"]=info_messages
+        context["message_count"]=message_count
+        return context
+#endregion IPAM VLAN TABS
+
+
+# ===========================================================================================
+#region TENANCY TENANT TABS
+
+
+
+@register_model_view(Tenant, name="compliance", detail=True)
+class TenancyTenantComplianceTabView(generic.ObjectView):
+    """
+    creates an "compliance" tab on the TENANT page
+    """
+
+    tab = ViewTab(
+        label="Compliance", 
+        permission=get_permission_for_model(Tenant, "view"),
+        badge=lambda obj: SopInfraUtils.get_tenant_compliance_messages_count(tenant=obj),
+    )
+    template_name: str = "sop_infra/tenant/tabs/compliance.html"
+    # On s'affiche sur un site
+    queryset = Tenant.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["tenant"] = instance
+        messages=SopInfraUtils.get_tenant_compliance_messages(instance)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        message_count:int=len(danger_messages)+len(warning_messages)+len(info_messages)
+        # put that in the context
+        context["danger_messages"]=danger_messages
+        context["warning_messages"]=warning_messages
+        context["info_messages"]=info_messages
+        context["message_count"]=message_count
+        return context
+#endregion TENANCY TENANT TABS
+
+
+
+
+# ===========================================================================================
+#region SOPINFRA INFRA TABS
+
 @register_model_view(SopInfra, name="merakitab", detail=True)
-class SopInfraMerakiTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
+class SopInfraMerakiTabView( generic.ObjectView):
     
     tab = ViewTab(
-        label="Meraki", permission=get_permission_for_model(SopInfra, "view")
+        label="Meraki", 
+        permission=get_permission_for_model(SopInfra, "view"),
+
     )
     template_name: str = "sop_infra/sopinfra/tabs/sopmeraki.html"
     queryset = SopInfra.objects.all()
@@ -247,7 +429,7 @@ class SopInfraMerakiTabView(SopInfraRelatedModelsMixin, generic.ObjectView):
     #     return context
 
 
-
+#endregion SOPINFRA INFRA TABS
 
 
 # ===========================================================================================
@@ -432,7 +614,7 @@ class DeviceSopDeviceSettingTabViewOnMerakiDevice(generic.ObjectView):
     tab = ViewTab(
         label="SOP Device Settings", permission=get_permission_for_model(SopDeviceSetting, "view")
     )
-    template_name: str = "sop_infra/tab/sopdevicesetting_on_meraki_device.html"
+    template_name: str = "sop_infra/merakidev/tabs/sopdevicesetting.html"
     # On s'affiche sur un site
     queryset = SopMerakiDevice.objects.all()
 
