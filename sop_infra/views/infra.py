@@ -31,7 +31,7 @@ from netbox.ui.panels import (
 )
 
 from dcim.models import DeviceRole, Location, MACAddress
-from ipam.models import IPAddress, Role, VLAN, VLANGroup
+from ipam.models import IPAddress, Role, VLAN, VLANGroup, Prefix
 from tenancy.models import Contact, Tenant, TenantGroup
 from extras.models import Tag
 from sop_infra.ui import panels
@@ -75,6 +75,9 @@ __all__ = (
     "DcimSiteComplianceTabView",
     "DcimSiteInfrastructureTabView",
 
+    # -- Prefix tabs
+    "IpamPrefixComplianceTabView", 
+
     # -- Vlan tabs
     "IpamVlanComplianceTabView",
 
@@ -82,6 +85,9 @@ __all__ = (
     "IpamVlanGroupComplianceTabView",
     
     # -- Tenant tabs
+    "TenancyTenantComplianceTabView",
+
+    # -- TenantGroup tabs
     "TenancyTenantComplianceTabView",
 
     # -- SopSyslogServer
@@ -284,6 +290,46 @@ class DcimSiteComplianceTabView(generic.ObjectView):
 
 
 # ===========================================================================================
+#region IPAM PREFIX TABS
+
+
+
+@register_model_view(Prefix, name="compliance", detail=True)
+class IpamPrefixComplianceTabView(generic.ObjectView):
+    """
+    creates an "compliance" tab on the VLAN page
+    """
+
+    tab = ViewTab(
+        label="Compliance", 
+        permission=get_permission_for_model(Prefix, "view"),
+        badge=lambda obj: SopInfraUtils.get_prefix_compliance_messages_count(obj),
+    )
+    template_name: str = "sop_infra/prefix/tabs/compliance.html"
+    # On s'affiche sur un site
+    queryset = Prefix.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["prefix"] = instance
+        messages=SopInfraUtils.get_prefix_compliance_messages(instance)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        message_count:int=len(danger_messages)+len(warning_messages)+len(info_messages)
+        # put that in the context
+        context["danger_messages"]=danger_messages
+        context["warning_messages"]=warning_messages
+        context["info_messages"]=info_messages
+        context["message_count"]=message_count
+        return context
+#endregion IPAM VLAN TABS
+
+
+
+# ===========================================================================================
 #region IPAM VLAN TABS
 
 
@@ -400,6 +446,44 @@ class TenancyTenantComplianceTabView(generic.ObjectView):
         return context
 #endregion TENANCY TENANT TABS
 
+
+# ===========================================================================================
+#region TENANCY TENANTGROUP TABS
+
+
+
+@register_model_view(TenantGroup, name="compliance", detail=True)
+class TenancyTenantComplianceTabView(generic.ObjectView):
+    """
+    creates an "compliance" tab on the TenantGroup page
+    """
+
+    tab = ViewTab(
+        label="Compliance", 
+        permission=get_permission_for_model(TenantGroup, "view"),
+        badge=lambda obj: SopInfraUtils.get_tenant_group_compliance_messages_count(obj),
+    )
+    template_name: str = "sop_infra/tenant_group/tabs/compliance.html"
+    # On s'affiche sur un site
+    queryset = TenantGroup.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["tenant_group"] = instance
+        messages=SopInfraUtils.get_tenant_group_compliance_messages(instance)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        message_count:int=len(danger_messages)+len(warning_messages)+len(info_messages)
+        # put that in the context
+        context["danger_messages"]=danger_messages
+        context["warning_messages"]=warning_messages
+        context["info_messages"]=info_messages
+        context["message_count"]=message_count
+        return context
+#endregion TENANCY TENANT TABS
 
 
 

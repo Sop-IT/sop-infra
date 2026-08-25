@@ -121,47 +121,6 @@ class NetboxContactPluginExtension(PluginTemplateExtension):
 
 
 
-class SopMerakiSwitchStackPluginExtension(PluginTemplateExtension):
-
-    models = ['sop_infra.sopmerakiswitchstack']
-    
-    def alerts(self):
-        ret=""
-        danger_messages:list[str]=SopInfraUtils.get_switch_stack_alert_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
-        # TODO : INFO  MESSAGES
-        return ret          
-  
-
-
-
-class NetboxTenantGroupPluginExtension(PluginTemplateExtension):
-
-    models = ['tenancy.tenantgroup']
-    
-    def alerts(self):
-        ret=""
-        danger_messages:list[str]=SopInfraUtils.get_tenantgroup_compliance_danger_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/danger.html", extra_context={"title": "CRITICAL ISSUES", "messages":danger_messages})
-        warning_messages:list[str]=SopInfraUtils.get_tenantgroup_compliance_warning_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "COMPLIANCE ISSUES", "messages":warning_messages})
-        # TODO : INFO  MESSAGES
-        return ret        
-    
-    
-
-
-class NetboxPrefixPluginExtension(PluginTemplateExtension):
-
-    models = ['ipam.prefix']
-    
-    def alerts(self):
-        ret=""
-        warning_messages:list[str]=SopInfraUtils.get_prefix_compliance_warning_messages(self.context.get("object"))
-        ret+=self.render("sop_infra/inc/alerts/warning.html", extra_context={"title": "NON COMPLIANT PREFIX", "messages":warning_messages})
-        # TODO : INFO and ALERT MESSAGES
-        return ret   
-
 
 
 class TrigramSearch(PluginTemplateExtension):
@@ -274,9 +233,6 @@ template_extensions.append(RecomputeSizingPluginExtension)
 template_extensions.append(NetboxDevicePluginExtension)
 template_extensions.append(NetboxContactPluginExtension)
 
-template_extensions.append(SopMerakiSwitchStackPluginExtension)
-template_extensions.append(NetboxTenantGroupPluginExtension)
-template_extensions.append(NetboxPrefixPluginExtension)
 
 template_extensions.append(TrigramSearch)  
 template_extensions.append(DHCPHelperPluginExtension)  

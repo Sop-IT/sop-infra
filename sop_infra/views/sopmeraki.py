@@ -926,6 +926,40 @@ class SopMerakiSwitchStackEditView(generic.ObjectEditView):
 @register_model_view(SopMerakiSwitchStack, 'delete')
 class SopMerakiSwitchStackDeleteView(generic.ObjectDeleteView):
     queryset = SopMerakiSwitchStack.objects.all()
+
+
+@register_model_view(SopMerakiSwitchStack, name="compliance", detail=True)
+class SopMerakiSwitchStackComplianceTabView(generic.ObjectView):
+    """
+    creates an "compliance" tab on the SopMerakiSwitchStack page
+    """
+
+    tab = ViewTab(
+        label="Compliance", 
+        permission=get_permission_for_model(SopMerakiSwitchStack, "view"),
+        badge=lambda obj: SopInfraUtils.get_switch_stack_compliance_messages_count(obj),
+    )
+    template_name: str = "sop_infra/switch_stack/tabs/compliance.html" \
+    ".html"
+    # On s'affiche sur un site
+    queryset = SopMerakiSwitchStack.objects.all()
+
+    def get_extra_context(self, request, instance) -> dict:
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["switch_stack"] = instance
+        messages=SopInfraUtils.get_switch_stack_compliance_messages(instance)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        message_count:int=len(danger_messages)+len(warning_messages)+len(info_messages)
+        # put that in the context
+        context["danger_messages"]=danger_messages
+        context["warning_messages"]=warning_messages
+        context["info_messages"]=info_messages
+        context["message_count"]=message_count
+        return context
 #endregion
 
 
@@ -1090,7 +1124,6 @@ class SopMerakiDeviceComplianceTabView(generic.ObjectView):
         context["info_messages"]=info_messages
         context["message_count"]=message_count
         return context
-#endregion TENANCY TENANT TABS
 
 
 

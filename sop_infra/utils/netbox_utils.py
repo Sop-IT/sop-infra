@@ -258,7 +258,7 @@ class SopInfraUtils:
 
     @staticmethod
     def get_merakidev_compliance_messages_count(sd:SopMerakiDevice)->int:
-        messages=SopInfraUtils.get_vlan_compliance_messages(sd)
+        messages=SopInfraUtils.get_merakidev_compliance_messages(sd)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
@@ -288,7 +288,25 @@ class SopInfraUtils:
             msg=f"Meraki Device has a matching Netbox Device but of another type"
             ret.append(msg)
         return ret
-    
+
+    # --------------------  SWITCH STACKS CHECKS --------------------------------
+
+    @staticmethod
+    def get_switch_stack_compliance_messages(ss:SopMerakiSwitchStack)->dict[str,list[str]]:
+        return {
+            "danger" : SopInfraUtils.get_switch_stack_alert_messages(ss),
+            "warning" : list() , #TODO SopInfraUtils.get_switch_stack_compliance_warning_messages(ss),
+            "info" : list() , #TODO
+        }
+
+    @staticmethod
+    def get_switch_stack_compliance_messages_count(ss:SopMerakiSwitchStack)->int:
+        messages=SopInfraUtils.get_switch_stack_compliance_messages(ss)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        return len(danger_messages)+len(warning_messages)+len(info_messages)
+            
     @staticmethod
     def get_switch_stack_alert_messages(ss:SopMerakiSwitchStack)->list[str]:
         ret:list[str]=list()
@@ -433,6 +451,22 @@ class SopInfraUtils:
                 ret.append(pfx)
         return ret
 
+    @staticmethod
+    def get_prefix_compliance_messages(pfx:Prefix)->dict[str,list[str]]:
+        return {
+            "danger" : list(), #SopInfraUtils.get_prefix_compliance_danger_messages(pfx),
+            "warning" : SopInfraUtils.get_prefix_compliance_warning_messages(pfx),
+            "info" : list() , #TODO
+        }
+
+    @staticmethod
+    def get_prefix_compliance_messages_count(pfx:Prefix)->int:
+        messages=SopInfraUtils.get_prefix_compliance_messages(pfx)
+        danger_messages:list[str]=messages.get("danger", list())
+        warning_messages:list[str]=messages.get("warning", list())
+        info_messages:list[str]=messages.get("info", list())
+        return len(danger_messages)+len(warning_messages)+len(info_messages)
+    
     @staticmethod
     def get_prefix_compliance_warning_messages(pfx:Prefix)->list[str]:
         ret:list[str]=list()
