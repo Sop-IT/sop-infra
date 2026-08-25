@@ -1366,7 +1366,7 @@ class SopMerakiDeviceUtils:
     def __relink_related_objects_no_save(
         smd: SopMerakiDevice,
         log: JobRunnerLogMixin,
-    ):
+    )->bool:
         # -----------------------------------------------
         # Rattachement/maintenance d'objets dépendants
         save=False
@@ -1680,13 +1680,15 @@ class SopMerakiDeviceUtils:
         # Save those that need it
         for sn in set(to_save):
             smd:SopMerakiDevice=by_serial.get(sn)
+            SopMerakiDeviceUtils.__relink_related_objects_no_save(smd, log)  
             #print(f"saving {sn=} {smd=} {smd.meraki_netid=}")
             smd.full_clean()
             #print(f"cleaned {sn=} {smd=} {smd.meraki_netid=}")
             smd.save()
             #print(f"saved {sn=} {smd=} {smd.meraki_netid=}")
             smd=SopMerakiDevice.objects.get(pk=smd.pk)
-            #print(f"refetched {smd.serial=} {smd=} {smd.meraki_netid=}")           
+            #print(f"refetched {smd.serial=} {smd=} {smd.meraki_netid=}")   
+                  
         # Log and report back
         log.log_info(f"Move {serials} to {smn} done !")
         return {
