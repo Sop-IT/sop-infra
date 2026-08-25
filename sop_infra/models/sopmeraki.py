@@ -375,7 +375,7 @@ class SopMerakiDevice(
     )
     meraki_network = models.ForeignObject(
         to=SopMerakiNet,
-        on_delete=models.SET_NULL,
+        on_delete=models.DO_NOTHING,
         null=True,
         blank=True,
         to_fields=["meraki_id"],
