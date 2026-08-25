@@ -3,6 +3,7 @@
   {% include "sop_infra/inc/alerts/warning.html" with title="COMPLIANCE ISSUES" messages=warning_messages %}
   {% include "sop_infra/inc/alerts/info.html" with title="INFORMATION" messages=info_messages %}
   {% if message_count is 0 %}
+  {# PREFIX {{prefix}} <br/> #}
   NO COMPLIANCE MESSAGES YET !
   {% endif %}
 {% endblock content %}

@@ -939,8 +939,7 @@ class SopMerakiSwitchStackComplianceTabView(generic.ObjectView):
         permission=get_permission_for_model(SopMerakiSwitchStack, "view"),
         badge=lambda obj: SopInfraUtils.get_switch_stack_compliance_messages_count(obj),
     )
-    template_name: str = "sop_infra/switch_stack/tabs/compliance.html" \
-    ".html"
+    template_name: str = "sop_infra/switch_stack/tabs/compliance.html"
     # On s'affiche sur un site
     queryset = SopMerakiSwitchStack.objects.all()
 
@@ -1101,10 +1100,9 @@ class SopMerakiDeviceComplianceTabView(generic.ObjectView):
     tab = ViewTab(
         label="Compliance", 
         permission=get_permission_for_model(SopMerakiDevice, "view"),
-        badge=lambda obj: SopInfraUtils.get_merakidev_compliance_messages_count(obj),
+        badge=lambda obj: SopInfraUtils.get_meraki_device_compliance_messages_count(obj),
     )
-    template_name: str = "sop_infra/tenant/tabs/compliance.html" \
-    ".html"
+    template_name: str = "sop_infra/meraki_device/tabs/compliance.html"
     # On s'affiche sur un site
     queryset = SopMerakiDevice.objects.all()
 
@@ -1112,8 +1110,8 @@ class SopMerakiDeviceComplianceTabView(generic.ObjectView):
         context = super().get_extra_context(request, instance)
         if not instance:
             raise Http404("No instance given.")
-        context["sopmerakidevice"] = instance
-        messages=SopInfraUtils.get_merakidev_compliance_messages(instance)
+        context["meraki_device"] = instance
+        messages=SopInfraUtils.get_meraki_device_compliance_messages(instance)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
