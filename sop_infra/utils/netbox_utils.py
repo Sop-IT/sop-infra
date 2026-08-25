@@ -607,16 +607,16 @@ class SopInfraUtils:
         return ret
 
     @staticmethod
-    def get_tenant_group_compliance_messages(tg:TenantGroup)->dict[str,list[str]]:
+    def get_tenantgroup_compliance_messages(tg:TenantGroup)->dict[str,list[str]]:
         return {
             "danger" : list() , #TODO SopInfraUtils.get_tenant_group_compliance_danger_messages(vg),
-            "warning" : SopInfraUtils.get_tenant_group_compliance_warning_messages(tg),
+            "warning" : SopInfraUtils.get_tenantgroup_compliance_warning_messages(tg),
             "info" : list() , #TODO
         }
 
     @staticmethod
-    def get_tenant_group_compliance_messages_count(tg:TenantGroup)->int:
-        messages=SopInfraUtils.get_tenant_group_compliance_messages(tg)
+    def get_tenantgroup_compliance_messages_count(tg:TenantGroup)->int:
+        messages=SopInfraUtils.get_tenantgroup_compliance_messages(tg)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
