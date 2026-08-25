@@ -383,9 +383,9 @@ class IpamVlanGroupComplianceTabView(generic.ObjectView):
     tab = ViewTab(
         label="Compliance", 
         permission=get_permission_for_model(VLAN, "view"),
-        badge=lambda obj: SopInfraUtils.get_vlan_group_compliance_messages_count(obj),
+        badge=lambda obj: SopInfraUtils.get_vlangroup_compliance_messages_count(obj),
     )
-    template_name: str = "sop_infra/vlan_group/tabs/compliance.html"
+    template_name: str = "sop_infra/vlangroup/tabs/compliance.html"
     # On s'affiche sur un site
     queryset = VLANGroup.objects.all()
 
@@ -393,8 +393,8 @@ class IpamVlanGroupComplianceTabView(generic.ObjectView):
         context = super().get_extra_context(request, instance)
         if not instance:
             raise Http404("No instance given.")
-        context["vlan_group"] = instance
-        messages=SopInfraUtils.get_vlan_group_compliance_messages(instance)
+        context["vlangroup"] = instance
+        messages=SopInfraUtils.get_vlangroup_compliance_messages(instance)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
