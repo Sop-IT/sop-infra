@@ -609,7 +609,7 @@ class SopInfraUtils:
     @staticmethod
     def get_tenantgroup_compliance_messages(tg:TenantGroup)->dict[str,list[str]]:
         return {
-            "danger" : list() , #TODO SopInfraUtils.get_tenant_group_compliance_danger_messages(vg),
+            "danger" : list() , #TODO SopInfraUtils.get_tenantgroup_compliance_danger_messages(vg),
             "warning" : SopInfraUtils.get_tenantgroup_compliance_warning_messages(tg),
             "info" : list() , #TODO
         }
