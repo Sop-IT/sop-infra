@@ -249,23 +249,23 @@ class SopInfraUtils:
         return ret
 
     @staticmethod
-    def get_merakidev_compliance_messages(sd:SopMerakiDevice)->dict[str,list[str]]:
+    def get_meraki_device_compliance_messages(sd:SopMerakiDevice)->dict[str,list[str]]:
         return {
-            "danger" : SopInfraUtils.get_merakidev_compliance_alert_messages(sd),
-            "warning" : SopInfraUtils.get_merakidev_compliance_warning_messages(sd),
+            "danger" : SopInfraUtils.get_meraki_device_compliance_alert_messages(sd),
+            "warning" : SopInfraUtils.get_meraki_device_compliance_warning_messages(sd),
             "info" : list() , #TODO
         }
 
     @staticmethod
-    def get_merakidev_compliance_messages_count(sd:SopMerakiDevice)->int:
-        messages=SopInfraUtils.get_merakidev_compliance_messages(sd)
+    def get_meraki_device_compliance_messages_count(sd:SopMerakiDevice)->int:
+        messages=SopInfraUtils.get_meraki_device_compliance_messages(sd)
         danger_messages:list[str]=messages.get("danger", list())
         warning_messages:list[str]=messages.get("warning", list())
         info_messages:list[str]=messages.get("info", list())
         return len(danger_messages)+len(warning_messages)+len(info_messages)
                 
     @staticmethod
-    def get_merakidev_compliance_alert_messages(sd:SopMerakiDevice)->list[str]:
+    def get_meraki_device_compliance_alert_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
         if not SopInfraUtils.check_if_meraki_device_push_would_succeed(sd):
             msg=f"Meraki PUSH would NOT succeed for this device due to configuration issues"
@@ -273,7 +273,7 @@ class SopInfraUtils:
         return ret
     
     @staticmethod
-    def get_merakidev_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
+    def get_meraki_device_compliance_warning_messages(sd:SopMerakiDevice)->list[str]:
         ret:list[str]=list()
         if SopInfraUtils.check_if_meraki_device_is_in_inventory(sd):
             return
