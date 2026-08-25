@@ -478,7 +478,7 @@ class DeviceSopDeviceSettingTabViewOnMerakiDevice(generic.ObjectView):
 #         if soi.site is None:
 #             raise AbortScript("SopInfra site cannot be None")
 #         # Check perms
-#         if not request.user.has_perm(get_permission_for_model(SopInfra, "claim_meraki_devices"), obj=soi):
+#         if not request.user.has_perm(get_permission_for_model(SopInfra, "claim"), obj=soi):
 #             return self.handle_no_permission()
 #         # Check form
 #         restrict_form_fields(self.form(), request.user)
@@ -509,7 +509,7 @@ class DeviceSopDeviceSettingTabViewOnMerakiDevice(generic.ObjectView):
 #         if soi.site is None:
 #             raise AbortScript("SopInfra site cannot be None")
 #         # Check perms
-#         if not request.user.has_perm(get_permission_for_model(SopInfra, "claim_meraki_devices"), obj=soi):
+#         if not request.user.has_perm(get_permission_for_model(SopInfra, "claim"), obj=soi):
 #             return self.handle_no_permission()
 #         # Build or fetch return URL
 #         return_url : str

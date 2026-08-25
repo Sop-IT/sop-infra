@@ -720,7 +720,7 @@ class SopMerakiOrgClaimView(AccessMixin, View):
         # Fetch SopmerakiOrg from URL and get it from db
         smo = get_object_or_404(SopMerakiOrg, pk=pk)
         # Check perms
-        if not request.user.has_perm(get_permission_for_model(SopMerakiOrg, "claim_meraki_devices"), obj=smo):
+        if not request.user.has_perm(get_permission_for_model(SopMerakiOrg, "claim"), obj=smo):
             return self.handle_no_permission()
         # Check form
         restrict_form_fields(self.form(), request.user)
@@ -744,7 +744,7 @@ class SopMerakiOrgClaimView(AccessMixin, View):
         # Fetch SopmerakiOrg from URL and get it from db
         smo = get_object_or_404(SopMerakiOrg, pk=pk)
         # Check perms
-        if not request.user.has_perm(get_permission_for_model(SopMerakiOrg, "claim_meraki_devices"), obj=smo):
+        if not request.user.has_perm(get_permission_for_model(SopMerakiOrg, "claim"), obj=smo):
             return self.handle_no_permission()
         # Build or fetch return URL
         return_url : str

@@ -6,16 +6,16 @@ from utilities.exceptions import AbortRequest
 from utilities.views import get_viewname
 
 __all__ = (
-    'sopinfra_claim_meraki_devices_button',
+    'sopinfra_claim_button',
     'sopinfra_create_meraki_networks_button',
 )
 
 register = template.Library()
 
-@register.inclusion_tag('sop_infra/sopinfra/buttons/claim_meraki_devices.html', takes_context=True)
-def sopinfra_claim_meraki_devices_button(context):
+@register.inclusion_tag('sop_infra/sopinfra/buttons/claim.html', takes_context=True)
+def sopinfra_claim_button(context):
     instance=context['object']  
-    viewname = 'plugins:sop_infra:sopmerakiorg_claim_meraki_devices' #get_viewname(instance, 'claim')
+    viewname = get_viewname(instance, 'claim')
     url = reverse(viewname, kwargs={'pk': instance.pk}, query={'details':True, 'return_url':context['request'].get_full_path()})
     return {
         'url': url,

@@ -164,7 +164,7 @@ urlpatterns = [
     path('sopmerakiorg/<int:pk>/update_connectivity_statuses/', SopMerakiOrgUpdateConnectivityStatusesView.as_view(), name='sopmerakiorg_update_connectivity_statuses'),
     path('sopmerakiorg/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='sopmerakiorg_changelog', kwargs={'model': SopMerakiOrg}),
     path('sopmerakiorg/<int:pk>/jobs/', ObjectJobsView.as_view(), name='sopmerakiorg_jobs', kwargs={'model': SopMerakiOrg}),
-    path('sopmerakiorg/<int:pk>/claim_meraki_devices', SopMerakiOrgClaimView.as_view(), name='sopmerakiorg_claim_meraki_devices'),
+    path('sopmerakiorg/<int:pk>/claim/', SopMerakiOrgClaimView.as_view(), name='sopmerakiorg_claim'),
     
 
     # ========================================================================
