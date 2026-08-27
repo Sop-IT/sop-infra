@@ -177,6 +177,13 @@ class SopMerakiDeviceFilterForm(NetBoxModelFilterSetForm):
     wan2ip = forms.CharField(required=False)
     wan1status = forms.CharField(required=False)
     wan2status = forms.CharField(required=False)
+    last_reported_at = forms.DateTimeField(required=False)
+    sku = forms.CharField(required=False)
+    claimed_at = forms.DateTimeField(required=False)
+    country_code = forms.CharField(required=False)
+    eox_status = forms.CharField(required=False)
+    eox_end_of_sale = forms.DateTimeField(required=False)
+    eox_end_of_support = forms.DateTimeField(required=False)
     
 
 ##############  ACTION FORMS ################################

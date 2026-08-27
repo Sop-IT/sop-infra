@@ -1273,11 +1273,11 @@ class SopMerakiDeviceUtils:
         if smd.eox_status != eox.get("status"):
             smd.eox_status = eox.get("status")
             save = True
-        dt=DateUtils.parse_date(dev_data.get("endOfSaleAt"))
+        dt=DateUtils.parse_date(eox.get("endOfSaleAt"))
         if smd.eox_end_of_sale != dt:
             smd.eox_end_of_sale = dt
             save = True
-        dt=DateUtils.parse_date(dev_data.get("endOfSupportAt"))
+        dt=DateUtils.parse_date(eox.get("endOfSupportAt"))
         if smd.eox_end_of_support != dt:
             smd.eox_end_of_support = dt
             save = True

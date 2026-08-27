@@ -423,15 +423,6 @@ class SopMerakiDevice(
         verbose_name="Organization",
         related_name="devices",
     )
-    # Netbox
-    # netbox_dev_type = models.ForeignKey(
-    #     to=DeviceType,
-    #     on_delete=models.SET_NULL,
-    #     null=True,
-    #     blank=True,
-    #     verbose_name="Device Type",
-    #     related_name="meraki_devices",
-    # )
     netbox_device = models.OneToOneField(
         to=Device,
         on_delete=models.SET_NULL,
@@ -553,6 +544,9 @@ class SopMerakiDevice(
         excl=list(exclude) if exclude is not None else list()
         excl.append("meraki_network")
         return super().clean_fields(excl)
+
+    def delete(self, *args, **kwargs):
+        raise Exception("Delete prohibited")
     
     # ------------------ PROPERTIES
     @property

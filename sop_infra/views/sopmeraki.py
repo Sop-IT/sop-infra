@@ -11,6 +11,7 @@ from django.contrib.auth.mixins import AccessMixin
 
 
 from core.choices import JobStatusChoices
+from extras.ui.panels import CustomFieldsPanel, TagsPanel
 from sop_infra.forms.sopmeraki import SopMerakiDeviceMoveForm, SopMerakiOrgClaimForm
 from sop_infra.utils.meraki_utils import SopMerakiOrgUtils
 from sop_infra.utils.netbox_utils import SopInfraUtils
@@ -22,6 +23,17 @@ from utilities.forms import restrict_form_fields
 from netbox.views import generic
 from netbox.jobs import Job
 from netbox.object_actions import BulkDelete, BulkEdit, CloneObject, DeleteObject, EditObject
+from netbox.ui import actions, layout
+from netbox.ui.panels import (
+    CommentsPanel,
+    ContextTablePanel,
+    JSONPanel,
+    NestedGroupObjectPanel,
+    ObjectsTablePanel,
+    OrganizationalObjectPanel,
+    RelatedObjectsPanel,
+    TemplatePanel,
+)
 
 from dcim.models import Region, Site, SiteGroup
 from ipam.models import IPAddress, Prefix
@@ -41,6 +53,7 @@ from sop_infra.jobs import (
     SopMerakiOrgConnectivityStatusesJob,
     SopMerakiPushSiteJob,
 )
+from sop_infra.ui import panels
 
 from sop_utils.misc import SopUtils
 from sop_infra.forms import SopMerakiDashForm, SopMerakiDashFilterForm, SopMerakiDashRefreshForm, SopMerakiOrgForm, SopMerakiOrgFilterForm, SopMerakiOrgRefreshChooseForm, SopMerakiNetForm, SopMerakiNetFilterForm, SopMerakiNetRefreshChooseForm, SopMerakiDeviceForm, SopMerakiDeviceFilterForm, SopMerakiSwitchStackForm, SopMerakiSwitchStackFilterForm
@@ -983,6 +996,43 @@ class SopMerakiSwitchStackComplianceTabView(generic.ObjectView):
 class SopMerakiDeviceView(generic.ObjectView):
     actions = [MoveObject]
     queryset = SopMerakiDevice.objects.all()
+    layout = layout.SimpleLayout(
+        left_panels=[
+            panels.SopMerakiDevicePanel(),
+            #CustomFieldsPanel(),
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        right_panels=[
+            panels.SopMerakiDeviceTimelinePanel(),
+            panels.SopMerakiDevicHierarchyPanel(),
+            panels.SopMerakiDeviceRelatedPanel(),
+            panels.SopMerakiDeviceApplianceUplinkStatusPanel(),
+        ],
+        bottom_panels=[
+            # ObjectsTablePanel(
+            #     model='dcim.Location',
+            #     filters={'site_id': lambda ctx: ctx['object'].pk},
+            #     exclude_columns=['site'],
+            #     actions=[
+            #         actions.AddObject('dcim.Location', url_params={'site': lambda ctx: ctx['object'].pk}),
+            #     ],
+            # ),
+            # ObjectsTablePanel(
+            #     model='dcim.Device',
+            #     title=_('Non-Racked Devices'),
+            #     filters={
+            #         'site_id': lambda ctx: ctx['object'].pk,
+            #         'rack_id': settings.FILTERS_NULL_CHOICE_VALUE,
+            #         'parent_bay_id': settings.FILTERS_NULL_CHOICE_VALUE,
+            #     },
+            #     exclude_columns=['site'],
+            #     actions=[
+            #         actions.AddObject('dcim.Device', url_params={'site': lambda ctx: ctx['object'].pk}),
+            #     ],
+            # ),
+        ]
+    )
 
 
 @register_model_view(SopMerakiDevice, 'list', path='', detail=False)
