@@ -548,6 +548,15 @@ class SopMerakiDevice(
     def delete(self, *args, **kwargs):
         raise Exception("Delete prohibited")
     
+    def serialize_object(self, exclude=None):
+        if exclude is None:
+            exclude=[]
+        else:
+            exclude=list(exclude)
+        if "meraki_network" not in exclude:
+            exclude.append("meraki_network")
+        return super().serialize_object(exclude)
+
     # ------------------ PROPERTIES
     @property
     def netbox_dev_type(self) -> DeviceType|None:
