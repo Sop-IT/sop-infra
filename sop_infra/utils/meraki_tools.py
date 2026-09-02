@@ -1424,46 +1424,48 @@ class NetboxSiteMerakiUpdater():
             # ----------------- PRISMA ------------------
             # Check Prisma Access VPN conf
             if si is not None and si.enabled is not None:
-                    # We need to act
-                    self.__logger.log_debug(
-                        f"enforce_one_netbox_site - prisma should be {si.enabled=} / current tags {mn.tags=}"
-                    )
-                    if si.enabled == "true":
-                        fix_new = mn.add_tag(f"{si.endpoint.name}")
-                        fix_old = mn.del_tag(f"AUTO-{mn.id}")
-                        if fix_new or fix_old:
-                            update_meraki: dict = {"tags": mn.tags}
-                            if self.__details:
-                                self.__logger.log_debug(f"{update_meraki=}")
-                            d = self.__get_dash().networks.updateNetwork(
-                                mn.id, **update_meraki
-                            )
-                            self.__logger.log_success(
-                                f"fixed prisma network tags - new tags {d.get('tags')}"
-                            )
-                    elif si.enabled == "false":
-                        if mn.del_tag(f"{si.endpoint.name}"):
-                            if self.__details:
-                                self.__logger.log_debug(
-                                    f"remove new prisma tag '{si.endpoint.name}'"
-                                )
-                            update_meraki: dict = {"tags": mn.tags}
-                            if self.__details:
-                                self.__logger.log_debug(f"{update_meraki=}")
-                            d = self.__get_dash().networks.updateNetwork(
-                                mn.id, **update_meraki
-                            )
-                            self.__logger.log_success(
-                                f"fixed prisma network tags - new tags {d.get('tags')}"
-                            )
-                        pass
-                    elif si.enabled == "unknown" or si.enabled.strip() == "":
-                        self.__logger.log_debug(f"Prisma unknown -> nothing to do !")
-                        pass
-                    else:
-                        raise Exception(
-                            f"Unkwnown sopinfra enabled value {si.enabled=} !"
+                # We need to act
+                self.__logger.log_debug(
+                    f"enforce_one_netbox_site - prisma should be {si.enabled=} / current tags {mn.tags=}"
+                )
+                if si.enabled == "true":
+                    fix_new = mn.add_tag(f"{si.endpoint.name}")
+                    fix_old = mn.del_tag(f"AUTO-{mn.id}")
+                    if fix_new or fix_old:
+                        update_meraki: dict = {"tags": mn.tags}
+                        if self.__details:
+                            self.__logger.log_debug(f"{update_meraki=}")
+                        d = self.__get_dash().networks.updateNetwork(
+                            mn.id, **update_meraki
                         )
+                        self.__logger.log_success(
+                            f"fixed prisma network tags - new tags {d.get('tags')}"
+                        )
+                elif si.enabled == "false":
+                    if si.endpoint is None:
+                        pass
+                    elif mn.del_tag(f"{si.endpoint.name}"):
+                        if self.__details:
+                            self.__logger.log_debug(
+                                f"remove new prisma tag '{si.endpoint.name}'"
+                            )
+                        update_meraki: dict = {"tags": mn.tags}
+                        if self.__details:
+                            self.__logger.log_debug(f"{update_meraki=}")
+                        d = self.__get_dash().networks.updateNetwork(
+                            mn.id, **update_meraki
+                        )
+                        self.__logger.log_success(
+                            f"fixed prisma network tags - new tags {d.get('tags')}"
+                        )
+                    pass
+                elif si.enabled == "unknown" or si.enabled.strip() == "":
+                    self.__logger.log_debug(f"Prisma unknown -> nothing to do !")
+                    pass
+                else:
+                    raise Exception(
+                        f"Unkwnown sopinfra enabled value {si.enabled=} !"
+                    )
 
         # # NOT WORKING FOR NOW
         # # PATCH SITE FOR UMBRELLA  (not in the previous loop because of delay to activation)
