@@ -1489,8 +1489,9 @@ class NetboxSiteMerakiUpdater():
         self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORGANISATION SETTINGS")
         if si is not None:
             if si.endpoint is None:
-                self.__logger.log_info(f"No Prisma config found -> SKIPPING")
-            else:                
+                self.__logger.log_info(f"No Prisma config found in Netbox -> SKIPPING")
+            else:
+                # https://developer.cisco.com/meraki/api-v1/get-organization-appliance-vpn-third-party-vpn-peers/                
                 dict_peers = self.__get_dash().appliance.getOrganizationApplianceVpnThirdPartyVPNPeers(
                     self.__smorg.meraki_id
                 )
@@ -1498,38 +1499,55 @@ class NetboxSiteMerakiUpdater():
                 self.__logger.log_debug(
                     f"enforce_one_netbox_site {self.__site.name} - {self.__smorg.meraki_id=} - {current_peers=}"
                 )
+                target_peer = {
+                    "name": si.endpoint.name,
+                    "ikeVersion": "2",
+                    "secret": si.endpoint.psk,
+                    "privateSubnets": ["0.0.0.0/0"],
+                    "ipsecPolicies": {
+                        "ikeCipherAlgo": ["aes256"],
+                        "ikeAuthAlgo": ["sha256"],
+                        "ikePrfAlgo": ["default"],
+                        "ikeDiffieHellmanGroup": ["group14"],
+                        "ikeLifetime": 28800,
+                        "childCipherAlgo": ["aes256"],
+                        "childAuthAlgo": ["sha256"],
+                        "childPfsGroup": ["group14"],
+                        "childLifetime": 3600,
+                    },
+                    "networkTags": [si.endpoint.name],
+                    "localId": si.endpoint.local_id,
+                    "remoteId": si.endpoint.remote_id,
+                    "publicIp": si.endpoint.peer_ip,
+                }
+                push:bool=False
+                # List to dict
+                by_name:dict[str,dict]=dict()
                 for p in current_peers:
-                    if si.endpoint.name == p.get("name"):
-                        # TODO : compare and correct if necessary
-                        self.__logger.log_info(f"Peer {si.endpoint.name} found -> SKIPPING")
-                        break
+                    by_name[p.get("name")]=p
+                # Get it
+                if si.endpoint.name in by_name.keys():
+                    p=by_name.get(si.endpoint.name)
+                    # Build dict from found peer to compare
+                    compare_peer=dict()
+                    for k in target_peer.keys():
+                        compare_peer[k]=p.get(k)
+                    # Compare
+                    if SopUtils.deep_equals_json(compare_peer, target_peer):
+                        self.__logger.log_info(f"Peer {si.endpoint.name} found and identical -> SKIPPING")
+                    else: 
+                        self.__logger.log_info(f"Peer {si.endpoint.name} found but different -> FIXING")
+                        by_name[si.endpoint.name]=target_peer
+                        push=True
                 else:
-                    peer = {
-                        "name": si.endpoint.name,
-                        "ikeVersion": "2",
-                        "secret": si.endpoint.psk,
-                        "privateSubnets": ["0.0.0.0/0"],
-                        "ipsecPolicies": {
-                            "ikeCipherAlgo": ["aes256"],
-                            "ikeAuthAlgo": ["sha256"],
-                            "ikePrfAlgo": ["default"],
-                            "ikeDiffieHellmanGroup": ["group2"],
-                            "ikeLifetime": 28800,
-                            "childCipherAlgo": ["aes256"],
-                            "childAuthAlgo": ["sha256"],
-                            "childPfsGroup": ["group2"],
-                            "childLifetime": 10800,
-                        },
-                        "networkTags": [si.endpoint.name],
-                        "localId": si.endpoint.local_id,
-                        "remoteId": si.endpoint.remote_id,
-                        "publicIp": si.endpoint.peer_ip,
-                    }
-                    current_peers.append(peer)
-                    dict_peers = {"peers": current_peers}
                     self.__logger.log_info(f"Peer {si.endpoint.name} *NOT* found -> PUSHING")
+                    by_name[si.endpoint.name]=target_peer
+                    push=True
+                if push:
+                    dict_peers = {"peers": by_name.values() }
+                    # https://developer.cisco.com/meraki/api-v1/update-organization-appliance-vpn-third-party-vpn-peers/
                     self.__get_dash().appliance.updateOrganizationApplianceVpnThirdPartyVPNPeers(
-                        self.__smorg.meraki_id, peers=current_peers
+                        self.__smorg.meraki_id, peers=dict_peers
                     )
 
         # PATCH PREFIXES
