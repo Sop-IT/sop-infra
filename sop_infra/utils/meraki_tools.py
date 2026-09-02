@@ -1495,7 +1495,7 @@ class NetboxSiteMerakiUpdater():
                 dict_peers = self.__get_dash().appliance.getOrganizationApplianceVpnThirdPartyVPNPeers(
                     self.__smorg.meraki_id
                 )
-                current_peers = dict_peers.get("peers")
+                current_peers:list = dict_peers.get("peers")
                 self.__logger.log_debug(
                     f"enforce_one_netbox_site {self.__site.name} - {self.__smorg.meraki_id=} - {current_peers=}"
                 )
@@ -1544,10 +1544,9 @@ class NetboxSiteMerakiUpdater():
                     by_name[si.endpoint.name]=target_peer
                     push=True
                 if push:
-                    dict_peers = {"peers": by_name.values() }
                     # https://developer.cisco.com/meraki/api-v1/update-organization-appliance-vpn-third-party-vpn-peers/
                     self.__get_dash().appliance.updateOrganizationApplianceVpnThirdPartyVPNPeers(
-                        self.__smorg.meraki_id, peers=dict_peers
+                        self.__smorg.meraki_id, peers=list(by_name.values()) 
                     )
 
         # PATCH PREFIXES
