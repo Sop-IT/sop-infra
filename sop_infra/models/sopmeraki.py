@@ -16,7 +16,8 @@ from utilities.querysets import RestrictedQuerySet
 
 import meraki
 
-
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 __all__ = (
     "SopMerakiDash",
@@ -548,14 +549,12 @@ class SopMerakiDevice(
     def delete(self, *args, **kwargs):
         raise Exception("Delete prohibited")
     
-    def serialize_object(self, exclude=None):
-        if exclude is None:
-            exclude=[]
-        else:
-            exclude=list(exclude)
-        if "meraki_network" not in exclude:
-            exclude.append("meraki_network")
-        return super().serialize_object(exclude)
+    def snapshot(self):
+        try:
+            smn:SopMerakiNet=self.meraki_network
+        except SopMerakiNet.DoesNotExist:
+            self.meraki_netid=None
+        return super().snapshot()
 
     # ------------------ PROPERTIES
     @property
@@ -627,7 +626,9 @@ class SopMerakiDevice(
         self.full_clean()
         self.save()
 
-
+@receiver(post_delete, sender=SopMerakiNet)
+def post_delete_sopmerakinet(sender, instance:SopMerakiNet, **kwargs):
+    SopMerakiDevice.objects.filter(meraki_netid=instance.meraki_id).update(meraki_netid=None)
 
 class SopMerakiSwitchSettings(NetBoxModel):
 

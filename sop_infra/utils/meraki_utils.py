@@ -2008,6 +2008,11 @@ class SopMerakiOrgUtils:
                 continue
             # refresh "no net" devices
             smd = SopMerakiDeviceUtils.get_by_serial_or_create(serial, dev['name'])
+            if smd.meraki_netid is not None:
+                smd.snapshot()
+                smd.meraki_netid=None
+                devs_saved[smd.serial]=True
+            #print(f"{smd=} {smd.meraki_netid=}")
             devs_saved[serial] = SopMerakiDeviceUtils.refresh_from_inventory_data(smd, conn, dev, smo, log, details)
         # Orphan devices that are not in this org anymore
         #print(f"cleanup filter=> {smo.meraki_id=} {net_ids=} {devs_saved.keys()}")
