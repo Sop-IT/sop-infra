@@ -51,7 +51,9 @@ class SopInfraUtils:
             102: { 'name':'GST',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.100.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
             104: { 'name':'EVC',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.104.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
             105: { 'name':'AGV',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.105.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
-            106: { 'name':'VND',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.106.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':24, 'fixed':True, 'local_vrf':True},
+            106: { 'name':'VND',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.106.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':23, 'fixed':True, 'local_vrf':True},
+            108: { 'name':'GOV',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.108.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':23, 'fixed':True, 'local_vrf':True},
+            110: { 'name':'RDL',                    'nature':'IT', 'start':netaddr.IPAddress('192.168.110.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':23, 'fixed':True, 'local_vrf':True},
             401: { 'name':'IMM',                    'nature':'IT', 'start':netaddr.IPAddress('10.18.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':27},
             402: { 'name':'ESX',                    'nature':'IT', 'start':netaddr.IPAddress('10.19.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':27},
             #403: { 'name':'ST2',                    'nature':'IT', 'start':netaddr.IPAddress('10.18.128.0'),   'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':27},
@@ -66,9 +68,7 @@ class SopInfraUtils:
             729: { 'name':'AFF',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':80,  'vlan_cidr':29},
             730: { 'name':'AIS',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':88,  'vlan_cidr':29},
             731: { 'name':'RED',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':96,  'vlan_cidr':28},
-            732: { 'name':'GOV',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':112, 'vlan_cidr':28},
             733: { 'name':'PRF',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':128, 'vlan_cidr':27},
-            734: { 'name':'RDL',                    'nature':'IT', 'start':netaddr.IPAddress('10.72.0.0'),     'sdw_vpn_enable':'vpnon',  'dhcp_dhcp_mode':'enabled',  'dhcp_mandatory_dhcp':'unset', 'slice_cidr':24, 'offset_alloc':160, 'vlan_cidr':28},
             3999:{ 'name':'STP',                    'nature':'IT', 'start':netaddr.IPAddress('127.99.0.0'), 'sdw_vpn_enable':'vpnoff', 'dhcp_dhcp_mode':'disabled',  'dhcp_mandatory_dhcp':'unset',   'slice_cidr':30, 'fixed':True, 'local_vrf':True, 'force_fix':True},
         }
     
@@ -1056,10 +1056,10 @@ class NetboxHelpers():
         std_nets = (
             (1,'1 - USR'),(20,'20 - LXC'), (201,'201 - LXM'), (32,'32 - IND (OLD)'), (36,'36 - STR'), (44,'44 - WMS'), (48,'48 - ALA'), (52,'52 - SOL'), (56,'56 - CAM'), 
             (64,'64 - GTB'), (68,'68 - ACS'), (76,'76 - RED'), (80,'80 - TMR'), 
-            (101, '101 - MOB'), (102, '102 - GST'), (104, '104 - EVC'), (105, '105 - AGV'), (106, '106 - VND'), 
+            (101, '101 - MOB'), (102, '102 - GST'), (104, '104 - EVC'), (105, '105 - AGV'), (106, '106 - VND'), (108, '108 - GOV'), (110, '110 - RDL'), 
             (401, '401 - IMM'), (402,'402 - ESX'),  (404,'404 - BRK'), (405,'405 - BKP'), (406,'406 - ADM-EXT'),
             (720, '720 - PTC'), (721,'721 - BRC'), (722,'722 - DRK'), (723,'723 - TPE'), (724,'724 - DRD'), (729,'729 - AFF'), 
-            (730,'730 - AIS'), (731,'731 - RED'), (732,'732 - GOV'), (733,'733 - PRF'), (734,'734 - RDL'), 
+            (730,'730 - AIS'), (731,'731 - RED'), (733,'733 - PRF'), 
         )
         return std_nets
   
