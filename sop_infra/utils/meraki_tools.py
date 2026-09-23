@@ -1514,7 +1514,7 @@ class NetboxSiteMerakiUpdater():
                     break
             if sla_id==0:
                 self.__logger.log_info(f"Failed to create and retrieve a new SLA policy, will probably fail later ....")
-        self.__logger.log_info(f"IPSEC VPN SLA Policy for  http://one.one.one.one => ({sla_id=})")
+        #self.__logger.log_info(f"IPSEC VPN SLA Policy for  http://one.one.one.one => ({sla_id=})")
 
         # PATCH ORG FOR PRISMA VPN
         self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORGANISATION VPN SETTINGS")
@@ -1556,8 +1556,9 @@ class NetboxSiteMerakiUpdater():
                     "group": {
                         "number": 1,
                         "failover": {
-                            "directToInternet": "true"
+                            "directToInternet": True
                         },
+                        "activeActiveTunnel": False,
                     },
                 }                
                 push:bool=False
