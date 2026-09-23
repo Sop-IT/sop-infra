@@ -1485,8 +1485,39 @@ class NetboxSiteMerakiUpdater():
         #         else:
         #             self.__logger.log_failure(f"MERAKI NETWORK {mn.name}/{mn.id} :  updateUmbrellaExcludedDomains failed {tries} times")
 
+        # PATCH ORG FOR SLA POLICIES (HARDCODED FOR NOW)
+        self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORGANISATION SLA SETTINGS")
+        #https://developer.cisco.com/meraki/api-v1/get-organization-appliance-vpn-site-to-site-ipsec-peers-slas/
+        dict_slas = self.__get_dash().appliance.getOrganizationApplianceVpnSiteToSiteIpsecPeersSlas(
+            self.__smorg.meraki_id
+        )
+        current_slas:list = dict_slas.get("items")
+        sla_id:int=0
+        for sla in current_slas:
+            if sla.get("uri","").lower()=="http://one.one.one.one":
+                sla_id=int(sla.get("id", "0"))
+                break
+        if sla_id==0:
+            self.__logger.log_info(f"No IPSEC VPN SLA Policy found for  http://one.one.one.one --> CREATE")
+            slas_to_push=[{"name":"http://one.one.one.one", "uri":"http://one.one.one.one"}]
+            for sla in current_slas:
+                slas_to_push.append({"name":sla.get("name"), "uri":sla.get("uri")})
+            # https://developer.cisco.com/meraki/api-v1/update-organization-appliance-vpn-site-to-site-ipsec-peers-slas/
+            dict_slas = self.__get_dash().appliance.updateOrganizationApplianceVpnSiteToSiteIpsecPeersSlas(
+                self.__smorg.meraki_id, items=slas_to_push
+            )
+            current_slas:list = dict_slas.get("items")
+            sla_id:int=0
+            for sla in current_slas:
+                if sla.get("uri","").lower()=="http://one.one.one.one":
+                    sla_id=int(sla.get("id", "0"))
+                    break
+            if sla_id==0:
+                self.__logger.log_info(f"Failed to create and retrieve a new SLA policy, will probably fail later ....")
+        self.__logger.log_info(f"IPSEC VPN SLA Policy for  http://one.one.one.one => ({sla_id=})")
+
         # PATCH ORG FOR PRISMA VPN
-        self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORGANISATION SETTINGS")
+        self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORGANISATION VPN SETTINGS")
         if si is not None:
             if si.endpoint is None:
                 self.__logger.log_info(f"No Prisma config found in Netbox -> SKIPPING")
@@ -1496,9 +1527,9 @@ class NetboxSiteMerakiUpdater():
                     self.__smorg.meraki_id
                 )
                 current_peers:list = dict_peers.get("peers")
-                self.__logger.log_debug(
-                    f"enforce_one_netbox_site {self.__site.name} - {self.__smorg.meraki_id=} - {current_peers=}"
-                )
+                # self.__logger.log_debug(
+                #     f"enforce_one_netbox_site {self.__site.name} - {self.__smorg.meraki_id=} - {current_peers=}"
+                # )
                 target_peer = {
                     "name": si.endpoint.name,
                     "ikeVersion": "2",
@@ -1519,6 +1550,9 @@ class NetboxSiteMerakiUpdater():
                     "localId": si.endpoint.local_id,
                     "remoteId": si.endpoint.remote_id,
                     "publicIp": si.endpoint.peer_ip,
+                    "slaPolicy": {
+                        "id": f"{sla_id}"
+                    },
                     "group": {
                         "number": 1,
                         "failover": {
@@ -1550,9 +1584,30 @@ class NetboxSiteMerakiUpdater():
                     by_name[si.endpoint.name]=target_peer
                     push=True
                 if push:
+                    # We need to cleanup outdated VPNs -- https://documentation.meraki.com/SASE_and_SD-WAN/MX/Product_Information/Compatibility_and_Firmware/Insecure_Cipher_Deprecation
+                    to_push:list = list()
+                    skip_algs:list[str]=[ "des", "3des", "md5", "group1", "group2", "group5" ]
+                    check_pols:list[str]=[ "ikeCipherAlgo", "ikeAuthAlgo", "ikeDiffieHellmanGroup", "childCipherAlgo", "childAuthAlgo", "childPfsGroup" ]
+                    for v in list(by_name.values()):
+                        # Skip IKEVersion<2
+                        if v.get("ikeVersion", "null") != "2":
+                            print(f"skip ikeversion {v=}")
+                            continue
+                        # Skip DES, 3DES, MD5, DH Group 1, DH Group 2, and DH Group 5 
+                        pols:dict = v.get("ipsecPolicies", dict())
+                        skip=False
+                        for cp in check_pols:
+                            if pols.get(cp, "None") in skip_algs:
+                                print(f"skip policy {pols=}")
+                                skip=True
+                                break
+                        if skip:
+                            continue
+                        # Not skipped yet ? Add it to push !
+                        to_push.append(v)
                     # https://developer.cisco.com/meraki/api-v1/update-organization-appliance-vpn-third-party-vpn-peers/
                     self.__get_dash().appliance.updateOrganizationApplianceVpnThirdPartyVPNPeers(
-                        self.__smorg.meraki_id, peers=list(by_name.values()) 
+                        self.__smorg.meraki_id, peers=to_push 
                     )
 
         # PATCH PREFIXES
