@@ -1519,7 +1519,15 @@ class NetboxSiteMerakiUpdater():
                     "localId": si.endpoint.local_id,
                     "remoteId": si.endpoint.remote_id,
                     "publicIp": si.endpoint.peer_ip,
-                }
+                    "priorityInGroup": 1,
+                    "group": {
+                        "number": 1,
+                        "failover": {
+                            "directToInternet": "true"
+                        },
+                        "activeActiveTunnel": "true"
+                    },
+                }                
                 push:bool=False
                 # List to dict
                 by_name:dict[str,dict]=dict()
