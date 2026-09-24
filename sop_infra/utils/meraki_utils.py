@@ -131,6 +131,7 @@ class SopMerakiUtils:
 
     __parsed: bool = False
     __meraki_api_keys: dict[str, str] = {}
+    __details: bool = False
 
     # ---------------------------------------------
     #region PLOMBERIE
@@ -143,6 +144,10 @@ class SopMerakiUtils:
         infra_config = settings.PLUGINS_CONFIG.get("sop_infra")
         if infra_config is None:
             raise Exception("No sop_infra in .PLUGINS_CONFIG !")
+        plugin_details = infra_config.get("details", False)
+        if plugin_details:
+            plugin_details=True
+        cls.__details = plugin_details
         sopmeraki_config = infra_config.get("sopmeraki")
         if sopmeraki_config is None:
             raise Exception("No sopmeraki in sop_infra PLUGINS_CONFIG key !")
@@ -189,6 +194,11 @@ class SopMerakiUtils:
             raise Exception(f"Unknown dashboard name {dash_name} ! ")
         return cls.connect(dash_name, smds[0].api_url, simulate)
 
+    @classmethod
+    def show_details(cls) -> bool:
+        if not cls.__parsed:
+            cls.try_parse_configuration()
+        return cls.__details
 
     #endregion
 

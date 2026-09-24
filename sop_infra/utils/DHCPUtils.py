@@ -433,7 +433,8 @@ class GroupPolicy():
         ret:list[dict]|None=None
         if l3r is not None:
             ret = GroupPolicy.l3rules_copy_normalize(prefix, l3r, dhcp_settings, logger, details)
-        logger.log_debug(f"Prefix {prefix} : l3rules_copy_normalize_main --> {"NO" if ret is None else "BUILT"} policy ( RoleL3R:{rl3r is not None} / VlanL3R:{vl3r is not None} )")
+        if details:
+            logger.log_debug(f"Prefix {prefix} : l3rules_copy_normalize_main --> {"NO" if ret is None else "BUILT"} policy ( RoleL3R:{rl3r is not None} / VlanL3R:{vl3r is not None} )")
         return ret
 
     @staticmethod
@@ -703,13 +704,15 @@ class TargetPrefix:
     def __str__(self):
         return f"DhcpPrefix(prefix={self.prefix_str},site={self.get_site().slug},dhcp_settings={self.dhcp_settings},isolated={self.isolated_vlan})"
 
-    def is_valid(self, logger)->bool:
+    def is_valid(self, logger, details:bool)->bool:
         nbp=self.nb_prefix
         if not(self.meraki_visible):
-            logger.log_info(f"Prefix {self.prefix_str} : NOT meraki visible -> IGNORED ")
+            if details:
+                logger.log_debug(f"Prefix {self.prefix_str} : NOT meraki visible -> IGNORED ")
             return False
         if self.wan_facing_vlan:
-            logger.log_info(f"Prefix {self.prefix_str} : WAN facing -> IGNORED ")
+            if details:
+                logger.log_debug(f"Prefix {self.prefix_str} : WAN facing -> IGNORED ")
             return False
         if nbp.status in ['reserved','active','noncompliant','decommissioning']:
             # dans ces cas on doit soit avoir un VLAN soit une route
@@ -729,7 +732,8 @@ class TargetPrefix:
         site_ct=ObjectType.objects.get_by_natural_key('dcim', 'site')
         #flt=Q(Q(custom_field_data__dhcp_dhcp_mode='enabled')|Q(custom_field_data__dhcp_dhcp_mode='disabled'))
         if site.status not in MerakiConstants.action_site_status:
-            logger.log_debug(f"netbox_get_tagged_prefixes({site}) site status excludes site from processing")
+            if details:
+                logger.log_debug(f"netbox_get_tagged_prefixes({site}) site status excludes site from processing")
         else:
             flt=Q(scope_type_id=site_ct.id)&Q(scope_id=site.id)
             flt&=Q(status__in=['reserved','active','noncompliant','decommissioning'])
@@ -743,14 +747,16 @@ class TargetPrefix:
                 logger.log_info(f"routed vlan 1 detected -> ensuring stp consistency via stub vlan 3999")
                 nbh._create_or_fix_prefix(site, ['3999'], False, details, force_fix=True, force_status=vid1[0].status)
             pfixes=ipam.models.Prefix.objects.filter(flt)
-            logger.log_debug(f"netbox_get_tagged_prefixes({site}) found {len(pfixes)} prefixes")
+            if details:
+                logger.log_debug(f"netbox_get_tagged_prefixes({site}) found {len(pfixes)} prefixes")
             for pfix in pfixes:
                 if (su:=site_umbrellas.get(pfix.scope.slug)) is None:
                     su=DHCPUtils.netbox_get_site_umbrella_servers(pfix.scope)
                     site_umbrellas[pfix.scope.slug]=su
                 tgt=TargetPrefix(pfix, su, logger, details)
-                if tgt.is_valid(logger):
+                if tgt.is_valid(logger, details):
                     dhcp_prefixes.append(tgt)
-            logger.log_debug(f"netbox_get_tagged_prefixes({site}) computed {len(dhcp_prefixes)} TargetNetworks")
+            if details:
+                logger.log_debug(f"netbox_get_tagged_prefixes({site}) computed {len(dhcp_prefixes)} TargetNetworks")
         return dhcp_prefixes
     

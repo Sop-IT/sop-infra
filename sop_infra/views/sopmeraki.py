@@ -13,7 +13,7 @@ from django.contrib.auth.mixins import AccessMixin
 from core.choices import JobStatusChoices
 from extras.ui.panels import CustomFieldsPanel, TagsPanel
 from sop_infra.forms.sopmeraki import SopMerakiDeviceMoveForm, SopMerakiOrgClaimForm
-from sop_infra.utils.meraki_utils import SopMerakiOrgUtils
+from sop_infra.utils.meraki_utils import SopMerakiOrgUtils, SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraUtils
 from sop_infra.utils.object_actions import MoveObject
 from utilities.views import ConditionalLoginRequiredMixin, ObjectPermissionRequiredMixin, ViewTab, register_model_view
@@ -228,7 +228,7 @@ class SopMerakiPushSiteView(View):
         if settings.DEBUG:
             simulate=("yes"==request.GET.get("simulate"))
         # Launch job
-        j: Job = SopMerakiPushSiteJob.launch_interactive(request, message=True, site=instance, details=True, simulate=simulate)
+        j: Job = SopMerakiPushSiteJob.launch_interactive(request, message=True, site=instance, details=SopMerakiUtils.show_details(), simulate=simulate)
         # Send to return url or script result
         url = request.GET.get("return_url") or reverse("core:job", args=[j.pk])
         return redirect(url)
