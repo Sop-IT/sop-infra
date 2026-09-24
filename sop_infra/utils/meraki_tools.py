@@ -1575,17 +1575,26 @@ class NetboxSiteMerakiUpdater():
                     for k in target_peer.keys():
                         compare_peer[k]=p.get(k)
                     # Compare
-                    if SopUtils.deep_equals_json(compare_peer, target_peer):
-                        self.__logger.log_info(f"Peer {si.endpoint.name} found and identical -> SKIPPING")
-                    else: 
+                    if not SopUtils.deep_equals_json(compare_peer, target_peer) :
                         self.__logger.log_info(f"Peer {si.endpoint.name} found but different -> FIXING")
-                        by_name[si.endpoint.name]=target_peer
                         push=True
+                    elif not p.get("group", dict()).get("failover", dict()).get("directToInternet", False) :
+                        self.__logger.log_info(f"Peer {si.endpoint.name} found but no failover to internet -> FIXING")
+                        push=True
+                    else: 
+                        self.__logger.log_info(f"Peer {si.endpoint.name} found and identical -> SKIPPING")
                 else:
                     self.__logger.log_info(f"Peer {si.endpoint.name} *NOT* found -> PUSHING")
-                    by_name[si.endpoint.name]=target_peer
                     push=True
                 if push:
+                    target_peer['group']={
+                        "number": 999000000+self.__site.pk,
+                        "failover": {
+                            "directToInternet": True
+                        },
+                        "activeActiveTunnel": False,
+                    }
+                    by_name[si.endpoint.name]=target_peer
                     # We need to cleanup outdated VPNs -- https://documentation.meraki.com/SASE_and_SD-WAN/MX/Product_Information/Compatibility_and_Firmware/Insecure_Cipher_Deprecation
                     to_push:list = list()
                     skip_algs:list[str]=[ "des", "3des", "md5", "group1", "group2", "group5" ]
