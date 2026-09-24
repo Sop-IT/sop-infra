@@ -1493,15 +1493,16 @@ class NetboxSiteMerakiUpdater():
         )
         current_slas:list = dict_slas.get("items")
         sla_id:int=0
+        check_name:str=f"Check-{si.endpoint.name}"
         for sla in current_slas:
-            if sla.get("uri","").lower()=="http://one.one.one.one":
+            if sla.get("name","")==check_name:
                 sla_id=int(sla.get("id", "0"))
                 break
         if sla_id==0:
             self.__logger.log_info(f"No IPSEC VPN SLA Policy found for  http://one.one.one.one --> CREATE")
-            slas_to_push=[{"name":"http://one.one.one.one", "uri":"http://one.one.one.one"}]
+            slas_to_push=[{"name":check_name, "uri":"http://one.one.one.one"}]
             for sla in current_slas:
-                slas_to_push.append({"name":sla.get("name"), "uri":sla.get("uri")})
+                slas_to_push.append({"id": sla.get("id"), "name":sla.get("name"), "uri":sla.get("uri")})
             # https://developer.cisco.com/meraki/api-v1/update-organization-appliance-vpn-site-to-site-ipsec-peers-slas/
             dict_slas = self.__get_dash().appliance.updateOrganizationApplianceVpnSiteToSiteIpsecPeersSlas(
                 self.__smorg.meraki_id, items=slas_to_push
@@ -1509,12 +1510,12 @@ class NetboxSiteMerakiUpdater():
             current_slas:list = dict_slas.get("items")
             sla_id:int=0
             for sla in current_slas:
-                if sla.get("uri","").lower()=="http://one.one.one.one":
+                if sla.get("name","")==check_name:
                     sla_id=int(sla.get("id", "0"))
                     break
             if sla_id==0:
                 self.__logger.log_info(f"Failed to create and retrieve a new SLA policy, will probably fail later ....")
-        #self.__logger.log_info(f"IPSEC VPN SLA Policy for  http://one.one.one.one => ({sla_id=})")
+        #self.__logger.log_info(f"IPSEC VPN SLA Policy for {check_name} http://one.one.one.one => ({sla_id=})")
 
         # PATCH ORG FOR PRISMA VPN
         self.__logger.log_info(f"==== SITE:{self.__site.name} >>>> PATCH ORGANISATION VPN SETTINGS")
