@@ -1634,7 +1634,7 @@ class SopMerakiDeviceUtils:
             serials.append(smd.serial)
             by_serial[smd.serial]=smd
             smd.snapshot()
-            smd._changelog_message=f"SopMerakiDeviceUtils.move_devices_to_network move from {smd.meraki_netid} to {smn.meraki_id}"
+            smd._changelog_message=f"Move from {smd.meraki_netid} to {smn.meraki_id}"
         # Check where we stand
         devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, smn.org.meraki_id, serials)
         missing:list[str]=list(serial for serial in devs.get("missing"))
