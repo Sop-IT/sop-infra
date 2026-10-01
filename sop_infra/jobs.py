@@ -352,7 +352,10 @@ class SopMerakiDashRefreshJob(JobRunnerLogMixin, JobRunner):
             self.job.error = text
             raise
         # finally:
-        #     self.job.data = self.get_job_data()       
+        #     self.job.data = self.get_job_data()
+        # Cleanup all completed but last 3
+        for j in Job.objects.filter(name=self.Meta.name).filter(status="completed")[3:]:
+            j.delete() 
 
     @staticmethod
     def launch_manual(dashs:list[SopMerakiDash], details:bool)->Job:
@@ -434,6 +437,9 @@ class SopMerakiDashUpdateConnectivyStatusesJob(JobRunnerLogMixin, JobRunner):
             raise
         # finally:
         #     self.job.data = self.get_job_data()       
+        # Cleanup all completed but last 3
+        for j in Job.objects.filter(name=self.Meta.name).filter(status="completed")[3:]:
+            j.delete() 
 
     @staticmethod
     def launch_manual(dashs:list[SopMerakiDash], details:bool)->Job:
@@ -654,6 +660,9 @@ class SopSyncAdUsers(JobRunnerLogMixin, JobRunner):
             raise
         # finally:
         #     self.job.data = self.get_job_data()  
+        # Cleanup all completed but last 3
+        for j in Job.objects.filter(name=self.Meta.name).filter(status="completed")[3:]:
+            j.delete() 
 
 
     ldap_basedn = "DC=ad,DC=soprema,DC=com"
