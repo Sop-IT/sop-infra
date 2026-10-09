@@ -232,7 +232,8 @@ class DcimSiteInfrastructureTabView(generic.ObjectView):
     """
 
     tab = ViewTab(
-        label="Infrastructure", permission=get_permission_for_model(SopInfra, "view")
+        label="Infrastructure", 
+        permission=get_permission_for_model(SopInfra, "view")
     )
     template_name: str = "sop_infra/site/tabs/sopinfra_on_site.html"
     # On s'affiche sur un site
