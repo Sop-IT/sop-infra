@@ -222,9 +222,9 @@ class MerakiNets():
     def get_net(self, id:str)->MerakiNetwork|None:
         return self._nets.get(id)
     def get_net_ids(self):
-        return self._nets.keys()
+        return list(self._nets.keys())
     def get_orgs_ids(self):
-        return self._orgs.keys()
+        return list(self._orgs.keys())
     def has_net_id(self, id):
         return id in self._nets.keys()
     def has_appliances_in_several_nets(self) -> bool:
