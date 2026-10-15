@@ -581,9 +581,6 @@ class SopInfraListView(generic.ObjectListView):
     filterset = SopInfraFilterset
     filterset_form = SopInfraFilterForm
 
-    actions = {
-        "export": {"view"},
-    }
 
 
 
