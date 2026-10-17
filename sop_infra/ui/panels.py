@@ -8,6 +8,7 @@ from sop_infra.ui import attrs as sopattrs
 #region SOPMERAKIDEVICE PANELS
 
 class SopMerakiDevicePanel(panels.ObjectAttributesPanel):
+    title = 'General information'
     nom = attrs.TextAttr('nom', copy_button=True)
     ptype = attrs.TextAttr('ptype')
     model_name = attrs.TextAttr('model_name')
@@ -24,12 +25,14 @@ class SopMerakiDevicePanel(panels.ObjectAttributesPanel):
     country_code = attrs.TextAttr('country_code')
 
 class SopMerakiDeviceApplianceUplinkStatusPanel(panels.ObjectAttributesPanel):
+    title = 'Uplink status'
     wan1ip = attrs.TextAttr('wan1ip', label='WAN 1 IP', copy_button=True)
     wan2ip = attrs.TextAttr('wan2ip', label='WAN 2 IP', copy_button=True)
     wan1status = attrs.TextAttr('wan1status', label='WAN 1 Status')
     wan2status = attrs.TextAttr('wan2status', label='WAN 2 Status')
 
 class SopMerakiDeviceTimelinePanel(panels.ObjectAttributesPanel):
+    title = 'Timeline'
     cfg_updated_at = attrs.DateTimeAttr('cfg_updated_at')
     last_reported_at = attrs.DateTimeAttr('last_reported_at')
     claimed_at = attrs.DateTimeAttr('claimed_at')
@@ -39,13 +42,14 @@ class SopMerakiDeviceTimelinePanel(panels.ObjectAttributesPanel):
     eox_end_of_support = attrs.DateTimeAttr('eox_end_of_support')
 
 class SopMerakiDevicHierarchyPanel(panels.ObjectAttributesPanel):
+    title = 'Device hierarchy'
     # MERAKI DASH
     org = attrs.RelatedObjectAttr('org', linkify=True)
     meraki_network = attrs.RelatedObjectAttr('meraki_network', linkify=True)
     meraki_netid = attrs.TextAttr('meraki_netid', copy_button=True) 
 
 class SopMerakiDeviceRelatedPanel(panels.ObjectAttributesPanel):
-
+    title = 'Netbox mapping'
     site = attrs.RelatedObjectAttr('site', linkify=True)
     netbox_device = attrs.RelatedObjectAttr('netbox_device', linkify=True)
     # CUR NB DEV TYPE
@@ -57,6 +61,7 @@ class SopMerakiDeviceRelatedPanel(panels.ObjectAttributesPanel):
 
 
 class SopSyslogServerPanel(panels.ObjectAttributesPanel):
+    title = 'Syslog server settings'
     nom = attrs.TextAttr('nom')
     server_address = attrs.RelatedObjectAttr('server_address', linkify=True)
     server_port = attrs.TextAttr('server_port')
