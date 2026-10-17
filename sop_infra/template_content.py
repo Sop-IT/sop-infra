@@ -120,6 +120,22 @@ class NetboxContactPluginExtension(PluginTemplateExtension):
 
 
 
+class SiteToSopInfraDetailButton(PluginTemplateExtension):
+
+    models = ['dcim.site']
+
+    def buttons(self):
+        from utilities.permissions import get_permission_for_model
+        request=self.context.get("request")
+        if request is None:
+            return ""
+        object=self.context.get("object")
+        if object is None:
+            return ""
+        if isinstance(object, Site):
+            if request.user.has_perm(get_permission_for_model(object.sopinfra, "view")):
+                return self.render("sop_infra/buttons/site_to_sopinfra_detail.html", extra_context={})
+        return ""
 
 
 
@@ -137,7 +153,7 @@ class TrigramSearch(PluginTemplateExtension):
 
 class MerakiPushPluginExtension(PluginTemplateExtension):
 
-    models = ['dcim.site','dcim.region', 'dcim.sitegroup']
+    models = ['dcim.site','dcim.region', 'dcim.sitegroup', 'sop_infra.sopinfra']
 
     def buttons(self):
         from utilities.permissions import get_permission_for_model
@@ -156,6 +172,9 @@ class MerakiPushPluginExtension(PluginTemplateExtension):
         if isinstance(object, SiteGroup):
             if request.user.has_perm(get_permission_for_model(object, "helper_push_group")):
                 return self.render("sop_infra/inc/pushconf_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_push_group"})
+        if isinstance(object, SopInfra):
+            if request.user.has_perm(get_permission_for_model(object, "helper_push_sopinfra")):
+                return self.render("sop_infra/inc/pushconf_btn.html", extra_context={"post_url":"plugins:sop_infra:sopmeraki_push_sopinfra"})
         return ""
     
 
@@ -232,7 +251,7 @@ template_extensions.append(RefreshBtnPluginExtension)
 template_extensions.append(RecomputeSizingPluginExtension)
 template_extensions.append(NetboxDevicePluginExtension)
 template_extensions.append(NetboxContactPluginExtension)
-
+template_extensions.append(SiteToSopInfraDetailButton)
 
 template_extensions.append(TrigramSearch)  
 template_extensions.append(DHCPHelperPluginExtension)  
