@@ -372,6 +372,18 @@ class SopMerakiDeviceMoveForm(forms.Form):
         }
 
 
+    
+class SopMerakiDeviceRemoveForm(forms.Form):
+    
+    def clean(self):
+        data = super().clean()
+        request: HttpRequest = current_request.get()  # type: ignore
+        return_url = request.GET.get("return_url", "")
+        data["sure"]=True
+        data["return_url"]=return_url
+        return data
+
+
 
 # class SopMerakiDeviceBulkMoveForm(PrimaryModelBulkEditForm):
 #     tenant = DynamicModelChoiceField(

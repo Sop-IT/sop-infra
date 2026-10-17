@@ -37,7 +37,7 @@ from extras.models import Tag
 from sop_infra.ui import panels
 
 from sop_infra.forms.infra import SopInfraHelperDhcpForm, SopInfraRefreshForm, SopMerakiClaimForm, SopSyslogServerFilterForm, SopSyslogServerForm
-from sop_infra.jobs import SopInfraRefreshJob, SopMerakiCreateNetworkJob, SopMerakiDashRefreshJob, SopSyncAdUsers
+from sop_infra.jobs import SopInfraRefreshJob, SopMerakiCreateArobaseNetworkJob, SopMerakiCreateNetworkJob, SopMerakiCreateTempNetworkJob, SopMerakiDashRefreshJob, SopSyncAdUsers
 from sop_infra.utils.meraki_utils import SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraConstants, SopInfraUtils
 from sop_infra.forms import *
@@ -502,16 +502,14 @@ class SopInfraMerakiTabView( generic.ObjectView):
     template_name: str = "sop_infra/sopinfra/tabs/sopmeraki.html"
     queryset = SopInfra.objects.all()
 
-    # def get_extra_context(self, request, instance) -> dict:
-    #     print(f"getaxtracontext {instance=}")
-    #     context = super().get_extra_context(request, instance)
-    #     if not instance:
-    #         raise Http404("No instance given.")
-    #     context["site"] = instance
-    #     if not instance.sopinfra:
-    #         instance.sopinfra = SopInfra.objects.create(site=instance)
-    #     context["infra"] = instance.sopinfra
-    #     return context
+    def get_extra_context(self, request, instance) -> dict:
+        print(f"getaxtracontext {instance=}")
+        context = super().get_extra_context(request, instance)
+        if not instance:
+            raise Http404("No instance given.")
+        context["sopmerakinet"] = SopMerakiNet
+        context["sopmerakinets"] = instance.site.meraki_nets.all()
+        return context
 
 
 #endregion SOPINFRA INFRA TABS
@@ -825,6 +823,50 @@ class SopMerakiCreateNetworksView(AccessMixin, View):
         details: bool = request.GET["details"] == "True"
         # Launch job
         j: Job = SopMerakiCreateNetworkJob.launch_interactive(request, message=True, sopinfra=sopinfra, details=details)
+        # Send to script result
+        url = reverse("core:job", args=[j.pk])
+        if details:
+            url += "?log_threshold=debug"
+        return redirect(url)
+
+
+class SopMerakiCreateArobaseNetworkView(AccessMixin, View):
+
+    def get(self, request, pk, *args, **kwargs):
+        # Check perms
+        group_names = ["ALL_ITA_Netbox_Team_Integration", "ALL_ITA_Netbox_Team_Network"]
+        if request.user.is_superuser:
+            pass
+        elif not request.user.groups.filter(name__in=group_names):
+            return self.handle_no_permission()
+        # Fetch site
+        sopinfra=get_object_or_404(SopInfra, pk=pk)
+        # Fetch details param
+        details: bool = request.GET["details"] == "True"
+        # Launch job
+        j: Job = SopMerakiCreateArobaseNetworkJob.launch_interactive(request, message=True, sopinfra=sopinfra, details=details)
+        # Send to script result
+        url = reverse("core:job", args=[j.pk])
+        if details:
+            url += "?log_threshold=debug"
+        return redirect(url)
+
+
+class SopMerakiCreateTempNetworkView(AccessMixin, View):
+
+    def get(self, request, pk, *args, **kwargs):
+        # Check perms
+        group_names = ["ALL_ITA_Netbox_Team_Integration", "ALL_ITA_Netbox_Team_Network"]
+        if request.user.is_superuser:
+            pass
+        elif not request.user.groups.filter(name__in=group_names):
+            return self.handle_no_permission()
+        # Fetch site
+        sopinfra=get_object_or_404(SopInfra, pk=pk)
+        # Fetch details param
+        details: bool = request.GET["details"] == "True"
+        # Launch job
+        j: Job = SopMerakiCreateTempNetworkJob.launch_interactive(request, message=True, sopinfra=sopinfra, details=details)
         # Send to script result
         url = reverse("core:job", args=[j.pk])
         if details:

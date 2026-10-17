@@ -345,9 +345,42 @@ class SopMerakiUtils:
     #endregion
 
 
+    @classmethod
+    def get_region_claim_orgid(cls, region: Region)->int:
+        # Indirection for easier refactoring later
+        if region is None :
+            return None
+        return region.custom_field_data.get("meraki_org")  
+
+    @classmethod
+    def get_region_copyfromid(cls, region: Region)->int:
+        # Indirection for easier refactoring later
+        if region is None :
+            return None
+        return region.custom_field_data.get("meraki_tmplnet_sdwan")   
+    
+    @classmethod
+    def find_site_claim_region(cls, site:Site)->Region:
+        # Walk hierarchy to find the claim region
+        region: Region = site.region  # type: ignore
+        while region is not None:
+            if cls.get_region_claim_orgid(region) is not None:
+                break
+            region = region.parent  # type: ignore
+        return region
+
+    @classmethod
+    def find_site_claim_org(cls, site:Site):
+        # Get claim org from region hierarchy
+        region: Region = cls.find_site_claim_region(site)
+        if region is None:
+            return None,None
+        return cls.get_region_claim_orgid(region),cls.get_region_copyfromid(region)
 
     # ---------------------------------------------
     #region ACTIONS
+
+  
 
     @classmethod
     def create_meraki_networks(
@@ -403,7 +436,7 @@ class SopMerakiUtils:
             org.meraki_id,
             name=sdwan_name,
             copyFromNetworkId=copy_from.meraki_id,
-            timeZone=f"{copy_from.timezone}",
+            timeZone=f"{site.time_zone}",
             productTypes=["appliance"],
             tags=SopMerakiUtils.calc_site_netbox_tags(site),
         )
@@ -413,6 +446,7 @@ class SopMerakiUtils:
         switches = conn.organizations.createOrganizationNetwork(
             org.meraki_id,
             name=switch_name,
+            timeZone=f"{site.time_zone}",
             productTypes=["switch", "wireless"],
             tags=SopMerakiUtils.calc_site_netbox_tags(site),
         )
@@ -425,6 +459,107 @@ class SopMerakiUtils:
         SopMerakiNetUtils.create_or_refresh(conn, bind, org, log, details)
         if log:
             log.log_success(f"Done creating networks !")
+
+
+    @classmethod
+    def create_meraki_net_arobase(
+        cls, log: JobRunnerLogMixin, simulate: bool, sopinfra: SopInfra, details: bool = False
+    ):
+        if log and details:
+            log.log_debug(f"create_meraki_net_arobase for site {sopinfra}")
+        # Calc Meraki_network name
+        site:Site=sopinfra.site
+        meraki_name = f"{site.group.parent.name}-{site.region.name}-{site.tenant.group.name}@--{site.name}"  # type: ignore
+        # Check if it already exists
+        smn:SopMerakiNet=SopMerakiNetUtils.get_by_name(meraki_name)
+        if smn is not None:
+            # TODO : fix the network ?
+            log.log_info(f'Meraki network "{meraki_name}" already exists !')
+            return False
+        # Get claim org from region hierarchy
+        (org_id, copy_from_id) = cls.find_site_claim_org(site)
+        if org_id is None or copy_from_id is None:
+            if log:
+                log.log_failure(
+                    f"Unable to determine creation settings for site {site} :  {org_id=}, {copy_from_id=}"
+                )
+            return
+        if log and details:
+            log.log_debug(
+                f"create_meraki_net_arobase : {org_id=}, {copy_from_id=} for {site}"
+            )
+        # Get con from dash from org
+        org = SopMerakiOrg.objects.get(pk=org_id)
+        copy_from:SopMerakiNet = SopMerakiNet.objects.get(pk=copy_from_id)
+        if copy_from.org != org:
+            if log:
+                log.log_failure(
+                    f"copy_from org != creation org  {org=} VS {copy_from.org=}"
+                )
+            return
+        smd: SopMerakiDash = org.dash
+        if log:
+            log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+        conn = cls.connect(smd.nom, smd.api_url, simulate)
+        # Create missing ones
+        log.info(f"Trying to create network '{meraki_name}'...")
+        meraki_net = conn.organizations.createOrganizationNetwork(
+            org.meraki_id,
+            name=meraki_name,
+            copyFromNetworkId=copy_from.meraki_id,
+            timeZone=f"{site.time_zone}",
+            productTypes=["appliance", "switch"],
+            tags=SopMerakiUtils.calc_site_netbox_tags(site),
+        )
+        if log and details:
+            log.log_debug(f"created arobase network {meraki_net=}")
+        # Resync network details
+        SopMerakiNetUtils.create_or_refresh(conn, meraki_net, org, log, details)
+        if log:
+            log.log_success(f"Done creating arobase network !")
+
+
+    @classmethod
+    def create_meraki_net_temporary(
+        cls, log: JobRunnerLogMixin, simulate: bool, sopinfra: SopInfra, details: bool = False
+    ) -> bool:
+        if log and details:
+            log.log_debug(f"create_meraki_net_temporay for site {sopinfra}")
+        # Calc Meraki_network name
+        site:Site=sopinfra.site
+        meraki_name = f"{site.group.parent.name}-{site.region.name}-{site.tenant.group.name}#--{site.name}"  # type: ignore
+        # Check if it already exists
+        smn:SopMerakiNet=SopMerakiNetUtils.get_by_name(meraki_name)
+        if smn is not None:
+            # TODO : fix the network ?
+            log.log_info(f'Meraki network "{meraki_name}" already exists !')
+            return False
+        # Get creation params from region hierarchy
+        region: Region = cls.find_site_claim_region(site)
+        org_id: int = cls.get_region_claim_orgid(region)
+        if org_id is None :
+            log.log_failure(f"Unable to determine creation settings for site {site} :  {org_id=}")
+            return False
+        log.log_debug(f"create_meraki_net_temporay in org {org_id=} for {site}")
+        # Get con from dash from org
+        org = SopMerakiOrg.objects.get(pk=org_id)
+        smd: SopMerakiDash = org.dash
+        log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+        conn = cls.connect(smd.nom, smd.api_url, simulate)
+        # Create missing ones
+        log.info(f"Trying to create network '{meraki_name}'...")
+        meraki_net = conn.organizations.createOrganizationNetwork(
+            org.meraki_id,
+            name=meraki_name,
+            timeZone=f"{site.time_zone}",
+            productTypes=["appliance"],
+            tags=SopMerakiUtils.calc_site_netbox_tags(site),
+        )
+        log.log_debug(f"created temporary network {meraki_net=}")
+        # Resync network details
+        SopMerakiNetUtils.create_or_refresh(conn, meraki_net, org, log, details)
+        if log:
+            log.log_success(f"Done creating temporary network !")
 
 
     @classmethod
@@ -453,15 +588,28 @@ class SopMerakiUtils:
     @classmethod
     def move_devices_to_network(
         cls,  log:JobRunnerLogMixin, simulate: bool, smn:SopMerakiNet, devices:list[SopMerakiDevice], force:bool 
-    )-> list[SopMerakiDevice]:
+    )-> dict:
         print(f"SopMerakiUtils.move_devices_to_network : claiming {len(devices)} devices to {smn} net")
         if len(devices)==0:
-            return list()
+            return None
         if smn is None:
             raise AbortRequest(f"Destination Meraki Network is not set !")
         smd:SopMerakiDash = smn.org.dash
         conn = cls.connect(smd.nom, smd.api_url, simulate)       
         return SopMerakiDeviceUtils.move_devices_to_network(smn, devices, force, conn, log, False)
+
+
+    @classmethod
+    def remove_devices_from_network(
+        cls,  log:JobRunnerLogMixin, simulate: bool, devices:list[SopMerakiDevice]
+    )-> dict:
+        print(f"SopMerakiUtils.remove_devices_from_network : removing {len(devices)} devices from their network")
+        if len(devices)==0:
+            return None
+        smd:SopMerakiDash = devices[0].org.dash
+        conn = cls.connect(smd.nom, smd.api_url, simulate)       
+        return SopMerakiDeviceUtils.remove_devices_from_network(devices, conn, log, False)
+
 
 
     @classmethod
@@ -800,6 +948,11 @@ class SopMerakiNetUtils:
         return nets[0] if nets.exists() else None
     
     @staticmethod
+    def get_by_name(name: str)->SopMerakiNet:
+        nets = SopMerakiNet.objects.filter(nom=name)
+        return nets[0] if nets.exists() else None   
+    
+    @staticmethod
     def create_or_refresh(
         conn: meraki.DashboardAPI,
         net_data:dict,
@@ -810,7 +963,7 @@ class SopMerakiNetUtils:
         if not SopMerakiNet.objects.filter(meraki_id=net_data["id"]).exists():
             if log:
                 log.info(f"Creating new NET for '{net_data['id']}' on ORG '{org.nom}'...")
-            smn = SopMerakiNet()
+            smn = SopMerakiNet(nom = net_data["name"])
         else:
             smn = SopMerakiNet.objects.get(meraki_id=net_data["id"])
         SopMerakiNetUtils.refresh_from_meraki_data(smn, conn, net_data, org, log, details)
@@ -1709,7 +1862,112 @@ class SopMerakiDeviceUtils:
             "moved": moved,
             "errors": errs,
         }
-        
+
+    @staticmethod
+    def remove_devices_from_network(
+        devices : list[SopMerakiDevice],
+        conn: meraki.DashboardAPI,
+        log: JobRunnerLogMixin,
+        details:bool
+    ) -> dict:
+        # Préparer les reports
+        inventory=list()
+        missing=list()
+        not_in_net=list()
+        no_org=list()
+        removed:dict[str,str]=dict()
+        serials:list[str]=list()
+        # Split by org
+        by_org:dict[str,list[SopMerakiDevice]]=dict()
+        orgs:dict[str,SopMerakiOrg]=dict()
+        for smd in set(devices):
+            if smd.org is None:
+                no_org.append(smd.serial)
+                continue
+            serials.append(smd.serial)
+            id=smd.org.meraki_id
+            if id not in by_org.keys():
+                by_org[id]=list()
+                orgs[id]=smd.org
+            by_org[id].append(smd)
+        # Loop
+        for orgid in by_org.keys():
+            results=SopMerakiDeviceUtils.remove_org_devices_from_network(orgs[orgid], by_org[orgid], conn, log, details)
+            missing.extend(results["missing"])
+            not_in_net.extend(results["not_in_net"])
+            removed.update(results["removed"])
+        # Log and report back
+        log.log_info(f"Remove {serials} from networks !")
+        return {
+            "no_org" : no_org,
+            "missing" : missing,
+            "not_in_net": not_in_net,
+            "removed": removed,
+        }  
+      
+    @staticmethod
+    def remove_org_devices_from_network(
+        org:SopMerakiOrg,
+        devices : list[SopMerakiDevice],
+        conn: meraki.DashboardAPI,
+        log: JobRunnerLogMixin,
+        details:bool
+    ) -> dict:
+        # Préparer les reports
+        inventory=list()
+        removed:dict[str,str]=dict()
+        # extract serials and prepare smd updates
+        by_serial:dict[str,SopMerakiDevice]=dict()
+        serials:list[str]=list()
+        to_save:list[str]=list()
+        for smd in set(devices):
+            serials.append(smd.serial)
+            by_serial[smd.serial]=smd
+            if smd.org!=org:
+                raise Exception("Multiple different orgs detected.")
+            smd.snapshot()
+            smd._changelog_message=f"Remove from {smd.meraki_netid}"
+        # Check where we stand
+        devs=SopMerakiOrgUtils.fetch_inventory_devices(conn, org.meraki_id, serials)
+        missing:list[str]=list(serial for serial in devs.get("missing"))
+        # Loop
+        for dev in devs.get("found"):
+            serial=dev.get("serial")
+            nid=dev.get("networkId")
+            print(f"{serial=} / {nid=} ")
+            if nid is None or nid=="":
+                inventory.append(serial)
+                serials.remove(serial)
+            else:
+                removed[serial]=nid
+                serials.remove(serial)
+        # Free devices from networks
+        for (sn,nid) in removed.items():
+            print(f"remove {sn=} / {nid=}")
+            conn.networks.removeNetworkDevices(nid, sn)
+            serials.append(sn)
+            smd=by_serial.get(sn)
+            smd._changelog_message=f"{smd._changelog_message} - remove from {nid} SUCCESS"
+            smd.meraki_netid=None
+            to_save.append(smd.serial)
+        # Save those that need it
+        for sn in set(to_save):
+            smd:SopMerakiDevice=by_serial.get(sn)
+            SopMerakiDeviceUtils.__relink_related_objects_no_save(smd, log)  
+            #print(f"saving {sn=} {smd=} {smd.meraki_netid=}")
+            smd.full_clean()
+            #print(f"cleaned {sn=} {smd=} {smd.meraki_netid=}")
+            smd.save()
+            #print(f"saved {sn=} {smd=} {smd.meraki_netid=}")
+            smd=SopMerakiDevice.objects.get(pk=smd.pk)
+            #print(f"refetched {smd.serial=} {smd=} {smd.meraki_netid=}")   
+        # Log and report back
+        log.log_info(f"Remove {serials}  done !")
+        return {
+            "missing" : missing,
+            "not_in_net": inventory,
+            "removed": removed,
+        }  
 
 class SopMerakiSwitchStackUtils:
     @staticmethod

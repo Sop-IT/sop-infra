@@ -17,7 +17,8 @@
   {% if object.status and object.status == 'dc' %}
   {% else %}
     {% sopinfra_create_meraki_networks_button %} 
-    {# % sopinfra_claim_button % #} 
+    {% sopinfra_create_meraki_arobase_network_button %} 
+    {% sopinfra_create_meraki_temp_network_button %}
   {% endif %}
 {% endblock custom-links %}
 
@@ -78,6 +79,40 @@
 
   <div class="col col-md-6">
 
+
+    <!-- MERAKI NETWORKS CARD --> 
+    <div class="card">
+      <h2 class="card-header">
+        <a href="{% url sopmerakinet|viewname:'list' %}?site_id={{object.site.pk}}">Meraki Networks</a>
+      </h2>
+      <table class="table table-hover attr-table">
+        {% for smn in sopmerakinets %}
+          <tr>
+            <td>
+              <a href="{{ smn.meraki_url }}" target="blank">
+                <i class="mdi mdi-open-in-new" aria-hidden="true"  
+                data-bs-toggle="tooltip" |=""
+                aria-label="Open the Meraki dashboard in a new browser tab."  
+                data-bs-original-title="Open the Meraki dashboard in a new browser tab."></i>
+              </a>
+              &nbsp;
+              <a href="{{ smn.get_absolute_url }}" aria-hidden="true"  
+                data-bs-toggle="tooltip" |=""
+                aria-label="Browse to the SopMerakiNet"  
+                data-bs-original-title="Browse to the SopMerakiNet">{{ smn.nom }}
+              </a>
+            </td>
+            <td>
+              <a href="{% url 'plugins:sop_infra:sopmerakidevice_list' %}?meraki_network={{smn.pk}}" aria-hidden="true"  
+                data-bs-toggle="tooltip" |=""
+                aria-label="Show list of devices"  
+                data-bs-original-title="Show list of devices">{{ smn.devices.count }}</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+
     <!-- UMBRELLA CONNECTIVITY CARD -->
     <div class="card">
       <h2 class="card-header">Umbrella connectivity</h2>
@@ -137,28 +172,6 @@
 
 </div>
 
-
-<script>
-  document.addEventListener('DOMContentLoaded', function()
-  {
-    const all_tabs = document.querySelectorAll('ul.nav.nav-tabs li.nav-item a');
-    update_current_tab_color(all_tabs, 'Meraki')
-
-    /*
-     * update tab front background color
-     */
-    function update_current_tab_color(all_tabs, tab_name)
-    {
-      all_tabs.forEach(tab => {
-        if (tab.innerText.trim() == "Site") {
-          tab.classList.remove('active');
-        } else if (tab.innerText.trim() == tab_name) {
-          tab.classList.add('active');
-        }
-      });
-    }
-  });
-</script>
 
 {% endblock content %}
 

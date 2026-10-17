@@ -8,14 +8,15 @@ from django.http import Http404, HttpRequest, JsonResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import AccessMixin
+from sop_infra.models.infra import SopInfra
 
 
 from core.choices import JobStatusChoices
 from extras.ui.panels import CustomFieldsPanel, TagsPanel
-from sop_infra.forms.sopmeraki import SopMerakiDeviceMoveForm, SopMerakiOrgClaimForm
+from sop_infra.forms.sopmeraki import SopMerakiDeviceMoveForm, SopMerakiDeviceRemoveForm, SopMerakiOrgClaimForm
 from sop_infra.utils.meraki_utils import SopMerakiOrgUtils, SopMerakiUtils
 from sop_infra.utils.netbox_utils import SopInfraUtils
-from sop_infra.utils.object_actions import MoveObject
+from sop_infra.utils.object_actions import MoveObject, RemoveObject, MerakiRemoveDeviceFromNetwork
 from utilities.views import ConditionalLoginRequiredMixin, ObjectPermissionRequiredMixin, ViewTab, register_model_view
 from utilities.permissions import get_permission_for_model
 from utilities.forms import restrict_form_fields
@@ -52,6 +53,7 @@ from sop_infra.jobs import (
     SopMerakiNetRefreshJob,
     SopMerakiOrgConnectivityStatusesJob,
     SopMerakiPushSiteJob,
+    SopMerakiRemoveDevicesFromNetworkJob,
 )
 from sop_infra.ui import panels
 
@@ -198,7 +200,7 @@ class SopMerakiPushRegionView(SiteHierarchicalTaskMixin, View):
         # report and return
         messages.success(request, f"Queued {len(sites)} site pushes for region {region}")
         return redirect(return_url)
-    
+
     
 class SopMerakiPushSiteView(View):
 
@@ -234,6 +236,16 @@ class SopMerakiPushSiteView(View):
         return redirect(url)
     
 
+
+class SopMerakiPushSopInfraView(SopMerakiPushSiteView):
+    """
+    Push Meraki configurations for the site linked to this Sopinfra
+    """
+    def post(self, request, pk, *args, **kwargs):
+         # Fetch site
+        instance = get_object_or_404(SopInfra, pk=pk)
+        return super().post(request, instance.site.pk, *args, **kwargs)
+    
 #endregion
 
 
@@ -994,7 +1006,7 @@ class SopMerakiSwitchStackComplianceTabView(generic.ObjectView):
 
 @register_model_view(SopMerakiDevice)
 class SopMerakiDeviceView(generic.ObjectView):
-    actions = [MoveObject]
+    actions = [MoveObject, MerakiRemoveDeviceFromNetwork]
     queryset = SopMerakiDevice.objects.all()
     layout = layout.SimpleLayout(
         left_panels=[
@@ -1132,6 +1144,80 @@ class SopMerakiDeviceMoveView(ConditionalLoginRequiredMixin, View):
         else:
             url = reverse("core:job", args=[j.pk])
         return redirect(url)
+
+
+@register_model_view(SopMerakiDevice, 'remove')
+class SopMerakiDeviceRemoveView(ConditionalLoginRequiredMixin, View):
+
+    form = SopMerakiDeviceRemoveForm
+    template_name: str = "sop_infra/sopinfra/actions/sopmerakidevice_remove.html"
+
+    def get(self, request, pk, *args, **kwargs):
+        # Fetch from DB
+        instance = get_object_or_404(SopMerakiDevice, pk=pk)
+        # Check perms
+        # - can move the device
+        if not SopUtils.check_permission(request.user, instance, "move"):
+            raise PermissionDenied(f"You do not have 'move' permission on this device ({instance}) !")
+        # - can move on source network
+        if instance.meraki_network is not None and not SopUtils.check_permission(request.user, instance.meraki_network, "move"):
+            raise PermissionDenied(f"You do not have 'move' permission on the source network {instance.meraki_network} !")
+        # Build or fetch return URL
+        return_url : str = request.get_full_path()
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        # Prepare form (give ptype to filter possible networks)
+        frm=self.form(initial={})
+        # fld=frm.fields.get("destination")
+        # fld.help_text=f"Filtered by product_type={instance.ptype}"
+        # fld.widget.add_query_params({"ptypes__icontains": instance.ptype})
+        # Filter out networks where the user has move rights 
+        #restrict_form_fields(frm, request.user, "move")
+        # render
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": frm,
+                "dev_name" : instance.nom,
+                "net_name" : instance.meraki_network.nom,
+                "return_url": return_url,
+            },
+        )
+
+
+    def post(self, request, pk, *args, **kwargs):
+        # Fetch from DB
+        instance = get_object_or_404(SopMerakiDevice, pk=pk)
+        # Check perms
+        # - can move the device
+        if not SopUtils.check_permission(request.user, instance, "move"):
+            raise PermissionDenied(f"You do not have 'move' permission on this device ({instance}) !")
+        # - can move on source network
+        if instance.meraki_network is not None and not SopUtils.check_permission(request.user, instance.meraki_network, "move"):
+            raise PermissionDenied(f"You do not have 'move' permission on the network {instance.meraki_network} !")
+        # Build or fetch return URL
+        return_url : str
+        if request.GET.get("return_url"):
+            return_url = request.GET.get("return_url")
+        else: 
+            return_url = request.get_full_path()
+        # Check and validate form data
+        form = self.form(data=request.POST, files=request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form, "return_url": return_url})
+        # Extract form data
+        data: dict = form.cleaned_data
+        # Run job and redirect according to return status
+        j: Job = SopMerakiRemoveDevicesFromNetworkJob.launch_interactive(request, True, [instance], instance.meraki_network)
+        url:str
+        if j.status==JobStatusChoices.STATUS_COMPLETED:
+            url= return_url
+        else:
+            url = reverse("core:job", args=[j.pk])
+        return redirect(url)
+
+
 
 # @register_model_view(SopMerakiDevice, 'bulk_move', path='move', detail=False)
 # class SopMerakiDeviceBulkMoveView(generic.BulkEditView):

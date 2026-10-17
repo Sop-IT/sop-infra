@@ -539,6 +539,7 @@ class SopMerakiDevice(
         verbose_name_plural = "Meraki Devices"
         permissions = [
             ('move', 'Move'),
+            ('remove', 'Remove'),
         ]
 
     def clean_fields(self, exclude = ...):

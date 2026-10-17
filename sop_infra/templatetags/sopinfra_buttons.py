@@ -8,6 +8,8 @@ from utilities.views import get_viewname
 __all__ = (
     'sopinfra_claim_button',
     'sopinfra_create_meraki_networks_button',
+    'sopinfra_create_meraki_arobase_network_button',
+    'sopinfra_create_meraki_temp_network_button',
 )
 
 register = template.Library()
@@ -25,6 +27,25 @@ def sopinfra_claim_button(context):
 def sopinfra_create_meraki_networks_button(context):
     instance=context['object']  
     viewname = 'plugins:sop_infra:sopinfra_create_meraki_networks' #get_viewname(instance, 'create_meraki_networks')
+    url = reverse(viewname, kwargs={'pk': instance.pk}, query={'details':True, 'return_url':context['request'].get_full_path()})
+    return {
+        'url': url,
+    }
+
+@register.inclusion_tag('sop_infra/sopinfra/buttons/create_meraki_arobase_network.html', takes_context=True)
+def sopinfra_create_meraki_arobase_network_button(context):
+    instance=context['object']  
+    viewname = 'plugins:sop_infra:sopinfra_create_meraki_arobase_network' 
+    url = reverse(viewname, kwargs={'pk': instance.pk}, query={'details':True, 'return_url':context['request'].get_full_path()})
+    return {
+        'url': url,
+    }
+
+
+@register.inclusion_tag('sop_infra/sopinfra/buttons/create_meraki_temp_network.html', takes_context=True)
+def sopinfra_create_meraki_temp_network_button(context):
+    instance=context['object']  
+    viewname = 'plugins:sop_infra:sopinfra_create_meraki_temp_network' 
     url = reverse(viewname, kwargs={'pk': instance.pk}, query={'details':True, 'return_url':context['request'].get_full_path()})
     return {
         'url': url,

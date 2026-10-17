@@ -7,7 +7,7 @@ from utilities.urls import get_model_urls
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
 
 from sop_infra.models.infra import SopInfra, SopSwitchTemplate
-from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraRefreshChooseView, SopMerakiCreateNetworksView
+from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraRefreshChooseView, SopMerakiCreateArobaseNetworkView, SopMerakiCreateNetworksView, SopMerakiCreateTempNetworkView
 from sop_infra.views.infra import SopInfraListView, SopInfraDetailView, SopInfraEditView, SopInfraDeleteView, SopInfraRecomputeSizingChooseView
 from sop_infra.views.infra import SopDeviceSettingDetailView, SopDeviceSettingEditView, SopDeviceSettingTryManageInNetbox
 from sop_infra.views.infra import SopSwitchTemplateListView, SopSwitchTemplateDetailView, SopSwitchTemplateEditView, SopSwitchTemplateDeleteView
@@ -15,7 +15,7 @@ from sop_infra.views.infra import SopInfraSyncAdUsers,SopInfraJsonExportsAdUsers
 
 
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
-from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView, SopMerakiDashConnectivityStatusesView, SopMerakiDeviceMoveView, SopMerakiEnableUmbrellaSiteGroupView, SopMerakiEnableUmbrellaRegionView, SopMerakiEnableUmbrellaSiteView, SopMerakiEnableUmbrellaTenantGroupView, SopMerakiEnableUmbrellaTenantView, SopMerakiJsonConnectivityStatusSite, SopMerakiLinkUmbrellaSiteGroupView, SopMerakiLinkUmbrellaRegionView, SopMerakiLinkUmbrellaSiteView, SopMerakiLinkUmbrellaTenantGroupView, SopMerakiLinkUmbrellaTenantView, SopMerakiNetUpdateConnectivityStatusesView, SopMerakiOrgClaimView, SopMerakiOrgUpdateConnectivityStatusesView, SopMerakiPushGroupView, SopMerakiPushRegionView
+from sop_infra.views.sopmeraki import SopMerakiDashListView, SopMerakiDashDeleteView, SopMerakiDashEditView,SopMerakiDashRefreshChooseView, SopMerakiDashRefreshView, SopMerakiDashView, SopMerakiDashConnectivityStatusesView, SopMerakiDeviceMoveView, SopMerakiEnableUmbrellaSiteGroupView, SopMerakiEnableUmbrellaRegionView, SopMerakiEnableUmbrellaSiteView, SopMerakiEnableUmbrellaTenantGroupView, SopMerakiEnableUmbrellaTenantView, SopMerakiJsonConnectivityStatusSite, SopMerakiLinkUmbrellaSiteGroupView, SopMerakiLinkUmbrellaRegionView, SopMerakiLinkUmbrellaSiteView, SopMerakiLinkUmbrellaTenantGroupView, SopMerakiLinkUmbrellaTenantView, SopMerakiNetUpdateConnectivityStatusesView, SopMerakiOrgClaimView, SopMerakiOrgUpdateConnectivityStatusesView, SopMerakiPushGroupView, SopMerakiPushRegionView, SopMerakiPushSopInfraView
 from sop_infra.views.sopmeraki import SopMerakiOrgListView, SopMerakiOrgView, SopMerakiOrgEditView, SopMerakiOrgDeleteView, SopMerakiOrgRefreshView, SopMerakiOrgRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiNetListView, SopMerakiNetView, SopMerakiNetEditView, SopMerakiNetDeleteView, SopMerakiNetRefreshView, SopMerakiNetRefreshChooseView
 from sop_infra.views.sopmeraki import SopMerakiDeviceListView, SopMerakiDeviceView, SopMerakiDeviceEditView, SopMerakiDeviceDeleteView
@@ -42,6 +42,7 @@ urlpatterns = [
     path('sopmeraki/push/site/<int:pk>/', SopMerakiPushSiteView.as_view(), name='sopmeraki_push_site'),
     path('sopmeraki/push/region/<int:pk>/', SopMerakiPushRegionView.as_view(), name='sopmeraki_push_region'),
     path('sopmeraki/push/group/<int:pk>/', SopMerakiPushGroupView.as_view(), name='sopmeraki_push_group'),
+    path('sopmeraki/push/sopinfra/<int:pk>/', SopMerakiPushSopInfraView.as_view(), name='sopmeraki_push_sopinfra'),
 
 
     # MERAKI UMBRELLA views
@@ -82,6 +83,8 @@ urlpatterns = [
     path('sopinfra/refresh/', SopInfraRefreshChooseView.as_view(), name='sopinfra_refresh_choose'),
     # WARNING : PK are SITE PKs not SOPINFRA PKs
     path('sopinfra/create_meraki_networks/<int:pk>/', SopMerakiCreateNetworksView.as_view(), name='sopinfra_create_meraki_networks'),
+    path('sopinfra/create_meraki_arobase_network/<int:pk>/', SopMerakiCreateArobaseNetworkView.as_view(), name='sopinfra_create_meraki_arobase_network'),
+    path('sopinfra/create_meraki_temp_network/<int:pk>/', SopMerakiCreateTempNetworkView.as_view(), name='sopinfra_create_meraki_temp_network'),
     #path('sopinfra/claim_meraki_devices/<int:pk>/', SopMerakiClaimDevicesView.as_view(), name='sopinfra_claim_meraki_devices'),
 
   

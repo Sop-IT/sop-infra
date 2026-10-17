@@ -1,0 +1,18 @@
+{% load i18n %}
+{% comment %}
+  {% load buttons %}
+  {% load helpers %}
+  <form action="{{ url }}?return_url={{ return_url|urlencode }}" method="post">
+    {% csrf_token %}
+    {% for field, value in form_data.items %}
+      <input type="hidden" name="{{ field }}" value="{{ value }}" />
+    {% endfor %}
+    <button type="submit" class="btn btn-red" >
+      <i class="mdi mdi-web-remove" aria-hidden="true"></i> {{ label }}
+    </button>
+  </form>
+----MARKER----
+{% endcomment %}
+<a href="{{ url }}?return_url={{ return_url|urlencode }}" class="btn btn-red" role="button">
+  <i class="mdi mdi-web-remove" aria-hidden="true"></i> {{ label }}
+</a>

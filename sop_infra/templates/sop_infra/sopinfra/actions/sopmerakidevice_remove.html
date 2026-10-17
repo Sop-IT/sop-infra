@@ -1,0 +1,27 @@
+{% extends 'generic/object_edit.html' %}
+
+
+{% block title %}
+  Remove Meraki Device from its Network
+{% endblock %}
+
+{% block tabs %}
+{% endblock tabs %}
+
+{% block pre_form_fields %}
+<b>
+This will immediately remove the device from the Meraki network.<br/>
+<br/>
+Are you sure ?
+</b>
+{% endblock pre_form_fields %}
+
+{% block buttons %}
+  <a href="{{ return_url }}" class="btn btn-outline-secondary">Cancel</a>
+  <div class="btn-group" role="group" aria-label="Actions">
+    <button type="submit" name="_create" class="btn btn-primary btn-red">
+      <i class="mdi mdi-web-remove" title="Remove Meraki Device from its Network"></i>
+      Remove
+    </button>
+  </div>
+{% endblock buttons %}}

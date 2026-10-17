@@ -8,20 +8,6 @@
 
 
 
-{% block custom-links %}
-  {{ block.super }}
-  {% if infra.pk and request.user|can_view:infra  %}
-    <div class="d-flex justify-content-end">
-      <div class="btn-list">
-        <a href="{% url 'plugins:sop_infra:sopinfra_detail' pk=infra.pk %}?return_url={{ request.get_full_path|urlencode }}" type="button" class="btn btn-purple">
-          <i class="mdi mdi-loupe"></i> SOP Infra detail
-        </a>
-      </div>
-    </div>
-  {% endif %}
-{% endblock custom-links %}
-
-
 {% block content %}
   {% include "sop_infra/site/inc/sopinfra_content.html" with object=infra %}
 {% endblock content %}

@@ -28,6 +28,16 @@ MOVE_TO_NETWORK = """
 {% endif %}
 """
 
+REMOVE_FROM_NETWORK = """
+{# TODO - CHECK PERMS ON NET #}
+{% if record.pk %}
+    {% if record.meraki_netid %}
+  <a href="{% url 'plugins:sop_infra:sopmerakidevice_remove' record.pk %}?return_url={{ request.get_full_path|urlencode }}" class="btn btn-red" role="button">
+    <i class="mdi mdi-web-remove" aria-hidden="true"></i>
+  </a>
+    {% endif %}
+{% endif %}
+"""
 
 class SopMerakiDashTable(NetBoxTable):
 
@@ -146,6 +156,7 @@ class SopMerakiSwitchStackTable(NetBoxTable):
         default_columns = ("nom", "net")
 
 
+
 class SopMerakiDeviceTable(NetBoxTable):
 
     nom = tables.Column(linkify=True)
@@ -158,7 +169,7 @@ class SopMerakiDeviceTable(NetBoxTable):
     has_netbox_device_in_same_site = tables.Column(verbose_name="Site match ?", empty_values=(None, False), orderable=False)
     has_netbox_device_of_same_type = tables.Column(verbose_name="Type match ?", empty_values=(None, False), orderable=False)
     actions = columns.ActionsColumn(
-        extra_buttons=MOVE_TO_NETWORK
+        extra_buttons=REMOVE_FROM_NETWORK + MOVE_TO_NETWORK
     )
 
     class Meta(NetBoxTable.Meta):

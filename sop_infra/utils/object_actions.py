@@ -1,5 +1,6 @@
 from django.db.models import ForeignKey
 from django.template import loader
+from django.urls import reverse
 from django.urls.exceptions import NoReverseMatch
 from django.utils.translation import gettext_lazy as _
 
@@ -11,9 +12,13 @@ from utilities.views import get_action_url, get_viewname
 
 __all__ = (
     'MoveObject',
+    'RemoveObject',
+    'MerakiRemoveDeviceFromNetwork',
 )
 
-from django.urls import reverse
+
+
+
 class MoveObject(ObjectAction):
     """
     Move a single object.
@@ -41,4 +46,61 @@ class MoveObject(ObjectAction):
                 'object_type': object_type.id,
                 'object_id': model.pk,
             }
+        }
+
+
+class RemoveObject(ObjectAction):
+    """
+    Remove a single object from it's container (not delete)
+    """
+    name = 'remove'
+    label = _('Remove')
+    permissions_required = {'remove'}
+    url_kwargs = ['pk']
+    template_name = 'buttons/remove.html'
+
+    @classmethod
+    def get_context(cls, context, model):
+        object_type = ObjectType.objects.get_for_model(model)
+        #user = context['request'].user
+        url_params = super().get_url_params(context)
+        return_url=context.get("return_url")
+        if not return_url:
+            return_url=get_action_url(model, None, False, kwargs={'pk': model.pk})
+        #print(f"{return_url=} / {context.get("csrf_token")=}")
+        return {
+            'return_url': return_url,
+            'object' : model,
+            'csrf_token': context['csrf_token'],
+            'form_data' : {
+                'object_type': object_type.id,
+                'object_id': model.pk,
+            }
+        }
+
+
+
+class MerakiRemoveDeviceFromNetwork(ObjectAction):
+    """
+    Remove a single object from it's container (not delete)
+    """
+    name = 'remove'
+    label = _('Remove')
+    permissions_required = {'remove'}
+    url_kwargs = ['pk']
+    template_name = 'buttons/remove_from_network.html'
+
+    @classmethod
+    def get_context(cls, context, model):
+        object_type = ObjectType.objects.get_for_model(model)
+        #user = context['request'].user
+        #url_params = super().get_url_params(context)
+        return_url=context.get("return_url")
+        if not return_url:
+            return_url=get_action_url(model, None, False, kwargs={'pk': model.pk})
+        #print(f"{return_url=} / {context.get("csrf_token")=}")
+        return {
+            'return_url': return_url,
+            'object' : model,
+            'should_render' : model.meraki_netid,
         }

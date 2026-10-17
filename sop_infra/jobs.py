@@ -50,6 +50,57 @@ class SopMerakiCreateNetworkJob(JobRunnerLogMixin, JobRunner):
         return job
     
 
+class SopMerakiCreateArobaseNetworkJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Create Meraki Networks"
+
+    def run(self, *args, **kwargs):
+        SopMerakiUtils.create_meraki_net_arobase(self, False, kwargs.pop('sopinfra'), kwargs.pop('details'))
+
+    @staticmethod
+    def launch_interactive(request, message:bool, sopinfra:SopInfra, details:bool=False)->Job:
+        job:Job=SopMerakiCreateArobaseNetworkJob.enqueue(user=request.user, immediate=True, sopinfra=sopinfra, details=details, instance=sopinfra)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Created Meraki Networks for site {sopinfra} !')
+            else:
+                messages.error(request, f'Failed to create Meraki Networks for site {sopinfra}, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, sopinfra:SopInfra, details:bool=False)->Job:    
+        job:Job=SopMerakiCreateArobaseNetworkJob.enqueue(user=request.user, sopinfra=sopinfra, details=details, instance=sopinfra)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to create Meraki Networks for site {sopinfra} !')           
+        return job
+    
+
+class SopMerakiCreateTempNetworkJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Create a temporary Meraki Networks"
+
+    def run(self, *args, **kwargs):
+        SopMerakiUtils.create_meraki_net_temporary(self, False, kwargs.pop('sopinfra'), kwargs.pop('details'))
+
+    @staticmethod
+    def launch_interactive(request, message:bool, sopinfra:SopInfra, details:bool=False)->Job:
+        job:Job=SopMerakiCreateTempNetworkJob.enqueue(user=request.user, immediate=True, sopinfra=sopinfra, details=details, instance=sopinfra)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Created Meraki Networks for site {sopinfra} !')
+            else:
+                messages.error(request, f'Failed to create Meraki Networks for site {sopinfra}, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, sopinfra:SopInfra, details:bool=False)->Job:    
+        job:Job=SopMerakiCreateTempNetworkJob.enqueue(user=request.user, sopinfra=sopinfra, details=details, instance=sopinfra)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to create Meraki Networks for site {sopinfra} !')           
+        return job    
+
 
 class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):
 
@@ -176,6 +227,63 @@ class SopMerakiMoveDevicesToNetwork(JobRunnerLogMixin, JobRunner):
         job:Job=SopMerakiMoveDevicesToNetwork.enqueue(instance=destination, user=request.user, immediate=True, devices=smds, destination=destination, force=force)
         if message:
             messages.success(request, f'Queued job to move {len(smds)} devices to network {destination}...')          
+        return job
+
+  
+
+class SopMerakiRemoveDevicesFromNetworkJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Move Meraki Devices to Meraki Network"
+
+    def run(self, *args, **kwargs):
+        # Args
+        devices:list[SopMerakiDevice]=kwargs.pop('devices')
+        # Move
+        result:dict=SopMerakiUtils.remove_devices_from_network(log=self, simulate=False, devices=devices)
+        # report
+        self.job.data=result
+
+
+    @staticmethod
+    def launch_interactive(request, message:bool, smds:list[SopMerakiDevice], source:SopMerakiNet )->Job:
+        #print(f"{smds=}")
+        job:Job=SopMerakiRemoveDevicesFromNetworkJob.enqueue(instance=source, user=request.user, immediate=True, devices=smds)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                result:dict[str, list[str]]=job.data
+                if result is None:
+                    messages.warning(request, f'Job done, but no result !')    
+                else:
+                    msg=""
+                    func=messages.success
+                    no_org=len(result.get("no_org", []))
+                    missing=len(result.get("missing", []))
+                    not_in_net=len(result.get("skipped", []))
+                    removed=len(result.get("removed", []))
+                    if not_in_net>0:
+                        func=messages.warning
+                        msg=f"{msg}, {not_in_net} not in nets"
+                    if no_org>0:
+                        func=messages.warning
+                        msg=f"{msg}, {no_org} without org !"
+                    if missing>0:
+                        func=messages.warning
+                        msg=f"{msg}, {missing} not found"
+                    if removed>0:
+                        func=messages.warning
+                        msg=f"{msg}, {removed} removed"
+                    msg=msg[1:]
+                    func(request, msg)
+            else:
+                messages.error(request, f'Failed to move {len(smds)} devices from network {source}, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, smds:list[SopMerakiDevice], source:SopMerakiNet, force:bool )->Job:
+        job:Job=SopMerakiRemoveDevicesFromNetworkJob.enqueue(instance=source, user=request.user, immediate=True, devices=smds)
+        if message:
+            messages.success(request, f'Queued job to remove {len(smds)} devices from network {source}...')          
         return job
 
   
