@@ -7,7 +7,7 @@ from utilities.urls import get_model_urls
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
 
 from sop_infra.models.infra import SopInfra, SopSwitchTemplate
-from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraRefreshChooseView, SopMerakiCreateArobaseNetworkView, SopMerakiCreateNetworksView, SopMerakiCreateTempNetworkView
+from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraRefreshChooseView, SopMerakiCreateArobaseNetworkView, SopMerakiCreateNetworksView, SopMerakiCreateTempNetworkView, SopMerakiDeleteTempNetworkView
 from sop_infra.views.infra import SopInfraListView, SopInfraDetailView, SopInfraEditView, SopInfraDeleteView, SopInfraRecomputeSizingChooseView
 from sop_infra.views.infra import SopDeviceSettingDetailView, SopDeviceSettingEditView, SopDeviceSettingTryManageInNetbox
 from sop_infra.views.infra import SopSwitchTemplateListView, SopSwitchTemplateDetailView, SopSwitchTemplateEditView, SopSwitchTemplateDeleteView
@@ -85,7 +85,8 @@ urlpatterns = [
     path('sopinfra/create_meraki_networks/<int:pk>/', SopMerakiCreateNetworksView.as_view(), name='sopinfra_create_meraki_networks'),
     path('sopinfra/create_meraki_arobase_network/<int:pk>/', SopMerakiCreateArobaseNetworkView.as_view(), name='sopinfra_create_meraki_arobase_network'),
     path('sopinfra/create_meraki_temp_network/<int:pk>/', SopMerakiCreateTempNetworkView.as_view(), name='sopinfra_create_meraki_temp_network'),
-    #path('sopinfra/claim_meraki_devices/<int:pk>/', SopMerakiClaimDevicesView.as_view(), name='sopinfra_claim_meraki_devices'),
+    path('sopinfra/delete_meraki_temp_network/<int:pk>/', SopMerakiDeleteTempNetworkView.as_view(), name='sopinfra_delete_meraki_temp_network'),
+        #path('sopinfra/claim_meraki_devices/<int:pk>/', SopMerakiClaimDevicesView.as_view(), name='sopinfra_claim_meraki_devices'),
 
   
     # ========================================================================

@@ -100,6 +100,32 @@ class SopMerakiCreateTempNetworkJob(JobRunnerLogMixin, JobRunner):
         if message:
             messages.success(request, f'Started job #{job.pk} to create Meraki Networks for site {sopinfra} !')           
         return job    
+  
+
+class SopMerakiDeleteTempNetworkJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Delete a temporary Meraki Networks"
+
+    def run(self, *args, **kwargs):
+        SopMerakiUtils.delete_meraki_net_temporary(self, False, kwargs.pop('sopinfra'), kwargs.pop('details'))
+
+    @staticmethod
+    def launch_interactive(request, message:bool, sopinfra:SopInfra, details:bool=False)->Job:
+        job:Job=SopMerakiDeleteTempNetworkJob.enqueue(user=request.user, immediate=True, sopinfra=sopinfra, details=details, instance=sopinfra)
+        if message:
+            if job.status==JobStatusChoices.STATUS_COMPLETED:
+                messages.success(request, f'Deleted Meraki Networks for site {sopinfra} !')
+            else:
+                messages.error(request, f'Failed to delete Meraki Networks for site {sopinfra}, see logs for job #{job.pk} !')
+        return job
+    
+    @staticmethod
+    def launch_background(request, message:bool, sopinfra:SopInfra, details:bool=False)->Job:    
+        job:Job=SopMerakiDeleteTempNetworkJob.enqueue(user=request.user, sopinfra=sopinfra, details=details, instance=sopinfra)
+        if message:
+            messages.success(request, f'Started job #{job.pk} to delete Meraki Networks for site {sopinfra} !')           
+        return job    
 
 
 class SopMerakiClaimDevicesToInventoryJob(JobRunnerLogMixin, JobRunner):

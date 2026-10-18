@@ -10,6 +10,7 @@ __all__ = (
     'sopinfra_create_meraki_networks_button',
     'sopinfra_create_meraki_arobase_network_button',
     'sopinfra_create_meraki_temp_network_button',
+    'sopinfra_delete_meraki_temp_network_button',
 )
 
 register = template.Library()
@@ -50,3 +51,15 @@ def sopinfra_create_meraki_temp_network_button(context):
     return {
         'url': url,
     }
+
+
+@register.inclusion_tag('sop_infra/sopinfra/buttons/delete_meraki_temp_network.html', takes_context=True)
+def sopinfra_delete_meraki_temp_network_button(context):
+    instance=context['object']  
+    viewname = 'plugins:sop_infra:sopinfra_delete_meraki_temp_network' 
+    url = reverse(viewname, kwargs={'pk': instance.pk}, query={'details':True, 'return_url':context['request'].get_full_path()})
+    return {
+        'url': url,
+    }
+
+

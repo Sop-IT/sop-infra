@@ -563,6 +563,38 @@ class SopMerakiUtils:
 
 
     @classmethod
+    def delete_meraki_net_temporary(
+        cls, log: JobRunnerLogMixin, simulate: bool, sopinfra: SopInfra, details: bool = False
+    ) -> bool:
+        if log and details:
+            log.log_debug(f"delete_meraki_net_temporary for site {sopinfra}")
+        # Calc Meraki_network name
+        site:Site=sopinfra.site
+        meraki_name = f"{site.group.parent.name}-{site.region.name}-{site.tenant.group.name}#--{site.name}"  # type: ignore
+        # Check if it exists
+        smn:SopMerakiNet=SopMerakiNetUtils.get_by_name(meraki_name)
+        if smn is None:
+            # TODO : fix the network ?
+            log.log_info(f'Meraki network "{meraki_name}" doesn\'t exists !')
+            return False
+        # Get con from dash from org
+        org = smn.org
+        smd: SopMerakiDash = org.dash
+        log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+        conn = cls.connect(smd.nom, smd.api_url, simulate)
+        # Create missing ones
+        log.info(f"Trying to delete network '{meraki_name}'...")
+        conn.networks.deleteNetwork(
+            smn.meraki_id
+        )
+        log.log_debug(f"deleted temporary network {smn=}")
+        # Resync network details
+        smn.delete()
+        if log:
+            log.log_success(f"Done deleting temporary network !")
+
+
+    @classmethod
     def claim_devices_to_inventory(
         cls,  log:JobRunnerLogMixin, simulate: bool, smo: SopMerakiOrg, serials:list[str]
     )-> list[SopMerakiDevice]:
