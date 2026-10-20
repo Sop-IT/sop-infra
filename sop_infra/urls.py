@@ -11,7 +11,7 @@ from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraRefreshChooseView,
 from sop_infra.views.infra import SopInfraListView, SopInfraDetailView, SopInfraEditView, SopInfraDeleteView, SopInfraRecomputeSizingChooseView
 from sop_infra.views.infra import SopDeviceSettingDetailView, SopDeviceSettingEditView, SopDeviceSettingTryManageInNetbox
 from sop_infra.views.infra import SopSwitchTemplateListView, SopSwitchTemplateDetailView, SopSwitchTemplateEditView, SopSwitchTemplateDeleteView
-from sop_infra.views.infra import SopInfraSyncAdUsers,SopInfraJsonExportsAdUsers, SopInfraJsonExportsAdSites
+from sop_infra.views.infra import SopInfraSyncAdUsers,SopInfraJsonExportsAdUsers, SopInfraJsonExportsAdSites, SopInfraJsonExportsMapsSpokes
 
 
 from sop_infra.models.sopmeraki import SopMerakiDash, SopMerakiNet, SopMerakiOrg
@@ -61,7 +61,7 @@ urlpatterns = [
 
     path('jsonexports/adusers', SopInfraJsonExportsAdUsers.as_view(), name='jsonexports_adusers'),
     path('jsonexports/adsites', SopInfraJsonExportsAdSites.as_view(), name='jsonexports_adsites'),
-
+    path('jsonexports/maps/spokes', SopInfraJsonExportsMapsSpokes.as_view(), name='jsonexports_maps_spokes'),
     path('jsonexports/connectivity_statuses/<str:ip>/', SopMerakiJsonConnectivityStatusSite.as_view(), name='jsonexports_connectivity_statuses_ip'),
 
 

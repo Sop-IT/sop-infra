@@ -9,6 +9,9 @@ from django.db.models import Count
 from django.contrib import messages
 from django.contrib.auth.mixins import AccessMixin
 from django.core.exceptions import ValidationError
+from geolib import geohash
+import math
+from operator import itemgetter
 
 from sop_infra.tables.infra import SopSyslogServerTable
 from utilities.views import GetRelatedModelsMixin, register_model_view, ViewTab
@@ -64,6 +67,7 @@ __all__ = (
     # "SopInfraBulkDeleteView",
     "SopInfraJsonExportsAdSites",
     "SopInfraJsonExportsAdUsers",
+    "SopInfraJsonExportsMapsSpokes",
     "SopSwitchTemplateDetailView",
     "SopSwitchTemplateEditView",
     "SopSwitchTemplateDeleteView",
@@ -216,6 +220,50 @@ class SopInfraJsonExportsAdSites(View):
             d["tenant_group"] = pf.scope.tenant.group.slug
             exp.append(d)
         return JsonResponse(exp, safe=False)
+
+
+class SopInfraJsonExportsMapsSpokes(View):
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+
+        group_ids:list[int]=[]
+        for gs in ["spokes", "wait"]:
+            for sg in SiteGroup.objects.filter(slug=gs):
+                group_ids.append(sg.pk)
+                for a in sg.get_descendants():
+                    group_ids.append(a.pk)
+        group : Q =  Q(group_id__in=group_ids)
+        sites = Site.objects.filter(group).exclude(status="retired")
+
+        status_order:dict[str,int] = {
+            "no_infra":1, 
+            "decommissioning":2, 
+            "active":3, 
+            "starting":4, 
+            "staging":5,
+        }
+
+        exp: list[dict[str, str|int]] = []
+        for site in sites:
+            if site.latitude is None or site.longitude is None:
+                continue
+            d: dict[str, str|int] = dict()
+            d["name"] = site.name
+            d["status"] = site.status
+            d["status_order"] = status_order.get(site.status, 0)
+            count=1
+            if site.sopinfra is not None and site.sopinfra.wan_computed_users_wc>0:
+                count=site.sopinfra.wan_computed_users_wc
+            d["wc"]=count
+            count=math.log2(count)*10
+            d["size"] = math.floor(count)
+            d["geohash"] = f"{geohash.encode(site.latitude, site.longitude, 10)}"
+            exp.append(d)
+
+        s = sorted(exp, key=itemgetter('status_order'), reverse=True)     # sort on secondary key
+        s = sorted(s, key=itemgetter('wc'), reverse=True)       # now sort on primary key, descending
+
+        return JsonResponse(s, safe=False)
 
 
 
