@@ -256,7 +256,7 @@ class SopInfraJsonExportsMapsSpokes(View):
                 count=site.sopinfra.wan_computed_users_wc
             d["wc"]=count
             count=math.log2(count)*10
-            d["size"] = math.floor(count)
+            d["size"] = math.floor(count)/10
             d["geohash"] = f"{geohash.encode(site.latitude, site.longitude, 10)}"
             exp.append(d)
 
