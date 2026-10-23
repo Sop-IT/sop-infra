@@ -553,6 +553,36 @@ class SopMerakiNetRefreshJob(JobRunnerLogMixin, JobRunner):
         return SopMerakiNetRefreshJob.enqueue(nets=nets, details=details)
 
 
+class SopMerakiDeviceAvailabilitiesJob(JobRunnerLogMixin, JobRunner):
+
+    class Meta: # type: ignore
+        name = "Refresh Meraki Device Availabilities"
+
+    def run(self, *args, **kwargs):
+        job:Job=self.job
+        obj = job.object
+        try:
+            SopMerakiUtils.update_device_availability_dashboards(self, settings.DEBUG, kwargs.pop('dashs', None), kwargs.pop('details', False))
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            text="An exception occurred: "+ f"`{type(e).__name__}: {e}`\n```\n{stacktrace}\n```"
+            self.log_failure(text)
+            self.job.error = text
+            raise
+        # finally:
+        #     self.job.data = self.get_job_data()       
+        # Cleanup all completed but last 3
+        for j in Job.objects.filter(name=self.Meta.name).filter(status="completed")[3:]:
+            j.delete() 
+
+    @staticmethod
+    def launch_manual(dashs:list[SopMerakiDash], details:bool)->Job:
+        if settings.DEBUG:
+            return SopMerakiDeviceAvailabilitiesJob.enqueue(immediate=True, dashs=dashs, details=details)
+        return SopMerakiDeviceAvailabilitiesJob.enqueue(dashs=dashs, details=details)
+    
+
+
 class SopMerakiDashUpdateConnectivyStatusesJob(JobRunnerLogMixin, JobRunner):
 
     class Meta: # type: ignore

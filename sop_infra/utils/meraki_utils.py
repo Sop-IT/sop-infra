@@ -289,7 +289,39 @@ class SopMerakiUtils:
                 if smn.meraki_id not in ids:
                     log.info(f"Deleting inexistent NET {smn.meraki_id} / {smn.nom}")
                     smn.delete()
-                
+ 
+
+    @classmethod
+    def update_device_availability_dashboards(
+        cls, log: JobRunnerLogMixin, simulate: bool, dashs: list[SopMerakiDash], details: bool = False
+    ):
+        if dashs is None or len(dashs) == 0:
+            dashs = SopMerakiDash.objects.all()  # type: ignore
+        smd:SopMerakiDash
+        for smd in dashs:
+            if log:
+                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+            conn = cls.connect(smd.nom, smd.api_url, simulate)
+            if log:
+                log.info(f"Trying to update availability for '{smd.nom}'")
+            SopMerakiDashUtils.update_device_avalability(smd, conn, log, details)             
+
+
+    @classmethod
+    def update_device_availability_organisation(
+        cls, log: JobRunnerLogMixin, simulate: bool, orgs: list[SopMerakiOrg], details: bool = False
+    ):
+        if orgs is None or len(orgs) == 0:
+            orgs = SopMerakiOrg.objects.all()  # type: ignore
+        smo:SopMerakiOrg
+        for smo in orgs:
+            smd:SopMerakiDash=smo.dash
+            if log:
+                log.info(f"Trying to connect to '{smd.nom}' via url '{smd.api_url}'...")
+            conn = cls.connect(smd.nom, smd.api_url, simulate)
+            if log:
+                log.info(f"Trying to refresh availability for '{smo}'")
+            SopMerakiOrgUtils.update_device_avalability(smo, conn, log, details)
 
 
     @classmethod
@@ -2001,6 +2033,42 @@ class SopMerakiDeviceUtils:
             "removed": removed,
         }  
 
+    # @staticmethod
+    # def update_device_availability(
+    #     smd: SopMerakiDevice,
+    #     conn: meraki.DashboardAPI,
+    #     dash: SopMerakiDash,
+    #     log: JobRunnerLogMixin,
+    #     details: bool,
+    # ):
+    #     vpn_status_data:dict
+    #     try:
+    #         vpn_status_data=conn.appliance.getOrganizationApplianceVpnStatuses(smn.org.meraki_id, total_pages=-1, networkIds=[smn.meraki_id])
+    #     except meraki.exceptions.APIError as ex:
+    #         raise ex  
+    #     if len(vpn_status_data)!=1:
+    #         raise Exception(f"Wrong number of networks returned {len(vpn_status_data)}")
+    #     SopMerakiNetUtils.update_vpn_statuses_from_data(smn, vpn_status_data[0], log)
+
+
+    @staticmethod
+    def update_device_availability_from_data(
+        smd: SopMerakiDevice,
+        dev_stat:dict,
+        log: JobRunnerLogMixin,
+    ):
+        save:bool= False
+        # -- status
+        status:str = dev_stat.get("status", "")
+        if status != smd.meraki_status:
+            smd.meraki_status=status
+            save=True
+        # check to save
+        if save:
+            smd.full_clean()
+            smd.save()
+
+
 class SopMerakiSwitchStackUtils:
     @staticmethod
     def create_or_refresh(
@@ -2399,6 +2467,45 @@ class SopMerakiOrgUtils:
             else:
                 #print(f"vpn_statuses_from_meraki_data {net.nom=} UNCHANGED")    
                 pass
+
+    
+    @staticmethod
+    def update_device_avalability(
+        smo: SopMerakiOrg,
+        conn: meraki.DashboardAPI,
+        log: JobRunnerLogMixin,
+        details: bool,
+    ):
+        availability_data:dict
+        try:
+            availability_data=conn.organizations.getOrganizationDevicesAvailabilities(smo.meraki_id, total_pages=-1)
+        except meraki.exceptions.APIError as ex:
+            if ex.status==400:
+                if log :
+                    log.log_info(f"No device availability for Organization {smo.nom}")
+            else:
+                raise ex  
+        else:
+            SopMerakiOrgUtils.update_device_avalability_from_data(smo, conn, availability_data, log, details)
+
+
+    @staticmethod
+    def update_device_avalability_from_data(
+        smo: SopMerakiOrg,
+        conn: meraki.DashboardAPI,
+        availability_data:dict,
+        log: JobRunnerLogMixin,
+        details: bool,
+    ):
+        dev_data:dict
+        for dev_data in availability_data:
+            serial:str=dev_data.get("serial","0000-0000-0000")
+            devs=SopMerakiDevice.objects.filter(serial=serial)
+            if devs.count()==0:
+                # May be this device hasn't been synced yet to the DB, skip it
+                continue
+            SopMerakiDeviceUtils.update_device_availability_from_data(devs[0], dev_data, log)
+
     
     @staticmethod
     def update_uplink_statuses(
@@ -2543,5 +2650,20 @@ class SopMerakiDashUtils:
             SopMerakiOrgUtils.update_uplink_statuses(smo, conn, smd, log, details)
         if log:
             log.info(f"Done getting Uplink statuses for '{smd.nom}' !")       
+
+    @staticmethod
+    def update_device_avalability(
+        smd:SopMerakiDash, conn: meraki.DashboardAPI, log: JobRunnerLogMixin, details: bool
+    ):
+        if log:
+            log.info(f"Getting availability for '{smd.nom}' !")        
+        smo:SopMerakiOrg
+        for smo in smd.orgs.all():
+            if log:
+                log.info(f"Getting availability for '{smd.nom} / {smo.nom}'...")
+            SopMerakiOrgUtils.update_device_avalability(smo, conn, log, details)
+        if log:
+            log.info(f"Done getting availability for '{smd.nom}' !")       
+
 
 #endregion

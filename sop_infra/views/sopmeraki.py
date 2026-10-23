@@ -45,6 +45,7 @@ from sop_infra.jobs import (
     SopMerakiCreateNetworkJob,
     SopMerakiDashRefreshJob,
     SopMerakiDashUpdateConnectivyStatusesJob,
+    SopMerakiDeviceAvailabilitiesJob,
     SopMerakiEnableUmbrellaJob,
     SopMerakiLinkSiteToUmbrellaJob,
     SopMerakiMoveDevicesToNetwork,
@@ -588,6 +589,23 @@ class SopMerakiDashRefreshChooseView(View, ObjectPermissionRequiredMixin):
             # Send to script result
             url = reverse("core:job", args=[j.pk])
             return redirect(url)
+
+        
+class SopMerakiDashUpdateAvailabilitiesView(View, ObjectPermissionRequiredMixin):
+    # TODOPERM
+    def post(self, request, pk, *args, **kwargs):
+
+        instance = get_object_or_404(SopMerakiDash, pk=pk)
+
+        if not SopUtils.check_permission(request.user, instance, "refresh"):
+            return self.handle_no_permission()
+
+        # Launch job
+        j: Job = SopMerakiDeviceAvailabilitiesJob.launch_manual(dashs=[instance], details=False)
+
+        # Send to script result
+        url = reverse("core:job", args=[j.pk])
+        return redirect(url)
 
 
 class SopMerakiDashRefreshView(View, ObjectPermissionRequiredMixin):
