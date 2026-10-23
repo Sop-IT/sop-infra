@@ -4,10 +4,10 @@ from netbox.jobs import system_job
 from sop_infra.jobs import SopMerakiDeviceAvailabilitiesJob
 
 @system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY*15)
-class SopMerakiDashAutoUpdateConnectivityStatusesJob(SopMerakiDeviceAvailabilitiesJob):
+class SopMerakiAutoUpdateAvailabilityJob(SopMerakiDeviceAvailabilitiesJob):
 
     class Meta:  # type: ignore
-        name = "Auto Update Connectivity Statuses Meraki dashboards, only in prod"
+        name = "Auto Update device availabilities, only in prod"
 
     def run(self, *args, **kwargs):
 

@@ -1,6 +1,5 @@
 from netbox.plugins import PluginConfig
 
-
 class SopInfraConfig(PluginConfig):
     name = "sop_infra"
     verbose_name = "SOP Infra"
@@ -13,8 +12,10 @@ class SopInfraConfig(PluginConfig):
 
     def ready(self):
         super().ready()
+        from sop_infra.auto_jobs.meraki_device_availabilities import SopMerakiAutoUpdateAvailabilityJob
         from sop_infra.auto_jobs.dash_ref_job import SopMerakiDashAutoRefreshJob
         from sop_infra.auto_jobs.dash_connectivitystatuses_job import SopMerakiDashAutoUpdateConnectivityStatusesJob
         from sop_infra.auto_jobs.sync_ad_users import SopAutoSyncAdUsers
+        
 
 config = SopInfraConfig
