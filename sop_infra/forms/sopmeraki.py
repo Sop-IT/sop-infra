@@ -107,6 +107,8 @@ class SopMerakiNetFilterForm(NetBoxModelFilterSetForm):
     bound_to_template = forms.BooleanField(required=False)
     meraki_url = forms.CharField(required=False)
     meraki_notes = forms.CharField(required=False)
+    # TODO choices
+    meraki_status = forms.CharField(required=False)
     meraki_id = forms.CharField(required=False)
     # TODO ptypes
     # TODO meraki_tags

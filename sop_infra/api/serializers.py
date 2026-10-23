@@ -323,6 +323,7 @@ class SopMerakiDeviceSerializer(NetBoxModelSerializer):
             "firmware",
             "meraki_details",
             "meraki_notes",
+            "meraki_status",
             "ptype",
             "meraki_tags",
             "site",

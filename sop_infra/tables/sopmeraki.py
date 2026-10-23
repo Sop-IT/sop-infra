@@ -183,6 +183,7 @@ class SopMerakiDeviceTable(NetBoxTable):
             "serial",
             "meraki_netid",
             "meraki_notes",
+            "meraki_status",
             "meraki_network",
             "ptype",
             "meraki_tags",
@@ -216,6 +217,7 @@ class SopMerakiDeviceTable(NetBoxTable):
         default_columns = (
             "nom",
             "serial",
+            "meraki_status",
             "site",
             "org",
             "meraki_network",

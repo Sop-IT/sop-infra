@@ -263,6 +263,7 @@ class SopMerakiDeviceFilterSet(NetBoxModelFilterSet):
             "mac",
             "meraki_netid",
             "meraki_notes",
+            "meraki_status",
             "ptype",
             "meraki_tags",
             "meraki_details",

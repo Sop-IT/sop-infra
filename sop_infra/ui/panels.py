@@ -16,6 +16,7 @@ class SopMerakiDevicePanel(panels.ObjectAttributesPanel):
     mac = attrs.TextAttr('mac', copy_button=True) 
     firmware = attrs.TextAttr('firmware')
     meraki_notes = attrs.TextAttr('meraki_notes', copy_button=True)
+    meraki_status = attrs.TextAttr('meraki_status')
     meraki_tags = attrs.TextAttr('meraki_tags')
     meraki_details = attrs.TextAttr('meraki_details')
     meraki_url = sopattrs.LinkAttr('meraki_url')

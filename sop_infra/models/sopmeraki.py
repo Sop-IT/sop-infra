@@ -401,6 +401,7 @@ class SopMerakiDevice(
         null=True,
     )
     meraki_url = models.URLField(null=True, blank=True)
+    meraki_status = models.CharField(max_length=50, null=True, blank=True)
     firmware = models.CharField(
         max_length=50,
         null=True,
