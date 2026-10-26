@@ -7,7 +7,7 @@ from utilities.urls import get_model_urls
 from netbox.views.generic import ObjectChangeLogView, ObjectJournalView
 
 from sop_infra.models.infra import SopInfra, SopSwitchTemplate
-from sop_infra.views.infra import SopInfraHelperDhcp, SopInfraRefreshChooseView, SopMerakiCreateArobaseNetworkView, SopMerakiCreateNetworksView, SopMerakiCreateTempNetworkView, SopMerakiDeleteTempNetworkView
+from sop_infra.views.infra import SopInfraPlainExportsIndusPfxs, SopInfraPlainExportsUsersPfxs, SopInfraHelperDhcp, SopInfraRefreshChooseView, SopMerakiCreateArobaseNetworkView, SopMerakiCreateNetworksView, SopMerakiCreateTempNetworkView, SopMerakiDeleteTempNetworkView
 from sop_infra.views.infra import SopInfraListView, SopInfraDetailView, SopInfraEditView, SopInfraDeleteView, SopInfraRecomputeSizingChooseView
 from sop_infra.views.infra import SopDeviceSettingDetailView, SopDeviceSettingEditView, SopDeviceSettingTryManageInNetbox
 from sop_infra.views.infra import SopSwitchTemplateListView, SopSwitchTemplateDetailView, SopSwitchTemplateEditView, SopSwitchTemplateDeleteView
@@ -63,6 +63,9 @@ urlpatterns = [
     path('jsonexports/adsites', SopInfraJsonExportsAdSites.as_view(), name='jsonexports_adsites'),
     path('jsonexports/maps/spokes', SopInfraJsonExportsMapsSpokes.as_view(), name='jsonexports_maps_spokes'),
     path('jsonexports/connectivity_statuses/<str:ip>/', SopMerakiJsonConnectivityStatusSite.as_view(), name='jsonexports_connectivity_statuses_ip'),
+
+    path('plainexports/indus_pfxs', SopInfraPlainExportsIndusPfxs.as_view(), name='csvexports_indus_pfxs'),
+    path('plainexports/users_pfxs', SopInfraPlainExportsUsersPfxs.as_view(), name='csvexports_indus_pfxs'),
 
 
     # ========================================================================

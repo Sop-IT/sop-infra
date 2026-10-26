@@ -1,6 +1,6 @@
 import json
 from django.db import transaction
-from django.http import Http404, HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
@@ -265,6 +265,70 @@ class SopInfraJsonExportsMapsSpokes(View):
 
         return JsonResponse(s, safe=False)
 
+
+class SopInfraPlainExportsIndusPfxs(View):
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+
+        status: Q = Q(
+            Q(status="active") | Q(status="noncompliant") | Q(status="decommissioning")
+        )
+        role: Q = Q(role__slug="ind")
+        scope_type: Q = Q(
+            scope_type_id=NetboxConstants.get_ct_dcim_site().pk
+        )
+        vrf: Q = Q(vrf_id=None)
+        #vlan: Q = ~Q(vlan_id=None)
+        #visible: Q = Q(custom_field_data__meraki_visible=True)
+        
+        #vlan_role: Q = Q(vlan__role__slug="usr")
+        pfs = Prefix.objects.filter(
+            status, role, 
+            vrf, 
+            scope_type, 
+            #vlan_role,
+            #vlan, 
+            #visible, 
+        )
+
+        response = HttpResponse(content_type="text/plain")
+        for pf in pfs:
+            if not f"{pf.prefix}".startswith("10.12."):
+                response.write(content=f"{pf.prefix}\n")
+
+        return response
+
+
+class SopInfraPlainExportsUsersPfxs(View):
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+
+        status: Q = Q(
+            Q(status="active") | Q(status="noncompliant") | Q(status="decommissioning")
+        )
+        role: Q = Q(role__slug="usr")
+        scope_type: Q = Q(
+            scope_type_id=NetboxConstants.get_ct_dcim_site().pk
+        )
+        vrf: Q = Q(vrf_id=None)
+        #vlan: Q = ~Q(vlan_id=None)
+        #visible: Q = Q(custom_field_data__meraki_visible=True)
+        
+        #vlan_role: Q = Q(vlan__role__slug="usr")
+        pfs = Prefix.objects.filter(
+            status, role, 
+            vrf, 
+            scope_type, 
+            #vlan_role,
+            #vlan, 
+            #visible, 
+        )
+
+        response = HttpResponse(content_type="text/plain")
+        for pf in pfs:
+            response.write(content=f"{pf.prefix}\n")
+
+        return response
 
 
 
